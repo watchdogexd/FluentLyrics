@@ -149,6 +149,7 @@ class LyricsCacheService {
     final isar = await _db;
     await isar.writeTxn(() async {
       await isar.lyricCaches.clear();
+      await isar.translationCaches.clear();
     });
   }
 
@@ -210,6 +211,13 @@ class LyricsCacheService {
     );
     await isar.writeTxn(() async {
       await isar.translationCaches.put(cache);
+    });
+  }
+
+  Future<void> clearTranslationCache(String cacheId) async {
+    final isar = await _db;
+    await isar.writeTxn(() async {
+      await isar.translationCaches.filter().cacheIdEqualTo(cacheId).deleteAll();
     });
   }
 

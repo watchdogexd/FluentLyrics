@@ -544,6 +544,16 @@ class LyricsProvider with ChangeNotifier {
         _currentMetadata!.album,
         _currentMetadata!.duration.inSeconds,
       );
+      if (_lyricsResult.subLyrics != null &&
+          _lyricsResult.subLyrics!.language != null) {
+        await _cacheService.clearTranslationCache(
+          _cacheService.generateTranslationCacheId(
+            _currentMetadata!.title,
+            _currentMetadata!.artist,
+            _lyricsResult.subLyrics!.language!,
+          ),
+        );
+      }
       if (_currentMetadata != null) {
         // Force the fetching logic to re-search for artwork by resetting to 'fallback'.
         final systemMetadata = mediaService.metadata;
