@@ -42,6 +42,7 @@ class LlmTranslationService {
       // 2. Construct Prompt
       final prompt =
           'You are a professional translator. Translate the following song lyrics into $targetLanguage. '
+          'The song is: ${data.title} by ${data.artist}.'
           ''
           'REQUIREMENTS:'
           '  - Your response MUST be ONLY a raw JSON array of strings. The array must contain exactly ${linesToTranslate.length} strings, corresponding one-to-one with the input lines. Do not return markdown code blocks, just the raw JSON. '
