@@ -357,7 +357,9 @@ class LinuxMediaService extends MediaService implements MediaController {
               validPlayers.add(player);
             }
           }
-        } catch (e) {}
+        } catch (e) {
+          // ignore
+        }
       }
 
       if (validPlayers.isEmpty) {
@@ -488,8 +490,9 @@ class LinuxMediaService extends MediaService implements MediaController {
     final playerBusName = await _getBestPlayer();
     if (playerBusName == null ||
         _currentTrackId == null ||
-        _currentTrackId!.isEmpty)
+        _currentTrackId!.isEmpty) {
       return;
+    }
 
     final object = DBusRemoteObject(
       _client,
@@ -601,7 +604,9 @@ class AndroidMediaService extends MediaService implements MediaController {
         _controlAbility = newAbility;
         notifyListeners();
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Failed to get media info: $e');
+    }
   }
 
   @override

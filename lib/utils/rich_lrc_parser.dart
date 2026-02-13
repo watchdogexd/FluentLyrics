@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../models/lyric_model.dart';
+import 'package:flutter/foundation.dart';
 
 class MusixmatchRichParser {
   static List<Lyric> parse(String jsonString) {
@@ -53,7 +54,7 @@ class MusixmatchRichParser {
         );
       }).toList();
     } catch (e) {
-      print('Error parsing Musixmatch rich sync: $e');
+      debugPrint('Error parsing Musixmatch rich sync: $e');
       return [];
     }
   }

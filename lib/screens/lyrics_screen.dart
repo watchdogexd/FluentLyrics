@@ -561,7 +561,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '$offsetText',
+                        offsetText,
                         style: TextStyle(
                           color: Colors.white.withAlpha(150),
                           fontSize: 10,
