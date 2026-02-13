@@ -10,6 +10,19 @@ import '../settings_service.dart';
 
 class MusixmatchService {
   bool checkTranslationSupport(String language) {
+    // musixmatch only accept lowercase input
+    String lowercaseLanguage = language.toLowerCase();
+    if (lowercaseLanguage != language) {
+      return false;
+    }
+    // musixmatch's Chinese Traditional is 'zht'
+    if (lowercaseLanguage == 'zht') {
+      return true;
+    }
+    // according to ISO 639-1, max length is 2
+    if (lowercaseLanguage.length > 2) {
+      return false;
+    }
     return true;
   }
 
