@@ -45,6 +45,7 @@ class LlmTranslationService {
           'The song is: ${data.title} by ${data.artist}.'
           ''
           'REQUIREMENTS:'
+          '  - If the source language is same as target language, like English to English, ONLY return the word "SKIP" in plain.'
           '  - Your response MUST be ONLY a raw JSON array of strings. The array must contain exactly ${linesToTranslate.length} strings, corresponding one-to-one with the input lines. Do not return markdown code blocks, just the raw JSON. '
           '  - If a line is empty or instrumental, return an empty string for it.'
           'TRANSLATION GUIDELINES:'
@@ -89,6 +90,14 @@ class LlmTranslationService {
 
       final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
       final content = jsonResponse['choices']?[0]?['message']?['content'];
+
+      if (content == 'SKIP') {
+        return LyricsResult(
+          lyrics: originalLyrics,
+          source: 'SKIPPED',
+          translation: false,
+        );
+      }
 
       if (content == null) {
         return LyricsResult.empty();

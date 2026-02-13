@@ -243,6 +243,14 @@ class LyricsService {
             .join('\n'),
       );
 
+      // check if source == target
+      if (bestResult.language != null &&
+          targetLanguages.contains(bestResult.language)) {
+        debugPrint(
+          'Target language contains source language, skipping translation',
+        );
+        return;
+      }
       // Iterate translation providers
       for (var targetLanguage in targetLanguages) {
         LyricsResult? transResult;
@@ -284,7 +292,8 @@ class LyricsService {
           }
           // Add other providers here if they support fetchTranslation
 
-          if (transResult == null || !transResult.translation) {
+          if (transResult == null ||
+              !(transResult.translation || transResult.source == 'SKIPPED')) {
             debugPrint('Failed to fetch translation from $tProvider');
             transResult = null;
             continue;
@@ -292,7 +301,7 @@ class LyricsService {
             // New translation found, cache it if enabled
             if (cacheEnabled &&
                 tProvider != LyricProviderType.cache &&
-                transResult.translation) {
+                (transResult.translation || transResult.source == 'SKIPPED')) {
               final cacheId = _cacheService.generateTranslationCacheId(
                 title,
                 artist,
@@ -311,6 +320,9 @@ class LyricsService {
           // Update bestResult with new translation
           bestResult = bestResult!.copyWith(subLyrics: transResult);
           yield _processTranslation(bestResult, translationBias);
+          break;
+        } else if (transResult != null && transResult.source == 'SKIPPED') {
+          debugPrint('Translation skipped by provider');
           break;
         }
       }
