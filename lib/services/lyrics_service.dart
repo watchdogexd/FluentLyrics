@@ -259,17 +259,21 @@ class LyricsService {
             );
           } else if (tProvider == LyricProviderType.netease &&
               _neteaseService.checkTranslationSupport(targetLanguage)) {
+            debugPrint('Fetching translation from Netease');
             transResult = await _neteaseService.fetchTranslation(requestData);
           } else if (tProvider == LyricProviderType.qqmusic &&
               _qqMusicService.checkTranslationSupport(targetLanguage)) {
+            debugPrint('Fetching translation from QQMusic');
             transResult = await _qqMusicService.fetchTranslation(requestData);
           } else if (tProvider == LyricProviderType.musixmatch &&
               _musixmatchService.checkTranslationSupport(targetLanguage)) {
+            debugPrint('Fetching translation from Musixmatch');
             transResult = await _musixmatchService.fetchTranslation(
               requestData,
               targetLanguage,
             );
           } else if (tProvider == LyricProviderType.llm) {
+            debugPrint('Fetching translation from LLM');
             transResult = await _llmService.fetchTranslation(
               requestData,
               targetLanguage,
