@@ -41,29 +41,55 @@ class LlmTranslationService {
 
       // 2. Construct Prompt
       final prompt =
-          'You are a professional translator. Translate the following song lyrics into $targetLanguage. '
-          'The song is: ${data.title} by ${data.artist}.'
-          ''
-          'REQUIREMENTS:'
-          '  - If the source language is same as target language, like English to English, ONLY return the word "SKIP" in plain.'
-          '  - Your response MUST be ONLY a raw JSON array of strings. The array must contain exactly ${linesToTranslate.length} strings, corresponding one-to-one with the input lines. Do not return markdown code blocks, just the raw JSON. '
-          '  - If a line is empty or instrumental, return an empty string for it.'
-          'TRANSLATION GUIDELINES:'
-          '  - Preserve the emotional tone and poetic style of the original lyrics'
-          '  - Adapt cultural-specific terms naturally'
-          '  - Maintain rhythm and singability where possible'
-          '  - Prioritize faithfulness, expressiveness, and elegance'
-          'FORBIDDEN:'
-          '  - DO NOT add explanations before or after the JSON'
-          '  - DO NOT use markdown code blocks (```'
-          '  - DO NOT include any text outside the JSON object'
-          '  - DO NOT add comments or notes';
+          '''
 
-      final messages = [
-        {'role': 'system', 'content': prompt},
-        {'role': 'user', 'content': jsonEncode(linesToTranslate)},
-      ];
+Song Metadata:
+Title: ${data.title}
+Artist: ${data.artist}
 
+Requirements:
+1. The output MUST be a raw JSON (see definition below).
+2. Preserve the poetic style, emotional tone, and rhythm.
+3. If a line is empty or instrumental, return an empty string.
+4. DO NOT use Markdown formatting (no codeblock like \\`\\`\\`json). Output raw JSON only.
+5. DO NOT add comments or notes.
+
+Target Language: $targetLanguage
+Instructions:
+1. Detect the source language of the lyrics.
+2. If translation is not needed (eg. the source language is the same as the target language), return "SKIP".
+3. If the source language is different from the target language, 
+   translate the lyrics to the target language following the structure
+
+Fake code of this instructions:
+```typescript
+const linesToTranslate: string[] = ${jsonEncode(linesToTranslate)}
+
+type TranslatedLine = {original: string, translated: string};
+function Translate(
+  lyrics: string[], 
+  sourceLanguage: string, 
+  targetLanguage: string
+): TranslatedLine[] {
+  if (sourceLanguage == targetLanguage) {
+    return ["SKIP"];
+  } else {
+    return lyrics.map((line) => {original: line, translated: translateLine(line)});
+  }
+}
+const sourceLanguage = detectSourceLanguage(linesToTranslate);
+return new Response(
+  JSON.stringify(
+    {
+      translation: Translate(linesToTranslate, sourceLanguage, targetLanguage),
+      metadata: {
+        sourceLanguage: sourceLanguage,
+        targetLanguage: targetLanguage,
+      }
+    }
+  )
+);
+''';
       // 3. Call LLM API
       final response = await http.post(
         Uri.parse(endpoint),
@@ -73,13 +99,19 @@ class LlmTranslationService {
         },
         body: jsonEncode({
           'model': model.isNotEmpty ? model : 'openai/gpt-oss-120b',
-          'messages': messages,
-          'temperature': 0.3,
+          'messages': [
+            {
+              'role': 'system',
+              'content':
+                  'You are a professional translator specialized in song lyrics.',
+            },
+            {'role': 'user', 'content': prompt},
+          ],
+          'temperature': 0.35,
+          'stream': false,
+          'max_tokens': 1000000,
         }),
       );
-      // final response = await http.get(
-      //   Uri.parse("http://localhost:3000/1.json"),
-      // );
 
       if (response.statusCode != 200) {
         debugPrint(
@@ -91,19 +123,20 @@ class LlmTranslationService {
       final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
       final content = jsonResponse['choices']?[0]?['message']?['content'];
 
-      if (content == 'SKIP') {
+      if (content == null) {
+        return LyricsResult.empty();
+      }
+
+      String cleanContent = content.trim();
+
+      // Handle SKIP response (case-insensitive and trimmed)
+      if (cleanContent.toUpperCase() == 'SKIP') {
         return LyricsResult(
           lyrics: originalLyrics,
           source: 'SKIPPED',
           translation: false,
         );
       }
-
-      if (content == null) {
-        return LyricsResult.empty();
-      }
-
-      String cleanContent = content.trim();
       // Remove markdown code blocks if present
       if (cleanContent.startsWith('```json')) {
         cleanContent = cleanContent.substring(7);
@@ -115,9 +148,9 @@ class LlmTranslationService {
       }
       cleanContent = cleanContent.trim();
 
-      List<dynamic> translatedLines;
+      dynamic translatedLines;
       try {
-        translatedLines = jsonDecode(cleanContent);
+        translatedLines = jsonDecode(cleanContent)['translation'];
       } catch (e) {
         debugPrint(
           'LLM Translation JSON Parse Error: $e\nContent: $cleanContent',
@@ -125,28 +158,42 @@ class LlmTranslationService {
         return LyricsResult.empty();
       }
 
-      if (translatedLines.length != originalLyrics.length) {
-        debugPrint(
-          'LLM Translation Mismatch: Input ${originalLyrics.length} vs Output ${translatedLines.length}',
+      // Handle SKIP response (case-insensitive and trimmed)
+      if ((translatedLines is String &&
+              translatedLines.toUpperCase() == 'SKIP') ||
+          (translatedLines is List &&
+              translatedLines.length == 1 &&
+              translatedLines[0].toString().toUpperCase() == 'SKIP')) {
+        return LyricsResult(
+          lyrics: originalLyrics,
+          source: 'SKIPPED',
+          translation: false,
         );
-        debugPrint('originalLyrics: $originalLyrics');
+      }
+
+      if (translatedLines is! List) {
+        debugPrint(
+          'LLM Translation Error: Model produced malformed JSON. Expected List or "SKIP", got $translatedLines',
+        );
+        return LyricsResult.empty();
+      }
+
+      if (translatedLines.length != linesToTranslate.length) {
+        debugPrint(
+          'LLM Translation Mismatch: Input ${linesToTranslate.length} vs Output ${translatedLines.length}',
+        );
+        debugPrint('originalLyrics: $linesToTranslate');
         debugPrint('translatedLines: $translatedLines');
-        // Fallback: Try to map as many as possible or abort?
-        // If mismatch is small, maybe just map min length.
-        // But safe to return empty for now to avoid bad sync.
-        // Actually, let's map min length.
       }
 
       final List<Lyric> newLyrics = [];
-      final count = translatedLines.length < originalLyrics.length
+      final count = translatedLines.length < linesToTranslate.length
           ? translatedLines.length
-          : originalLyrics.length;
+          : linesToTranslate.length;
 
       for (int i = 0; i < count; i++) {
         final original = originalLyrics[i];
-        final translation = translatedLines[i].toString();
-        // We set the TEXT to the translation, because this result will be used as subLyrics (translation)
-        // logic in lyrics_service sets subLyrics = transResult
+        final translation = translatedLines[i]['translated'];
         newLyrics.add(
           Lyric(
             startTime: original.startTime,
