@@ -221,16 +221,18 @@ class _RichPartState extends State<_RichPart>
               Text(
                 widget.text,
                 style: widget.style.copyWith(
-                  color: Colors.white.withValues(alpha: 0.55),
+                  color: isShort && isLifting
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.55),
                 ),
               ),
-              if (isLifting)
+              if (isLifting && !isShort)
                 Positioned.fill(
                   child: CustomPaint(
                     painter: _KaraokeTextPainter(
                       text: widget.text,
                       style: widget.style,
-                      progress: isShort ? 1.0 : progress,
+                      progress: progress,
                       textScaler: MediaQuery.textScalerOf(context),
                     ),
                   ),
