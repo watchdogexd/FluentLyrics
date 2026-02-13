@@ -166,6 +166,7 @@ class MusixmatchService {
           String? writtenBy;
           String? copyright;
           bool isPureMusic = isInstrumental;
+          String? language;
 
           if (trackSubtitles != null &&
               trackSubtitles['message']['header']['status_code'] == 200) {
@@ -181,8 +182,11 @@ class MusixmatchService {
               if (subtitleList != null && subtitleList.isNotEmpty) {
                 final subtitle = subtitleList[0]['subtitle'];
                 final lrc = subtitle['subtitle_body'];
-                final copyrightText = subtitle['lyrics_copyright'] as String?;
 
+                language = subtitle['subtitle_language'];
+                language = language == 'z1' ? 'zht' : language;
+
+                final copyrightText = subtitle['lyrics_copyright'] as String?;
                 if (copyrightText != null && copyrightText.isNotEmpty) {
                   final lines = copyrightText.split('\n');
                   for (var line in lines) {
@@ -220,6 +224,7 @@ class MusixmatchService {
 
           return LyricsResult(
             lyrics: lyrics,
+            language: language,
             source: 'Musixmatch',
             writtenBy: writtenBy,
             copyright: copyright,
