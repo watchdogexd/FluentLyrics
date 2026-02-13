@@ -73,17 +73,23 @@ class LyricLine extends StatelessWidget {
               child: Builder(
                 builder: (context) {
                   final mainText = _buildText(context, lyricsProvider);
-                  if (lyric.translation == null) return mainText;
+                  if (lyric.translation == null ||
+                      (lyricsProvider.translationHighlightOnly.current &&
+                          !isHighlighted)) {
+                    return mainText;
+                  }
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       mainText,
-                      isHighlighted
+                      isHighlighted ||
+                              !lyricsProvider.translationHighlightOnly.current
                           ? const SizedBox(width: double.infinity, height: 8)
                           : const SizedBox(width: double.infinity, height: 0),
-                      isHighlighted
+                      isHighlighted ||
+                              !lyricsProvider.translationHighlightOnly.current
                           ? AnimatedOpacity(
                               duration: const Duration(milliseconds: 500),
                               curve: Curves.easeOutQuart,

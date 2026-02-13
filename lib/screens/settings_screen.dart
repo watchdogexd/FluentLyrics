@@ -473,6 +473,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             if (provider.translationEnabled.current) ...[
               const SizedBox(height: 24),
+              // Highlight Only
+              SettingsToggleCard(
+                title: 'Show Translation Only When Highlighted',
+                subtitle: 'Hide translation for non-active lines.',
+                value: provider.translationHighlightOnly.current,
+                onChanged: (value) =>
+                    provider.setTranslationHighlightOnly(value),
+              ),
+              const SizedBox(height: 24),
               // Target Language
               Container(
                 padding: const EdgeInsets.all(20),

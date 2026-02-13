@@ -278,6 +278,8 @@ class SettingsService {
   }
 
   static const String _translationEnabledKey = 'translation_enabled';
+  static const String _translationHighlightOnlyKey =
+      'translation_highlight_only';
   static const String _translationTargetLanguagesKey =
       'translation_target_languages';
 
@@ -295,6 +297,23 @@ class SettingsService {
   Future<void> setTranslationEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_translationEnabledKey, enabled);
+  }
+
+  Future<Setting<bool>> getTranslationHighlightOnly() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getBool(_translationHighlightOnlyKey) ??
+        AppDefaults.translationHighlightOnly;
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.translationHighlightOnly,
+      changed: current != AppDefaults.translationHighlightOnly,
+    );
+  }
+
+  Future<void> setTranslationHighlightOnly(bool highlightOnly) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_translationHighlightOnlyKey, highlightOnly);
   }
 
   static const String _translationIgnoredLanguagesKey =

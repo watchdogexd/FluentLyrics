@@ -62,6 +62,11 @@ class LyricsProvider with ChangeNotifier {
     defaultValue: AppDefaults.inactiveScale,
     changed: false,
   );
+  Setting<bool> _translationHighlightOnly = const Setting(
+    current: AppDefaults.translationHighlightOnly,
+    defaultValue: AppDefaults.translationHighlightOnly,
+    changed: false,
+  );
 
   // Translation Settings
   Setting<bool> _translationEnabled = const Setting(
@@ -175,6 +180,7 @@ class LyricsProvider with ChangeNotifier {
   Setting<int> get globalOffsetSetting => _globalOffsetMs;
 
   Setting<bool> get translationEnabled => _translationEnabled;
+  Setting<bool> get translationHighlightOnly => _translationHighlightOnly;
   Setting<List<String>> get translationTargetLanguages =>
       _translationTargetLanguages;
   Setting<List<String>> get translationIgnoredLanguages =>
@@ -262,6 +268,8 @@ class LyricsProvider with ChangeNotifier {
     _inactiveScale = await _settingsService.getInactiveScale();
 
     _translationEnabled = await _settingsService.getTranslationEnabled();
+    _translationHighlightOnly = await _settingsService
+        .getTranslationHighlightOnly();
     _translationTargetLanguages = await _settingsService
         .getTranslationTargetLanguages();
     _translationIgnoredLanguages = await _settingsService
@@ -405,6 +413,17 @@ class LyricsProvider with ChangeNotifier {
       changed: enabled != _translationEnabled.defaultValue,
     );
     _settingsService.setTranslationEnabled(enabled);
+    notifyListeners();
+  }
+
+  void setTranslationHighlightOnly(bool highlightOnly) {
+    if (_translationHighlightOnly.current == highlightOnly) return;
+    _translationHighlightOnly = Setting(
+      current: highlightOnly,
+      defaultValue: _translationHighlightOnly.defaultValue,
+      changed: highlightOnly != _translationHighlightOnly.defaultValue,
+    );
+    _settingsService.setTranslationHighlightOnly(highlightOnly);
     notifyListeners();
   }
 
