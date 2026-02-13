@@ -14,7 +14,7 @@ A desktop lyrics viewer built with Flutter, displays and syncs song lyrics from 
 - Per-track and global lyrics offset support.
 
 ## Screenshots
-![The main interface](https://raw.githubusercontent.com/kobe-koto/FluentLyrics/refs/heads/main/previews/main.jpg)
+![The main interface](https://raw.githubusercontent.com/kobe-koto/FluentLyrics/refs/heads/main/previews/main.png)
 The main interface.
 
 ## Supports
