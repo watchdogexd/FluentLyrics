@@ -63,6 +63,28 @@ class LyricsProvider with ChangeNotifier {
     changed: false,
   );
 
+  // Translation Settings
+  Setting<bool> _translationEnabled = const Setting(
+    current: AppDefaults.translationEnabled,
+    defaultValue: AppDefaults.translationEnabled,
+    changed: false,
+  );
+  Setting<List<String>> _translationTargetLanguages = const Setting(
+    current: AppDefaults.translationTargetLanguages,
+    defaultValue: AppDefaults.translationTargetLanguages,
+    changed: false,
+  );
+  Setting<List<String>> _translationIgnoredLanguages = const Setting(
+    current: AppDefaults.translationIgnoredLanguages,
+    defaultValue: AppDefaults.translationIgnoredLanguages,
+    changed: false,
+  );
+  Setting<int> _translationBias = const Setting(
+    current: AppDefaults.translationBias,
+    defaultValue: AppDefaults.translationBias,
+    changed: false,
+  );
+
   Duration _trackOffset = Duration.zero;
   int _currentIndex = -1;
   bool _isPlaying = false;
@@ -102,6 +124,7 @@ class LyricsProvider with ChangeNotifier {
             endTime: l.endTime,
             text: l.text,
             inlineParts: null,
+            translation: l.translation, // Preserve translation
           );
         }
         return l;
@@ -135,6 +158,13 @@ class LyricsProvider with ChangeNotifier {
   Setting<double> get fontSize => _fontSize;
   Setting<double> get inactiveScale => _inactiveScale;
   Setting<int> get globalOffsetSetting => _globalOffsetMs;
+
+  Setting<bool> get translationEnabled => _translationEnabled;
+  Setting<List<String>> get translationTargetLanguages =>
+      _translationTargetLanguages;
+  Setting<List<String>> get translationIgnoredLanguages =>
+      _translationIgnoredLanguages;
+  Setting<int> get translationBias => _translationBias;
 
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
@@ -212,6 +242,14 @@ class LyricsProvider with ChangeNotifier {
     _trimMetadataProviders = await _settingsService.getTrimMetadataProviders();
     _fontSize = await _settingsService.getFontSize();
     _inactiveScale = await _settingsService.getInactiveScale();
+
+    _translationEnabled = await _settingsService.getTranslationEnabled();
+    _translationTargetLanguages = await _settingsService
+        .getTranslationTargetLanguages();
+    _translationIgnoredLanguages = await _settingsService
+        .getTranslationIgnoredLanguages();
+    _translationBias = await _settingsService.getTranslationBias();
+
     notifyListeners();
   }
 
@@ -297,6 +335,55 @@ class LyricsProvider with ChangeNotifier {
       changed: scale != _inactiveScale.defaultValue,
     );
     _settingsService.setInactiveScale(scale);
+    notifyListeners();
+  }
+
+  void setTranslationTargetLanguages(List<String> languages) {
+    if (_translationTargetLanguages.current == languages) return;
+    _translationTargetLanguages = Setting(
+      current: languages,
+      defaultValue: _translationTargetLanguages.defaultValue,
+      changed: languages != _translationTargetLanguages.defaultValue,
+    );
+    _settingsService.setTranslationTargetLanguages(languages);
+    notifyListeners();
+  }
+
+  void setTranslationIgnoredLanguages(List<String> languages) {
+    // List comparison might need equality check logic if not handled by Setting
+    // But listEquals is safer.
+    if (listEquals(_translationIgnoredLanguages.current, languages)) return;
+    _translationIgnoredLanguages = Setting(
+      current: languages,
+      defaultValue: _translationIgnoredLanguages.defaultValue,
+      changed: !listEquals(
+        languages,
+        _translationIgnoredLanguages.defaultValue,
+      ),
+    );
+    _settingsService.setTranslationIgnoredLanguages(languages);
+    notifyListeners();
+  }
+
+  void setTranslationBias(int bias) {
+    if (_translationBias.current == bias) return;
+    _translationBias = Setting(
+      current: bias,
+      defaultValue: _translationBias.defaultValue,
+      changed: bias != _translationBias.defaultValue,
+    );
+    _settingsService.setTranslationBias(bias);
+    notifyListeners();
+  }
+
+  void setTranslationEnabled(bool enabled) {
+    if (_translationEnabled.current == enabled) return;
+    _translationEnabled = Setting(
+      current: enabled,
+      defaultValue: _translationEnabled.defaultValue,
+      changed: enabled != _translationEnabled.defaultValue,
+    );
+    _settingsService.setTranslationEnabled(enabled);
     notifyListeners();
   }
 
@@ -502,6 +589,7 @@ class LyricsProvider with ChangeNotifier {
         isCancelled: () => !metadata.isSameTrack(_currentMetadata),
         trimMetadataProviders: _trimMetadataProviders.current,
         richSyncEnabled: _richSyncEnabled.current,
+        translationEnabled: _translationEnabled.current,
       );
 
       await for (var result in stream) {

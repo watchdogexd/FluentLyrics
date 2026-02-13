@@ -20,5 +20,9 @@ class AppDefaults {
   ];
   static const int enabledProviderCount = 3;
   static const bool cacheEnabled = true;
+  static const bool translationEnabled = false;
+  static const List<String> translationTargetLanguages = ['zht', 'zh', 'en'];
+  static const List<String> translationIgnoredLanguages = [];
+  static const int translationBias = 50;
   static const String? musixmatchToken = null;
 }

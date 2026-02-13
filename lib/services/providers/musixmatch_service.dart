@@ -3,15 +3,21 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../models/lyric_model.dart';
+import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
 import '../../utils/rich_lrc_parser.dart';
 import '../settings_service.dart';
 
 class MusixmatchService {
+  bool checkTranslationSupport(String language) {
+    return true;
+  }
+
   final SettingsService _settingsService = SettingsService();
   static const String _appId = 'web-desktop-app-v1.0';
   static const Map<String, String> _headers = {
-    'User-Agent': 'Mozilla/5.0 FluentLyrics/0.1-git',
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
     'Accept': 'application/json',
     'Authority': 'apic-desktop.musixmatch.com',
     'Cookie':
@@ -225,6 +231,212 @@ class MusixmatchService {
         // Token expired?
         await _settingsService.setMusixmatchToken(''); // Clear token
       }
+    }
+    return null;
+  }
+
+  Future<LyricsResult> fetchTranslation(
+    GeneralTranslationRequestData data,
+    String language,
+  ) async {
+    try {
+      String? token = (await _settingsService.getMusixmatchToken()).current;
+      if (token == null || token.isEmpty) {
+        token = await fetchNewToken();
+        if (token != null) {
+          await _settingsService.setMusixmatchToken(token);
+        } else {
+          return LyricsResult.empty();
+        }
+      }
+
+      // 1. Get Track ID
+      final t = _randomId();
+      final trackUrl =
+          Uri.parse(
+            'https://apic-desktop.musixmatch.com/ws/1.1/matcher.track.get',
+          ).replace(
+            queryParameters: {
+              'q_artist': data.artist,
+              'q_track': data.title,
+              'usertoken': token,
+              'app_id': _appId,
+              't': t,
+              'format': 'json',
+            },
+          );
+
+      final trackResponse = await _performGet(trackUrl, token);
+      if (trackResponse == null) return LyricsResult.empty();
+
+      final trackData = jsonDecode(trackResponse);
+      final trackBody = trackData['message']?['body'];
+      final track = trackBody?['track'];
+
+      if (track == null) return LyricsResult.empty();
+
+      final trackId = track['track_id'].toString();
+
+      // 2. Fetch Translation
+      final transUrl =
+          Uri.parse(
+            'https://apic-desktop.musixmatch.com/ws/1.1/crowd.track.translations.get',
+          ).replace(
+            queryParameters: {
+              'translation_fields_set': 'minimal',
+              'selected_language': language,
+              'track_id': trackId,
+              'comment_format': 'text',
+              'part': 'user',
+              'usertoken': token,
+              'app_id': _appId,
+              't': t,
+              'format': 'json',
+            },
+          );
+
+      final transResponse = await _performGet(transUrl, token);
+      if (transResponse == null) return LyricsResult.empty();
+
+      final transData = jsonDecode(transResponse);
+
+      if (transData['message']['header']['status_code'] != 200) {
+        throw Exception(
+          'Failed to fetch translation, code ${transData['message']['header']['status_code']}, ${transData['message']['header']['error_description']}',
+        );
+      }
+
+      final transBody = transData['message']?['body'];
+      final translationsList = transBody?['translations_list'] as List?;
+
+      if (translationsList == null || translationsList.isEmpty) {
+        return LyricsResult.empty();
+      }
+
+      // 3. Fetch Original Lyrics for Timestamps
+      // track.subtitles.get
+      final subUrl =
+          Uri.parse(
+            'https://apic-desktop.musixmatch.com/ws/1.1/track.subtitles.get',
+          ).replace(
+            queryParameters: {
+              'track_id': trackId,
+              'subtitle_format': 'lrc',
+              'usertoken': token,
+              'app_id': _appId,
+              't': t,
+              'format': 'json',
+            },
+          );
+
+      final subResponse = await _performGet(subUrl, token);
+      List<Lyric> originalLyrics = [];
+      if (subResponse != null) {
+        final subData = jsonDecode(subResponse);
+        final subBody = subData['message']?['body'];
+        final subList = subBody?['subtitle_list'] as List?;
+        if (subList != null && subList.isNotEmpty) {
+          final lrcBody = subList[0]['subtitle']?['subtitle_body'];
+          if (lrcBody != null && lrcBody is String) {
+            originalLyrics = LrcParser.parse(lrcBody).lyrics;
+          }
+        }
+      }
+
+      if (originalLyrics.isEmpty) {
+        return LyricsResult.empty();
+      }
+
+      // 4. Map Translations to Original Lyrics
+      Map<String, String> translationMap = {};
+
+      for (var item in translationsList) {
+        final translation = item['translation'];
+        if (translation != null) {
+          final matchedLine = translation['matched_line'] as String?;
+          final description = translation['description'] as String?;
+
+          if (matchedLine != null &&
+              description != null &&
+              description.isNotEmpty) {
+            translationMap[matchedLine.trim()] = description;
+          }
+        }
+      }
+
+      List<Lyric> translatedLyrics = [];
+      String? lang;
+
+      for (var lyric in originalLyrics) {
+        final originalText = lyric.text.trim();
+        final transText = translationMap[originalText];
+
+        if (transText != null) {
+          translatedLyrics.add(
+            Lyric(startTime: lyric.startTime, text: transText),
+          );
+        }
+      }
+
+      if (translatedLyrics.isNotEmpty) {
+        // Try to get language from first translation item
+        if (translationsList.isNotEmpty) {
+          final firstTrans = translationsList[0]['translation'];
+          if (firstTrans != null) {
+            lang = firstTrans['language'];
+          }
+        }
+
+        return LyricsResult(
+          lyrics: translatedLyrics,
+          source: 'Musixmatch',
+          translation: true,
+          isSynced: true,
+          language: lang ?? language,
+        );
+      }
+
+      return LyricsResult.empty();
+    } catch (e) {
+      debugPrint('Error fetching translation from Musixmatch: $e');
+      return LyricsResult.empty();
+    }
+  }
+
+  Future<String?> _performGet(Uri url, String token, {int maxTrial = 3}) async {
+    if (maxTrial < 0) return null;
+
+    try {
+      final response = await http
+          .get(url, headers: _headers)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = response.body;
+        // Check for 401 or captcha in body
+        if (body.contains('"status_code":401')) {
+          if (body.contains('"hint":"renew"')) {
+            // Refresh token
+            final newToken = await fetchNewToken();
+            if (newToken != null) {
+              await _settingsService.setMusixmatchToken(newToken);
+              // Update URL with new token
+              final newUrl = url.replace(
+                queryParameters: Map.from(url.queryParameters)
+                  ..['usertoken'] = newToken,
+              );
+              return _performGet(newUrl, newToken, maxTrial: maxTrial - 1);
+            }
+          } else if (body.contains('"hint":"captcha"')) {
+            // Wait and retry
+            await Future.delayed(const Duration(seconds: 1));
+            return _performGet(url, token, maxTrial: maxTrial - 1);
+          }
+        }
+        return body;
+      }
+    } catch (e) {
+      debugPrint('Musixmatch request error: $e');
     }
     return null;
   }

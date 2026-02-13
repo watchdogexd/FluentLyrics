@@ -3,12 +3,14 @@ class Lyric {
   final Duration? endTime;
   final String text;
   final List<LyricInlinePart>? inlineParts;
+  final String? translation;
 
   Lyric({
     required this.startTime,
     required this.text,
     this.endTime,
     this.inlineParts,
+    this.translation,
   });
 
   Map<String, dynamic> toJson() => {
@@ -17,6 +19,7 @@ class Lyric {
     'text': text,
     if (inlineParts != null)
       'inlineParts': inlineParts!.map((p) => p.toJson()).toList(),
+    if (translation != null) 'translation': translation,
   };
 
   factory Lyric.fromJson(Map<String, dynamic> json) => Lyric(
@@ -30,6 +33,7 @@ class Lyric {
               .map((p) => LyricInlinePart.fromJson(p as Map<String, dynamic>))
               .toList()
         : null,
+    translation: json['translation'] as String?,
   );
 }
 
@@ -71,6 +75,14 @@ class LyricsResult {
   final bool isPureMusic;
   final Map<String, String>? metadata;
 
+  // Translation fields
+  final String? language;
+  final bool translation;
+  final String? translationProvider;
+  final String? translationContributor;
+  final LyricsResult?
+  subLyrics; // For unmerged translation attached to original
+
   LyricsResult({
     required this.lyrics,
     required this.source,
@@ -83,6 +95,11 @@ class LyricsResult {
     this.artworkUrl,
     this.isPureMusic = false,
     this.metadata,
+    this.language,
+    this.translation = false,
+    this.translationProvider,
+    this.translationContributor,
+    this.subLyrics,
   }) : isSynced = isSynced ?? _checkIfSynced(lyrics),
        isRichSync = isRichSync ?? _checkIfRichSynced(lyrics);
 
@@ -144,6 +161,11 @@ class LyricsResult {
     String? artworkUrl,
     bool? isPureMusic,
     Map<String, String>? metadata,
+    String? language,
+    bool? translation,
+    String? translationProvider,
+    String? translationContributor,
+    LyricsResult? subLyrics,
   }) {
     return LyricsResult(
       lyrics: lyrics ?? this.lyrics,
@@ -157,6 +179,12 @@ class LyricsResult {
       artworkUrl: artworkUrl ?? this.artworkUrl,
       isPureMusic: isPureMusic ?? this.isPureMusic,
       metadata: metadata ?? this.metadata,
+      language: language ?? this.language,
+      translation: translation ?? this.translation,
+      translationProvider: translationProvider ?? this.translationProvider,
+      translationContributor:
+          translationContributor ?? this.translationContributor,
+      subLyrics: subLyrics ?? this.subLyrics,
     );
   }
 
@@ -194,6 +222,12 @@ class LyricsResult {
     'artworkUrl': artworkUrl,
     'isPureMusic': isPureMusic,
     if (metadata != null) 'metadata': metadata,
+    if (language != null) 'language': language,
+    'translation': translation,
+    if (translationProvider != null) 'translationProvider': translationProvider,
+    if (translationContributor != null)
+      'translationContributor': translationContributor,
+    if (subLyrics != null) 'subLyrics': subLyrics!.toJson(),
   };
 
   factory LyricsResult.fromJson(Map<String, dynamic> json) => LyricsResult(
@@ -211,6 +245,13 @@ class LyricsResult {
     isPureMusic: json['isPureMusic'] as bool? ?? false,
     metadata: json['metadata'] != null
         ? Map<String, String>.from(json['metadata'])
+        : null,
+    language: json['language'] as String?,
+    translation: json['translation'] as bool? ?? false,
+    translationProvider: json['translationProvider'] as String?,
+    translationContributor: json['translationContributor'] as String?,
+    subLyrics: json['subLyrics'] != null
+        ? LyricsResult.fromJson(json['subLyrics'] as Map<String, dynamic>)
         : null,
   );
 }

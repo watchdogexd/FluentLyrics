@@ -273,4 +273,82 @@ class SettingsService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_richSyncEnabledKey, enabled);
   }
+
+  static const String _translationEnabledKey = 'translation_enabled';
+  static const String _translationTargetLanguagesKey =
+      'translation_target_languages';
+
+  Future<Setting<bool>> getTranslationEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getBool(_translationEnabledKey) ?? AppDefaults.translationEnabled;
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.translationEnabled,
+      changed: current != AppDefaults.translationEnabled,
+    );
+  }
+
+  Future<void> setTranslationEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_translationEnabledKey, enabled);
+  }
+
+  static const String _translationIgnoredLanguagesKey =
+      'translation_ignored_languages';
+  static const String _translationBiasKey = 'translation_bias';
+
+  Future<Setting<List<String>>> getTranslationTargetLanguages() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getStringList(_translationTargetLanguagesKey) ??
+        AppDefaults.translationTargetLanguages;
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.translationTargetLanguages,
+      changed: !listEquals(current, AppDefaults.translationTargetLanguages),
+    );
+  }
+
+  Future<void> setTranslationTargetLanguages(List<String> languages) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (languages.isEmpty) {
+      await prefs.remove(_translationTargetLanguagesKey);
+    } else {
+      await prefs.setStringList(_translationTargetLanguagesKey, languages);
+    }
+  }
+
+  Future<Setting<List<String>>> getTranslationIgnoredLanguages() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList(_translationIgnoredLanguagesKey);
+    final current = saved ?? AppDefaults.translationIgnoredLanguages;
+
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.translationIgnoredLanguages,
+      changed: !listEquals(current, AppDefaults.translationIgnoredLanguages),
+    );
+  }
+
+  Future<void> setTranslationIgnoredLanguages(List<String> languages) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_translationIgnoredLanguagesKey, languages);
+  }
+
+  Future<Setting<int>> getTranslationBias() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getInt(_translationBiasKey) ?? AppDefaults.translationBias;
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.translationBias,
+      changed: current != AppDefaults.translationBias,
+    );
+  }
+
+  Future<void> setTranslationBias(int bias) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_translationBiasKey, bias);
+  }
 }

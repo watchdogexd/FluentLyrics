@@ -2,30 +2,71 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../models/lyric_model.dart';
+import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
 import '../../utils/string_similarity.dart';
 
 class QQMusicService {
+  bool checkTranslationSupport(String language) {
+    return language == 'zh';
+  }
+
+  Future<LyricsResult> fetchTranslation(
+    GeneralTranslationRequestData data,
+  ) async {
+    try {
+      final bestMatch = await _searchSong(
+        title: data.title,
+        artist: data.artist,
+        durationSeconds: 0,
+      );
+
+      if (bestMatch == null) return LyricsResult.empty();
+
+      final songMid = bestMatch['mid'] as String;
+      final lyricsResponse = await _getLyrics(songMid);
+
+      if (lyricsResponse == null) return LyricsResult.empty();
+
+      String? trans = lyricsResponse['trans'];
+      if (trans != null && trans.isNotEmpty) {
+        try {
+          trans = utf8.decode(base64.decode(trans));
+        } catch (e) {
+          trans = null;
+        }
+      }
+
+      if (trans != null && trans.isNotEmpty) {
+        final transParse = LrcParser.parse(trans);
+        if (transParse.lyrics.isNotEmpty) {
+          return LyricsResult(
+            lyrics: transParse.lyrics,
+            source: 'QQ Music',
+            translation: true,
+            isSynced: true,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching translation from QQ Music: $e');
+    }
+    return LyricsResult.empty();
+  }
+
   static const Map<String, String> _headers = {
     'Referer': 'https://c.y.qq.com/',
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
   };
 
-  Future<LyricsResult> fetchLyrics({
+  Future<Map<String, dynamic>?> _searchSong({
     required String title,
     required String artist,
-    required String album,
-    required int durationSeconds,
-    Function(String)? onStatusUpdate,
-    bool trimMetadata = false,
+    int durationSeconds = 0,
   }) async {
     try {
-      onStatusUpdate?.call('Searching lyrics on QQ Music...');
-
       final keyword = '$title - $artist';
-
-      // 1. Search for the song
       final searchUrl = Uri.parse('https://u.y.qq.com/cgi-bin/musicu.fcg');
       final searchBody = {
         'req_1': {
@@ -46,27 +87,23 @@ class QQMusicService {
 
       if (searchResponse.statusCode != 200) {
         debugPrint('QQMusic search failed: ${searchResponse.statusCode}');
-        return LyricsResult.empty();
+        return null;
       }
 
-      // use utf8.decode because there's a bug in the http response header
-      // which Content-Type header ends with a trailing semicolon
-      // which does not follow RFC 7231
-      // which triggers MediaType.parse to fail
       final searchData = jsonDecode(utf8.decode(searchResponse.bodyBytes));
       final req1 = searchData['req_1'];
       if (req1['code'] != 0) {
         debugPrint('QQMusic search API error: ${req1['code']}');
-        return LyricsResult.empty();
+        return null;
       }
 
       final songList = req1['data']['body']['song']['list'] as List? ?? [];
       if (songList.isEmpty) {
         debugPrint('QQMusic search returned no songs');
-        return LyricsResult.empty();
+        return null;
       }
 
-      // 2. Filter songs
+      // Filter songs
       final filteredSongs = songList.where((song) {
         final songName = song['name'] as String?;
         if (songName == null) return false;
@@ -83,7 +120,7 @@ class QQMusicService {
         debugPrint(
           'QQMusic search returned songs but none matched the title similarity threshold.',
         );
-        return LyricsResult.empty();
+        return null;
       }
 
       // Find the best match based on duration
@@ -107,6 +144,34 @@ class QQMusicService {
 
       if (minDiff > 10 && durationSeconds > 0 && minDiff != 1000000) {
         debugPrint('QQMusic best match duration diff too large: ${minDiff}s');
+      }
+
+      return bestMatch;
+    } catch (e) {
+      debugPrint('Error searching song on QQ Music: $e');
+      return null;
+    }
+  }
+
+  Future<LyricsResult> fetchLyrics({
+    required String title,
+    required String artist,
+    required String album,
+    required int durationSeconds,
+    Function(String)? onStatusUpdate,
+    bool trimMetadata = false,
+  }) async {
+    try {
+      onStatusUpdate?.call('Searching lyrics on QQ Music...');
+
+      final bestMatch = await _searchSong(
+        title: title,
+        artist: artist,
+        durationSeconds: durationSeconds,
+      );
+
+      if (bestMatch == null) {
+        return LyricsResult.empty();
       }
 
       // 3. Fetch Lyrics
@@ -137,7 +202,6 @@ class QQMusicService {
         try {
           trans = utf8.decode(base64.decode(trans));
         } catch (e) {
-          // Sometimes trans might be empty or invalid
           trans = null;
         }
       }
@@ -146,6 +210,20 @@ class QQMusicService {
         onStatusUpdate?.call('Processing lyrics...');
 
         final parseResult = LrcParser.parse(lrc, trimMetadata: trimMetadata);
+
+        // Parse translation
+        LyricsResult? subLyrics;
+        if (trans != null && trans.isNotEmpty) {
+          final transParse = LrcParser.parse(trans);
+          if (transParse.lyrics.isNotEmpty) {
+            subLyrics = LyricsResult(
+              lyrics: transParse.lyrics,
+              source: 'QQ Music',
+              isSynced: true,
+              translation: true,
+            );
+          }
+        }
 
         return LyricsResult(
           lyrics: parseResult.lyrics,
@@ -160,6 +238,7 @@ class QQMusicService {
               parseResult.trimmedMetadata['Composer'] ??
               parseResult.trimmedMetadata['Composed by'],
           isPureMusic: false,
+          subLyrics: subLyrics,
           metadata: {
             ...parseResult.lrcMetadata,
             ...parseResult.trimmedMetadata,

@@ -71,7 +71,47 @@ class LyricLine extends StatelessWidget {
                 height: 1.2,
               ),
               child: Builder(
-                builder: (context) => _buildText(context, lyricsProvider),
+                builder: (context) {
+                  final mainText = _buildText(context, lyricsProvider);
+                  if (lyric.translation == null) return mainText;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      mainText,
+                      isHighlighted
+                          ? const SizedBox(width: double.infinity, height: 8)
+                          : const SizedBox(width: double.infinity, height: 0),
+                      isHighlighted
+                          ? AnimatedOpacity(
+                              duration: const Duration(milliseconds: 500),
+                              curve: Curves.easeOutQuart,
+                              opacity: 1.0,
+                              child: Builder(
+                                builder: (context) {
+                                  final style = DefaultTextStyle.of(
+                                    context,
+                                  ).style;
+                                  return Text(
+                                    lyric.translation!,
+                                    style: style.copyWith(
+                                      fontSize: (style.fontSize! * 0.65)
+                                          .roundToDouble(),
+                                      height: 1.2,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.65,
+                                      ),
+                                    ),
+                                    textAlign: TextAlign.left,
+                                  );
+                                },
+                              ),
+                            )
+                          : const SizedBox(width: double.infinity, height: 0),
+                    ],
+                  );
+                },
               ),
             ),
           ),
