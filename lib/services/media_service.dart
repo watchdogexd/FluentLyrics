@@ -250,6 +250,10 @@ class LinuxMediaService extends MediaService implements MediaController {
           length = lengthValue.value;
         }
         final duration = Duration(microseconds: length);
+        if (duration.inSeconds == 0) {
+          // skip until the duration is known
+          return;
+        }
 
         newTrackId = unwrap(dict['mpris:trackid'])?.asString();
 
