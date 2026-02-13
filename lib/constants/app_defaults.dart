@@ -25,4 +25,8 @@ class AppDefaults {
   static const List<String> translationIgnoredLanguages = [];
   static const int translationBias = 50;
   static const String? musixmatchToken = null;
+  static const String llmApiEndpoint =
+      'https://api.openai.com/v1/chat/completions';
+  static const String llmApiKey = '';
+  static const String llmModel = 'openai/gpt-oss-120b';
 }

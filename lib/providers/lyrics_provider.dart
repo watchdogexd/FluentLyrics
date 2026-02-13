@@ -84,6 +84,21 @@ class LyricsProvider with ChangeNotifier {
     defaultValue: AppDefaults.translationBias,
     changed: false,
   );
+  Setting<String> _llmApiEndpoint = const Setting(
+    current: AppDefaults.llmApiEndpoint,
+    defaultValue: AppDefaults.llmApiEndpoint,
+    changed: false,
+  );
+  Setting<String> _llmApiKey = const Setting(
+    current: AppDefaults.llmApiKey,
+    defaultValue: AppDefaults.llmApiKey,
+    changed: false,
+  );
+  Setting<String> _llmModel = const Setting(
+    current: AppDefaults.llmModel,
+    defaultValue: AppDefaults.llmModel,
+    changed: false,
+  );
 
   Duration _trackOffset = Duration.zero;
   int _currentIndex = -1;
@@ -165,6 +180,9 @@ class LyricsProvider with ChangeNotifier {
   Setting<List<String>> get translationIgnoredLanguages =>
       _translationIgnoredLanguages;
   Setting<int> get translationBias => _translationBias;
+  Setting<String> get llmApiEndpoint => _llmApiEndpoint;
+  Setting<String> get llmApiKey => _llmApiKey;
+  Setting<String> get llmModel => _llmModel;
 
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
@@ -249,6 +267,9 @@ class LyricsProvider with ChangeNotifier {
     _translationIgnoredLanguages = await _settingsService
         .getTranslationIgnoredLanguages();
     _translationBias = await _settingsService.getTranslationBias();
+    _llmApiEndpoint = await _settingsService.getLlmApiEndpoint();
+    _llmApiKey = await _settingsService.getLlmApiKey();
+    _llmModel = await _settingsService.getLlmModel();
 
     notifyListeners();
   }
@@ -384,6 +405,39 @@ class LyricsProvider with ChangeNotifier {
       changed: enabled != _translationEnabled.defaultValue,
     );
     _settingsService.setTranslationEnabled(enabled);
+    notifyListeners();
+  }
+
+  void setLlmApiEndpoint(String endpoint) {
+    if (_llmApiEndpoint.current == endpoint) return;
+    _llmApiEndpoint = Setting(
+      current: endpoint,
+      defaultValue: _llmApiEndpoint.defaultValue,
+      changed: endpoint != _llmApiEndpoint.defaultValue,
+    );
+    _settingsService.setLlmApiEndpoint(endpoint);
+    notifyListeners();
+  }
+
+  void setLlmApiKey(String apiKey) {
+    if (_llmApiKey.current == apiKey) return;
+    _llmApiKey = Setting(
+      current: apiKey,
+      defaultValue: _llmApiKey.defaultValue,
+      changed: apiKey != _llmApiKey.defaultValue,
+    );
+    _settingsService.setLlmApiKey(apiKey);
+    notifyListeners();
+  }
+
+  void setLlmModel(String model) {
+    if (_llmModel.current == model) return;
+    _llmModel = Setting(
+      current: model,
+      defaultValue: _llmModel.defaultValue,
+      changed: model != _llmModel.defaultValue,
+    );
+    _settingsService.setLlmModel(model);
     notifyListeners();
   }
 

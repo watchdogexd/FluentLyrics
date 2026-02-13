@@ -142,6 +142,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'name': 'QQ Music',
           'description': 'Chinese music streaming service by Tencent',
         };
+      case LyricProviderType.llm:
+        return {
+          'color': Colors.purple,
+          'name': 'LLM Traslation',
+          'description': 'OpenAI compatible LLM API',
+        };
       case LyricProviderType.cache:
         return {
           'color': Colors.grey,
@@ -551,10 +557,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Ignored Languages (Mock UI for now as multiselect is complex without chips)
               // Provider Priority (Reuse reorderable list logic if possible, or just skip for now as prompt implied it's robust)
               // I'll skip complex UI for priority/ignored for this turn to avoid huge file replacement
+              const SizedBox(height: 24),
+              _buildLlmConfigurationCard(provider),
             ],
           ],
         );
       },
+    );
+  }
+
+  Widget _buildLlmConfigurationCard(LyricsProvider provider) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'LLM Configuration',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Endpoint
+          TextFormField(
+            initialValue: provider.llmApiEndpoint.current,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              labelText: 'API Endpoint',
+              labelStyle: TextStyle(color: Colors.white54),
+              hintText: 'https://api.openai.com/v1/chat/completions',
+              hintStyle: TextStyle(color: Colors.white24),
+              filled: true,
+              fillColor: Colors.black26,
+            ),
+            onChanged: (value) => provider.setLlmApiEndpoint(value),
+          ),
+          const SizedBox(height: 12),
+          // API Key
+          TextFormField(
+            initialValue: provider.llmApiKey.current,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              labelText: 'API Key',
+              labelStyle: TextStyle(color: Colors.white54),
+              filled: true,
+              fillColor: Colors.black26,
+            ),
+            obscureText: true,
+            onChanged: (value) => provider.setLlmApiKey(value),
+          ),
+          const SizedBox(height: 12),
+          // Model
+          TextFormField(
+            initialValue: provider.llmModel.current,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              labelText: 'Model Name',
+              labelStyle: TextStyle(color: Colors.white54),
+              hintText: 'openai/gpt-oss-120b',
+              hintStyle: TextStyle(color: Colors.white24),
+              filled: true,
+              fillColor: Colors.black26,
+            ),
+            onChanged: (value) => provider.setLlmModel(value),
+          ),
+        ],
+      ),
     );
   }
 

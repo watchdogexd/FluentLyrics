@@ -8,6 +8,7 @@ import 'providers/musixmatch_service.dart';
 import 'providers/netease_service.dart';
 import 'providers/qqmusic_service.dart';
 import 'providers/lyrics_cache_service.dart';
+import 'providers/llm_translation_service.dart';
 
 class LyricsService {
   final SettingsService _settingsService = SettingsService();
@@ -16,6 +17,9 @@ class LyricsService {
   final MusixmatchService _musixmatchService = MusixmatchService();
   final NeteaseService _neteaseService = NeteaseService();
   final QQMusicService _qqMusicService = QQMusicService();
+  final LlmTranslationService _llmService = LlmTranslationService(
+    SettingsService(),
+  );
   final LyricsCacheService _cacheService = LyricsCacheService();
 
   Stream<LyricsResult> fetchLyrics({
@@ -214,10 +218,26 @@ class LyricsService {
         (bestResult.language == null ||
             !ignoredLanguages.contains(bestResult.language))) {
       // Prepare request
+      // Prepare request with LRC formatted content to preserve timestamps for LLM
       final requestData = GeneralTranslationRequestData(
         title: title,
         artist: artist,
-        content: bestResult.lyrics.map((l) => l.text).join('\n'),
+        content: bestResult.lyrics
+            .map((l) {
+              final m = l.startTime.inMinutes
+                  .remainder(60)
+                  .toString()
+                  .padLeft(2, '0');
+              final s = l.startTime.inSeconds
+                  .remainder(60)
+                  .toString()
+                  .padLeft(2, '0');
+              final ms = (l.startTime.inMilliseconds % 1000 ~/ 10)
+                  .toString()
+                  .padLeft(2, '0');
+              return '[$m:$s.$ms]${l.text}';
+            })
+            .join('\n'),
       );
 
       // Iterate translation providers
@@ -236,6 +256,11 @@ class LyricsService {
               requestData,
               targetLanguage,
             );
+          } else if (tProvider == LyricProviderType.llm) {
+            transResult = await _llmService.fetchTranslation(
+              requestData,
+              targetLanguage,
+            );
           } else {
             debugPrint('Unsupported translation provider: $tProvider');
             continue;
@@ -246,6 +271,8 @@ class LyricsService {
             debugPrint('Failed to fetch translation from $tProvider');
             transResult = null;
             continue;
+          } else {
+            break;
           }
         }
         if (transResult != null && transResult.translation) {

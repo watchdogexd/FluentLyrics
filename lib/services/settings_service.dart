@@ -17,6 +17,9 @@ class SettingsService {
   static const String _fontSizeKey = 'font_size';
   static const String _inactiveScaleKey = 'inactive_scale';
   static const String _richSyncEnabledKey = 'rich_sync_enabled';
+  static const String _llmEndpointKey = 'llm_api_endpoint';
+  static const String _llmApiKeyKey = 'llm_api_key';
+  static const String _llmModelKey = 'llm_model';
 
   Future<Setting<List<LyricProviderType>>> getAllProvidersOrdered() async {
     final prefs = await SharedPreferences.getInstance();
@@ -350,5 +353,54 @@ class SettingsService {
   Future<void> setTranslationBias(int bias) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_translationBiasKey, bias);
+  }
+
+  Future<Setting<String>> getLlmApiEndpoint() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getString(_llmEndpointKey) ?? AppDefaults.llmApiEndpoint;
+
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.llmApiEndpoint,
+      changed: current != AppDefaults.llmApiEndpoint,
+    );
+  }
+
+  Future<void> setLlmApiEndpoint(String endpoint) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_llmEndpointKey, endpoint);
+  }
+
+  Future<Setting<String>> getLlmApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getString(_llmApiKeyKey) ?? AppDefaults.llmApiKey;
+
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.llmApiKey,
+      changed: current != AppDefaults.llmApiKey,
+    );
+  }
+
+  Future<void> setLlmApiKey(String apiKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_llmApiKeyKey, apiKey);
+  }
+
+  Future<Setting<String>> getLlmModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getString(_llmModelKey) ?? AppDefaults.llmModel;
+
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.llmModel,
+      changed: current != AppDefaults.llmModel,
+    );
+  }
+
+  Future<void> setLlmModel(String model) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_llmModelKey, model);
   }
 }
