@@ -218,6 +218,9 @@ class LyricsService {
         (bestResult.language == null ||
             !ignoredLanguages.contains(bestResult.language))) {
       // Prepare request
+      final contentDigest = _cacheService.generateContentDigest(
+        bestResult.lyrics.map((l) => l.text).join('\n'),
+      );
       // Prepare request with LRC formatted content to preserve timestamps for LLM
       final requestData = GeneralTranslationRequestData(
         title: title,
@@ -243,8 +246,18 @@ class LyricsService {
       // Iterate translation providers
       for (var targetLanguage in targetLanguages) {
         LyricsResult? transResult;
-        for (var tProvider in priority) {
-          if (tProvider == LyricProviderType.netease &&
+        for (var tProvider in fullPriority) {
+          if (tProvider == LyricProviderType.cache) {
+            final cacheId = _cacheService.generateTranslationCacheId(
+              title,
+              artist,
+              targetLanguage,
+            );
+            transResult = await _cacheService.getCachedTranslation(
+              cacheId,
+              contentDigest,
+            );
+          } else if (tProvider == LyricProviderType.netease &&
               _neteaseService.checkTranslationSupport(targetLanguage)) {
             transResult = await _neteaseService.fetchTranslation(requestData);
           } else if (tProvider == LyricProviderType.qqmusic &&
@@ -267,11 +280,26 @@ class LyricsService {
           }
           // Add other providers here if they support fetchTranslation
 
-          if (!transResult.translation) {
+          if (transResult == null || !transResult.translation) {
             debugPrint('Failed to fetch translation from $tProvider');
             transResult = null;
             continue;
           } else {
+            // New translation found, cache it if enabled
+            if (cacheEnabled &&
+                tProvider != LyricProviderType.cache &&
+                transResult.translation) {
+              final cacheId = _cacheService.generateTranslationCacheId(
+                title,
+                artist,
+                targetLanguage,
+              );
+              await _cacheService.cacheTranslation(
+                cacheId,
+                contentDigest,
+                transResult,
+              );
+            }
             break;
           }
         }

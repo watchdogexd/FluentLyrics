@@ -4,6 +4,7 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../models/lyric_model.dart';
 import '../../models/lyric_cache.dart';
+import '../../models/translation_cache.dart';
 
 class LyricsCacheService {
   static Isar? _isar;
@@ -14,7 +15,7 @@ class LyricsCacheService {
     _isar ??=
         Isar.getInstance() ??
         await Isar.open(
-          [LyricCacheSchema],
+          [LyricCacheSchema, TranslationCacheSchema],
           directory: dir.path,
           name: 'lyrics_cache',
         );
@@ -156,5 +157,76 @@ class LyricsCacheService {
     final count = await isar.lyricCaches.count();
     final size = await isar.getSize();
     return {'count': count, 'size': size};
+  }
+
+  // Translation Caching
+  Future<LyricsResult?> getCachedTranslation(
+    String cacheId,
+    String contentDigest,
+  ) async {
+    final isar = await _db;
+    final cached = await isar.translationCaches
+        .filter()
+        .cacheIdEqualTo(cacheId)
+        .findFirst();
+
+    if (cached == null) return null;
+
+    // Check if original content digest matches
+    if (cached.originalContentDigest != contentDigest) {
+      // Content changed, translation might be invalid
+      await isar.writeTxn(() async {
+        await isar.translationCaches
+            .filter()
+            .cacheIdEqualTo(cacheId)
+            .deleteAll();
+      });
+      return null;
+    }
+
+    try {
+      return cached.toLyricsResult();
+    } catch (e) {
+      await isar.writeTxn(() async {
+        await isar.translationCaches
+            .filter()
+            .cacheIdEqualTo(cacheId)
+            .deleteAll();
+      });
+      return null;
+    }
+  }
+
+  Future<void> cacheTranslation(
+    String cacheId,
+    String contentDigest,
+    LyricsResult result,
+  ) async {
+    final isar = await _db;
+    final cache = TranslationCache.fromLyricsResult(
+      cacheId,
+      contentDigest,
+      result,
+    );
+    await isar.writeTxn(() async {
+      await isar.translationCaches.put(cache);
+    });
+  }
+
+  String generateTranslationCacheId(
+    String title,
+    String artist,
+    String language,
+  ) {
+    final input = '$title|$artist|$language';
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  String generateContentDigest(String content) {
+    final bytes = utf8.encode(content);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 }
