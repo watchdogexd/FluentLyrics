@@ -255,7 +255,7 @@ class LyricsService {
       for (var targetLanguage in targetLanguages) {
         LyricsResult? transResult;
         for (var tProvider in fullPriority) {
-          if (tProvider == LyricProviderType.cache) {
+          if (tProvider == LyricProviderType.cache && cacheEnabled) {
             final cacheId = _cacheService.generateTranslationCacheId(
               title,
               artist,
