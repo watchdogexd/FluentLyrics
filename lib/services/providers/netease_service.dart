@@ -15,7 +15,66 @@ class NeteaseService {
     return language == 'zh';
   }
 
-  static const String _lyricUrl = 'https://music.163.com/api/song/lyric';
+  Future<LyricsResult> fetchLyrics({
+    required String title,
+    required String artist,
+    required String album,
+    required int durationSeconds,
+    Function(String)? onStatusUpdate,
+    bool trimMetadata = false,
+  }) async {
+    try {
+      onStatusUpdate?.call('[NeteaseMusic] Searching songs...');
+      final bestMatch = await _searchSong(
+        title: title,
+        artist: artist,
+        durationSeconds: durationSeconds,
+      );
+
+      if (bestMatch == null) {
+        return LyricsResult.empty();
+      }
+
+      final songId = bestMatch['id'].toString();
+      final artworkUrl =
+          bestMatch['al']?['picUrl'] ?? bestMatch['album']?['picUrl'];
+
+      onStatusUpdate?.call('[NeteaseMusic] Fetching lyrics...');
+      final lyricData = await _getLyrics(songId, trimMetadata);
+
+      if (lyricData == null) {
+        return LyricsResult.empty();
+      }
+
+      return lyricData.copyWith(artworkUrl: artworkUrl);
+    } catch (e) {
+      debugPrint('[NeteaseMusic] Error fetching lyrics: $e');
+    }
+    return LyricsResult.empty();
+  }
+
+  Future<LyricsResult> fetchTranslation(
+    GeneralTranslationRequestData data,
+  ) async {
+    try {
+      final lyricData = await fetchLyrics(
+        title: data.title,
+        artist: data.artist,
+        album: data.album,
+        durationSeconds: data.durationSeconds,
+      );
+
+      if (lyricData.subLyrics == null) {
+        return LyricsResult.empty();
+      } else {
+        return lyricData.subLyrics!;
+      }
+    } catch (e) {
+      debugPrint('[NeteaseMusic] Error fetching translation: $e');
+    }
+    return LyricsResult.empty();
+  }
+
   static const Map<String, String> _headers = {
     'Referer': 'https://music.163.com/',
     'User-Agent':
@@ -141,94 +200,46 @@ class NeteaseService {
     }
   }
 
-  Future<Map<String, dynamic>?> _fetchLyricJson(String songId) async {
+  Future<LyricsResult?> _getLyrics(String songId, bool trimMetadata) async {
     try {
-      final lyricUri = Uri.parse(_lyricUrl).replace(
-        queryParameters: {
-          'id': songId,
-          'lv': '1',
-          'kv': '1',
-          'tv': '-1',
-          'rv': '-1',
-          'yv': '-1',
-          'ytv': '-1',
-          'yrv': '-1',
-          'csrf_token': '',
-        },
-      );
+      final lyricUri = Uri.parse('https://music.163.com/api/song/lyric')
+          .replace(
+            queryParameters: {
+              'id': songId,
+              'lv': '1',
+              'kv': '1',
+              'tv': '-1',
+              'rv': '-1',
+              'yv': '-1',
+              'ytv': '-1',
+              'yrv': '-1',
+              'csrf_token': '',
+            },
+          );
 
       final lyricResponse = await http
           .get(lyricUri, headers: _headers)
           .timeout(const Duration(seconds: 10));
+
       if (lyricResponse.statusCode != 200) {
         return null;
       }
 
-      return jsonDecode(lyricResponse.body);
-    } catch (e) {
-      debugPrint('[NeteaseMusic] Error fetching lyrics JSON: $e');
-      return null;
-    }
-  }
-
-  Future<LyricsResult> fetchLyrics({
-    required String title,
-    required String artist,
-    required String album,
-    required int durationSeconds,
-    Function(String)? onStatusUpdate,
-    bool trimMetadata = false,
-  }) async {
-    try {
-      onStatusUpdate?.call('[NeteaseMusic] Searching songs...');
-      final bestMatch = await _searchSong(
-        title: title,
-        artist: artist,
-        durationSeconds: durationSeconds,
-      );
-
-      if (bestMatch == null) {
-        return LyricsResult.empty();
-      }
-
-      final songId = bestMatch['id'].toString();
-      final artworkUrl =
-          bestMatch['al']?['picUrl'] ?? bestMatch['album']?['picUrl'];
-
-      onStatusUpdate?.call('[NeteaseMusic] Fetching lyrics...');
-      final lyricData = await _fetchLyricJson(songId);
-
-      if (lyricData == null) {
-        return LyricsResult.empty();
-      }
+      final lyricData = jsonDecode(lyricResponse.body);
 
       final String? lrc = lyricData['lrc']?['lyric'];
       final String? yrc = lyricData['yrc']?['lyric'];
       final String? tlyric = lyricData['tlyric']?['lyric'];
       final bool isPureMusic = lyricData['pureMusic'] == true;
 
-      String? contributor;
-      final lyricUser = lyricData['lyricUser'];
-      if (lyricUser != null && lyricUser['nickname'] != null) {
-        contributor = lyricUser['nickname'];
-      }
-
-      final transUser = lyricData['transUser'];
-      if (transUser != null && transUser['nickname'] != null) {
-        if (contributor != null) {
-          contributor += " & ${transUser['nickname']}";
-        } else {
-          contributor = transUser['nickname'];
-        }
-      }
+      final String? lyricContributor = lyricData['lyricUser']?['nickname'];
+      final String? translationContributor =
+          lyricData['transUser']?['nickname'];
 
       if ((lrc != null && lrc.isNotEmpty) ||
           (yrc != null && yrc.isNotEmpty) ||
           (tlyric != null && tlyric.isNotEmpty) ||
-          artworkUrl != null ||
           isPureMusic) {
-        onStatusUpdate?.call('Processing lyrics...');
-
         List<Lyric> lyrics = [];
         Map<String, String> trimmedMetadata = {};
 
@@ -257,6 +268,8 @@ class NeteaseService {
               source: 'Netease Music',
               isSynced: true,
               translation: true,
+              translationProvider: 'Netease Music',
+              translationContributor: translationContributor,
             );
           }
         }
@@ -264,58 +277,20 @@ class NeteaseService {
         return LyricsResult(
           lyrics: lyrics,
           source: 'Netease Music',
-          contributor: contributor,
-          artworkUrl: artworkUrl,
+          contributor: lyricContributor,
           writtenBy: trimmedMetadata['作词'] ?? trimmedMetadata['作詞'],
           composer: trimmedMetadata['作曲'],
           isPureMusic: isPureMusic,
           subLyrics: subLyrics,
         );
       } else {
-        debugPrint(
-          '[NeteaseMusic] returned no lyrics or artwork for songId: $songId',
-        );
+        debugPrint('[NeteaseMusic] returned no lyrics for songId: $songId');
+        return null;
       }
-    } catch (e) {
-      debugPrint('[NeteaseMusic] Error fetching lyrics: $e');
+    } catch (e, s) {
+      debugPrint('[NeteaseMusic] Error fetching lyrics JSON: $e\n$s');
+      return null;
     }
-    return LyricsResult.empty();
-  }
-
-  Future<LyricsResult> fetchTranslation(
-    GeneralTranslationRequestData data,
-  ) async {
-    try {
-      // Search with duration 0 as request data lacks it
-      final bestMatch = await _searchSong(
-        title: data.title,
-        artist: data.artist,
-        durationSeconds: 0,
-      );
-
-      if (bestMatch == null) return LyricsResult.empty();
-
-      final songId = bestMatch['id'].toString();
-      final lyricData = await _fetchLyricJson(songId);
-
-      if (lyricData == null) return LyricsResult.empty();
-
-      final String? tlyric = lyricData['tlyric']?['lyric'];
-      if (tlyric != null && tlyric.isNotEmpty) {
-        final parse = LrcParser.parse(tlyric);
-        if (parse.lyrics.isNotEmpty) {
-          return LyricsResult(
-            lyrics: parse.lyrics,
-            source: 'Netease Music',
-            translation: true,
-            isSynced: true,
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('[NeteaseMusic] Error fetching translation: $e');
-    }
-    return LyricsResult.empty();
   }
 }
 
