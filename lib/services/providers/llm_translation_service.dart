@@ -31,7 +31,7 @@ class LlmTranslationService {
       final model = (await _settingsService.getLlmModel()).current;
 
       if (endpoint.isEmpty || apiKey.isEmpty) {
-        debugPrint('LLM Translation: Endpoint or API Key is empty.');
+        debugPrint('[LLM Translation] Endpoint or API Key is empty.');
         return LyricsResult.empty();
       }
 
@@ -121,7 +121,7 @@ return new Response(
 
       if (response.statusCode != 200) {
         debugPrint(
-          'LLM Translation Failed: ${response.statusCode} ${response.body}',
+          '[LLM Translation] Failed: ${response.statusCode} ${response.body}',
         );
         return LyricsResult.empty();
       }
@@ -159,7 +159,7 @@ return new Response(
         translatedLines = jsonDecode(cleanContent)['translation'];
       } catch (e) {
         debugPrint(
-          'LLM Translation JSON Parse Error: $e\nContent: $cleanContent',
+          '[LLM Translation] JSON Parse Error: $e\nContent: $cleanContent',
         );
         return LyricsResult.empty();
       }
@@ -179,14 +179,14 @@ return new Response(
 
       if (translatedLines is! List) {
         debugPrint(
-          'LLM Translation Error: Model produced malformed JSON. Expected List or "SKIP", got $translatedLines',
+          '[LLM Translation] Error: Model produced malformed JSON. Expected List or "SKIP", got $translatedLines',
         );
         return LyricsResult.empty();
       }
 
       if (translatedLines.length != linesToTranslate.length) {
         debugPrint(
-          'LLM Translation Mismatch: Input ${linesToTranslate.length} vs Output ${translatedLines.length}',
+          '[LLM Translation] Mismatch: Input ${linesToTranslate.length} vs Output ${translatedLines.length}',
         );
         debugPrint('originalLyrics: $linesToTranslate');
         debugPrint('translatedLines: $translatedLines');
@@ -215,7 +215,7 @@ return new Response(
         translation: true,
       );
     } catch (e) {
-      debugPrint('LLM Translation Error: $e');
+      debugPrint('[LLM Translation] Error: $e');
       return LyricsResult.empty();
     }
   }

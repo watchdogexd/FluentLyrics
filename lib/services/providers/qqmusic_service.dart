@@ -49,7 +49,7 @@ class QQMusicService {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching translation from QQ Music: $e');
+      debugPrint('[QQMusic] Error fetching translation: $e');
     }
     return LyricsResult.empty();
   }
@@ -86,20 +86,20 @@ class QQMusicService {
           .timeout(const Duration(seconds: 10));
 
       if (searchResponse.statusCode != 200) {
-        debugPrint('QQMusic search failed: ${searchResponse.statusCode}');
+        debugPrint('[QQMusic] Search failed: ${searchResponse.statusCode}');
         return null;
       }
 
       final searchData = jsonDecode(utf8.decode(searchResponse.bodyBytes));
       final req1 = searchData['req_1'];
       if (req1['code'] != 0) {
-        debugPrint('QQMusic search API error: ${req1['code']}');
+        debugPrint('[QQMusic] Search API error: ${req1['code']}');
         return null;
       }
 
       final songList = req1['data']['body']['song']['list'] as List? ?? [];
       if (songList.isEmpty) {
-        debugPrint('QQMusic search returned no songs');
+        debugPrint('[QQMusic] Search returned no songs');
         return null;
       }
 
@@ -118,7 +118,7 @@ class QQMusicService {
 
       if (filteredSongs.isEmpty) {
         debugPrint(
-          'QQMusic search returned songs but none matched the title similarity threshold.',
+          '[QQMusic] Search returned songs but none matched the title similarity threshold.',
         );
         return null;
       }
@@ -143,12 +143,12 @@ class QQMusicService {
       }
 
       if (minDiff > 10 && durationSeconds > 0 && minDiff != 1000000) {
-        debugPrint('QQMusic best match duration diff too large: ${minDiff}s');
+        debugPrint('[QQMusic] Best match duration diff too large: ${minDiff}s');
       }
 
       return bestMatch;
     } catch (e) {
-      debugPrint('Error searching song on QQ Music: $e');
+      debugPrint('[QQMusic] Error searching song: $e');
       return null;
     }
   }
@@ -162,7 +162,7 @@ class QQMusicService {
     bool trimMetadata = false,
   }) async {
     try {
-      onStatusUpdate?.call('Searching lyrics on QQ Music...');
+      onStatusUpdate?.call('[QQMusic] Searching songs...');
 
       final bestMatch = await _searchSong(
         title: title,
@@ -184,11 +184,11 @@ class QQMusicService {
             'https://y.gtimg.cn/music/photo_new/T002R300x300M000$albumMid.jpg';
       }
 
-      onStatusUpdate?.call('Fetching lyrics from QQ Music...');
+      onStatusUpdate?.call('[QQMusic] Fetching lyrics...');
 
       final lyricsResponse = await _getLyrics(songMid);
       if (lyricsResponse == null) {
-        debugPrint('QQMusic lyrics response for best match is null');
+        debugPrint('[QQMusic] Lyrics response for best match is null');
         return LyricsResult.empty();
       }
 
@@ -207,7 +207,7 @@ class QQMusicService {
       }
 
       if (lrc != null && lrc.isNotEmpty) {
-        onStatusUpdate?.call('Processing lyrics...');
+        onStatusUpdate?.call('[QQMusic] Processing lyrics...');
 
         final parseResult = LrcParser.parse(lrc, trimMetadata: trimMetadata);
 
@@ -247,9 +247,8 @@ class QQMusicService {
       }
 
       return LyricsResult.empty();
-    } catch (e, s) {
-      debugPrint('Error fetching lyrics from QQ Music: $e');
-      debugPrint('Stack trace: $s');
+    } catch (e) {
+      debugPrint('[QQMusic] Error fetching lyrics: $e');
       return LyricsResult.empty();
     }
   }
@@ -295,7 +294,7 @@ class QQMusicService {
         }
       }
     } catch (e) {
-      debugPrint('QQMusic _getLyrics error: $e');
+      debugPrint('[QQMusic] Cannot fetch lyrics: $e');
     }
     return null;
   }

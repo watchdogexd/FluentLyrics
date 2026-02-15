@@ -46,7 +46,7 @@ class MusixmatchService {
     try {
       String? token = (await _settingsService.getMusixmatchToken()).current;
       if (token == null || token.isEmpty) {
-        onStatusUpdate?.call('Getting Musixmatch token...');
+        onStatusUpdate?.call('[Musixmatch] Getting token...');
         token = await fetchNewToken();
         if (token != null) {
           await _settingsService.setMusixmatchToken(token);
@@ -55,7 +55,7 @@ class MusixmatchService {
         }
       }
 
-      onStatusUpdate?.call('Searching lyrics on Musixmatch...');
+      onStatusUpdate?.call('[Musixmatch] Searching lyrics...');
       final result = await _getLyricsResult(
         title,
         artist,
@@ -67,7 +67,7 @@ class MusixmatchService {
         return result;
       }
     } catch (e) {
-      debugPrint('Error fetching Musixmatch lyrics: $e');
+      debugPrint('[Musixmatch] Error fetching lyrics: $e');
     }
     return LyricsResult.empty();
   }
@@ -87,7 +87,7 @@ class MusixmatchService {
         return data['message']['body']['user_token'];
       }
     } catch (e) {
-      debugPrint('Error fetching Musixmatch token: $e');
+      debugPrint('[Musixmatch] Error fetching token: $e');
     }
     return null;
   }
@@ -416,7 +416,7 @@ class MusixmatchService {
 
       return LyricsResult.empty();
     } catch (e) {
-      debugPrint('Error fetching translation from Musixmatch: $e');
+      debugPrint('[Musixmatch] Error fetching translation: $e');
       return LyricsResult.empty();
     }
   }
@@ -454,7 +454,7 @@ class MusixmatchService {
         return body;
       }
     } catch (e) {
-      debugPrint('Musixmatch request error: $e');
+      debugPrint('[Musixmatch] Request error: $e');
     }
     return null;
   }

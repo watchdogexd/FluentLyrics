@@ -288,7 +288,9 @@ class LyricsService {
               targetLanguage,
             );
           } else {
-            debugPrint('Unsupported translation provider: $tProvider');
+            debugPrint(
+              'Unsupported translation provider: $tProvider, or provider does not support the target language $targetLanguage',
+            );
             continue;
           }
           // Add other providers here if they support fetchTranslation

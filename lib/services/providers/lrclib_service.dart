@@ -28,7 +28,7 @@ class LrclibService {
         _baseSearchUrl,
       ).replace(queryParameters: queryParams);
 
-      onStatusUpdate?.call('Searching lyrics on LRCLIB...');
+      onStatusUpdate?.call('[LRCLIB] Searching lyrics...');
 
       final response = await http.get(uri).timeout(const Duration(seconds: 10));
 
@@ -56,7 +56,7 @@ class LrclibService {
 
         if (results.isEmpty) {
           debugPrint(
-            '[lyrics provider] [lrclib] search returned songs but none matched the title similarity threshold.',
+            '[LRCLIB] Search returned songs but none matched the title similarity threshold.',
           );
           return LyricsResult.empty();
         }
@@ -103,7 +103,7 @@ class LrclibService {
         final String? plainLyrics = selectedResult['plainLyrics'];
         final bool isInstrumental = selectedResult['instrumental'] == true;
 
-        onStatusUpdate?.call('Processing lyrics...');
+        onStatusUpdate?.call('[LRCLIB] Processing lyrics...');
         List<Lyric> lyrics = [];
 
         if (enhancedLyrics != null && enhancedLyrics.isNotEmpty) {
@@ -134,7 +134,7 @@ class LrclibService {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching lyrics from LRCLIB: $e');
+      debugPrint('[LRCLIB] Error fetching lyrics: $e');
     }
     return LyricsResult.empty();
   }
