@@ -8,7 +8,7 @@ import '../../utils/string_similarity.dart';
 
 class QQMusicService {
   bool checkTranslationSupport(String language) {
-    return language == 'zh';
+    return language == 'zh_CN';
   }
 
   Future<LyricsResult> fetchLyrics({

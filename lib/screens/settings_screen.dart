@@ -520,7 +520,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 2),
                     const Text(
-                      '* QQ Music and Netease Music only supports "zh"',
+                      '* QQ Music and Netease Music only supports "zh_CN"',
                       style: TextStyle(color: Colors.white38, fontSize: 12),
                     ),
                     const SizedBox(height: 12),
