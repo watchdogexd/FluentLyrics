@@ -74,16 +74,6 @@ class LrcParser {
     }
 
     List<Lyric> lyricsResult = lyricsWithEndTime;
-    Map<String, String> trimmedMetadataResult = {};
-
-    if (trimMetadata) {
-      final trimmedResult = trimMetadataLines(
-        lyricsWithEndTime,
-        lrcMetadata: lrcMetadata,
-      );
-      lyricsResult = trimmedResult.lyrics;
-      trimmedMetadataResult = trimmedResult.trimmedMetadata;
-    }
 
     // escape all lyric text
     var unescape = HtmlUnescape();
@@ -113,11 +103,43 @@ class LrcParser {
     }
     lyricsResult = lyricsResultEscaped;
 
+    // trim metadata lines
+    Map<String, String> trimmedMetadataResult = {};
+    if (trimMetadata) {
+      final trimmedResult = trimMetadataLines(
+        lyricsWithEndTime,
+        lrcMetadata: lrcMetadata,
+      );
+      lyricsResult = trimmedResult.lyrics;
+      trimmedMetadataResult = trimmedResult.trimmedMetadata;
+    }
+
+    lyricsResult = trimEmptyLines(lyricsResult);
+
     return LrcParseResult(
       lyrics: lyricsResult,
       trimmedMetadata: trimmedMetadataResult,
       lrcMetadata: lrcMetadata,
     );
+  }
+
+  /// Trims empty lines from lyrics (head and tail).
+  static List<Lyric> trimEmptyLines(List<Lyric> lyrics) {
+    if (lyrics.isEmpty) return lyrics;
+
+    final List<Lyric> result = List<Lyric>.from(lyrics);
+
+    // trim empty lines from head
+    while (result.isNotEmpty && result.first.text.trim().isEmpty) {
+      result.removeAt(0);
+    }
+
+    // trim empty lines from tail
+    while (result.isNotEmpty && result.last.text.trim().isEmpty) {
+      result.removeLast();
+    }
+
+    return result;
   }
 
   /// Trims metadata lines from lyrics (head and tail).
