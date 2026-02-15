@@ -97,6 +97,7 @@ return new Response(
 );
 ''';
       // 3. Call LLM API
+      final int start = FlutterTimeline.now;
       final response = await http.post(
         Uri.parse(endpoint),
         headers: {
@@ -118,6 +119,9 @@ return new Response(
           'max_tokens': 1000000,
         }),
       );
+      final int end = FlutterTimeline.now;
+      final int requestElapsed = (end - start) ~/ 1000;
+      debugPrint('[LLM Translation] Request Elapsed: $requestElapsed ms');
 
       if (response.statusCode != 200) {
         debugPrint(
@@ -211,8 +215,11 @@ return new Response(
 
       return LyricsResult(
         lyrics: newLyrics,
-        source: 'LLM ($model)',
+        source: 'LLM Translation',
         translation: true,
+        translationProvider: 'LLM Translation',
+        translationContributor:
+            'Model $model, Request Elapsed ${requestElapsed / 1000}s',
       );
     } catch (e) {
       debugPrint('[LLM Translation] Error: $e');
