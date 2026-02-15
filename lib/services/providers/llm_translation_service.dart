@@ -23,9 +23,6 @@ class LlmTranslationService {
     GeneralTranslationRequestData data,
     String targetLanguage,
   ) async {
-    targetLanguage = targetLanguage
-        .substring(4)
-        .trim(); // remove the "llm:" prefix
     try {
       final endpoint = (await _settingsService.getLlmApiEndpoint()).current;
       final apiKey = (await _settingsService.getLlmApiKey()).current;
@@ -61,14 +58,14 @@ Requirements:
 4. DO NOT use Markdown formatting (no codeblock like \\`\\`\\`json). Output raw JSON only.
 5. DO NOT add comments or notes.
 
-Target Language: $targetLanguage
+Target Language: ${targetLanguage.substring(4).trim()}
 Instructions:
 1. Detect the source language of the lyrics.
 2. If translation is not needed (eg. the source language is the same as the target language), return "SKIP".
 3. If the source language is different from the target language, 
    translate the lyrics to the target language following the structure
 
-Fake code of this instructions:
+Fake code of the instruction:
 ```typescript
 const linesToTranslate: string[] = ${jsonEncode(linesToTranslate)}
 
