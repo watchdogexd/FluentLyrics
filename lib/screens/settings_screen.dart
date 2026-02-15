@@ -525,9 +525,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
-                      // controller: TextEditingController(
-                      //   text: provider.translationTargetLanguage.current ?? '',
-                      // ),
                       initialValue: provider.translationTargetLanguages.current
                           .join(', '),
                       style: const TextStyle(color: Colors.white),
