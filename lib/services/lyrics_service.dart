@@ -280,7 +280,8 @@ class LyricsService {
               requestData,
               targetLanguage,
             );
-          } else if (tProvider == LyricProviderType.llm) {
+          } else if (tProvider == LyricProviderType.llm &&
+              _llmService.checkTranslationSupport(targetLanguage)) {
             debugPrint('Fetching translation from LLM');
             transResult = await _llmService.fetchTranslation(
               requestData,

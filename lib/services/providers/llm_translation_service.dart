@@ -8,7 +8,10 @@ import '../settings_service.dart';
 
 class LlmTranslationService {
   bool checkTranslationSupport(String language) {
-    return true;
+    if (language.startsWith('llm:')) {
+      return true;
+    }
+    return false;
   }
 
   final SettingsService _settingsService;
@@ -19,6 +22,9 @@ class LlmTranslationService {
     GeneralTranslationRequestData data,
     String targetLanguage,
   ) async {
+    targetLanguage = targetLanguage
+        .substring(4)
+        .trim(); // remove the "llm:" prefix
     try {
       final endpoint = (await _settingsService.getLlmApiEndpoint()).current;
       final apiKey = (await _settingsService.getLlmApiKey()).current;

@@ -505,12 +505,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Enter language codes separated by commas. The app will try to find the first available translation in the specified order.',
+                      'Enter language codes separated by commas. The app will try to find the first available translation in the specified order. Values are case-sensitive.',
                       style: TextStyle(color: Colors.white38, fontSize: 12),
                     ),
                     const SizedBox(height: 2),
                     const Text(
                       '* Musixmatch uses "zht" for Chinese (Traditional) and "zh" for Chinese (Simplified)',
+                      style: TextStyle(color: Colors.white38, fontSize: 12),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      '* LLM requires netural language input, use prefix "llm: [English]" to indicate the target language',
                       style: TextStyle(color: Colors.white38, fontSize: 12),
                     ),
                     const SizedBox(height: 2),
@@ -536,7 +541,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         provider.setTranslationTargetLanguages(
                           value.isEmpty
                               ? []
-                              : value.split(',').map((e) => e.trim()).toList(),
+                              : value
+                                    .split(',')
+                                    .map((e) => e.trim())
+                                    .map(
+                                      (e) => e.startsWith('llm:')
+                                          ? 'llm: ${e.substring(4).trim()}' // normalize input with 'llm:' prefix
+                                          : e,
+                                    )
+                                    .toList(),
                         );
                       },
                     ),
