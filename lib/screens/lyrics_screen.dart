@@ -458,6 +458,20 @@ class _LyricsScreenState extends State<LyricsScreen> {
     if (result.copyright != null && result.copyright!.isNotEmpty) {
       infoParts.add('Copyright: ${result.copyright}');
     }
+    if (result.subLyrics != null &&
+        result.subLyrics!.translationProvider != null &&
+        result.subLyrics!.translationProvider!.isNotEmpty) {
+      infoParts.add(
+        'Translation Provider: ${result.subLyrics!.translationProvider}',
+      );
+    }
+    if (result.subLyrics != null &&
+        result.subLyrics!.translationContributor != null &&
+        result.subLyrics!.translationContributor!.isNotEmpty) {
+      infoParts.add(
+        'Translation Contributor: ${result.subLyrics!.translationContributor}',
+      );
+    }
 
     if (infoParts.isEmpty) return const SizedBox.shrink();
 
