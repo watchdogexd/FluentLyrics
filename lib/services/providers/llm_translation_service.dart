@@ -216,6 +216,7 @@ return new Response(
       return LyricsResult(
         lyrics: newLyrics,
         source: 'LLM Translation',
+        language: targetLanguage,
         translation: true,
         translationProvider: 'LLM Translation',
         translationContributor:

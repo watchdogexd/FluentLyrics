@@ -79,6 +79,9 @@ class QQMusicService {
               source: 'QQ Music',
               isSynced: true,
               translation: true,
+              language: 'zh',
+              translationProvider: 'QQ Music',
+              // translationContributor: 'N/A',
             );
           }
         }

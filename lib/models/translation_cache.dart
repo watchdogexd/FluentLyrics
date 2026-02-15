@@ -11,8 +11,9 @@ class TranslationCache {
   late String cacheId;
 
   late String source;
+  late String translationProvider;
+  late String? translationContributor;
   late String language;
-  late String originalContentDigest; // To verify if it matches current lyrics
   late List<TranslationItem> lyrics;
 
   LyricsResult toLyricsResult() {
@@ -31,20 +32,21 @@ class TranslationCache {
       source: source,
       language: language,
       translation: true,
-      translationProvider: source,
+      translationProvider: translationProvider,
+      translationContributor: translationContributor,
     );
   }
 
   static TranslationCache fromLyricsResult(
     String cacheId,
-    String contentDigest,
     LyricsResult result,
   ) {
     return TranslationCache()
       ..cacheId = cacheId
       ..source = result.source
+      ..translationProvider = result.translationProvider ?? 'unknown'
+      ..translationContributor = result.translationContributor ?? 'unknown'
       ..language = result.language ?? 'en'
-      ..originalContentDigest = contentDigest
       ..lyrics = result.lyrics
           .map(
             (l) => TranslationItem()

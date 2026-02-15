@@ -402,6 +402,7 @@ class MusixmatchService {
           final firstTrans = translationsList[0]['translation'];
           if (firstTrans != null) {
             lang = firstTrans['language'];
+            lang = lang == 'z1' ? 'zht' : lang;
           }
         }
 

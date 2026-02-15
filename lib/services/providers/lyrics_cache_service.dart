@@ -161,10 +161,7 @@ class LyricsCacheService {
   }
 
   // Translation Caching
-  Future<LyricsResult?> getCachedTranslation(
-    String cacheId,
-    String contentDigest,
-  ) async {
+  Future<LyricsResult?> getCachedTranslation(String cacheId) async {
     final isar = await _db;
     final cached = await isar.translationCaches
         .filter()
@@ -172,18 +169,6 @@ class LyricsCacheService {
         .findFirst();
 
     if (cached == null) return null;
-
-    // Check if original content digest matches
-    if (cached.originalContentDigest != contentDigest) {
-      // Content changed, translation might be invalid
-      await isar.writeTxn(() async {
-        await isar.translationCaches
-            .filter()
-            .cacheIdEqualTo(cacheId)
-            .deleteAll();
-      });
-      return null;
-    }
 
     try {
       return cached.toLyricsResult();
@@ -198,17 +183,9 @@ class LyricsCacheService {
     }
   }
 
-  Future<void> cacheTranslation(
-    String cacheId,
-    String contentDigest,
-    LyricsResult result,
-  ) async {
+  Future<void> cacheTranslation(String cacheId, LyricsResult result) async {
     final isar = await _db;
-    final cache = TranslationCache.fromLyricsResult(
-      cacheId,
-      contentDigest,
-      result,
-    );
+    final cache = TranslationCache.fromLyricsResult(cacheId, result);
     await isar.writeTxn(() async {
       await isar.translationCaches.put(cache);
     });
@@ -228,12 +205,6 @@ class LyricsCacheService {
   ) {
     final input = '$title|$artist|$language';
     final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
-  String generateContentDigest(String content) {
-    final bytes = utf8.encode(content);
     final digest = sha256.convert(bytes);
     return digest.toString();
   }

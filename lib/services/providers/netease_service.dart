@@ -267,6 +267,7 @@ class NeteaseService {
               lyrics: transParse.lyrics,
               source: 'Netease Music',
               isSynced: true,
+              language: 'zh',
               translation: true,
               translationProvider: 'Netease Music',
               translationContributor: translationContributor,
