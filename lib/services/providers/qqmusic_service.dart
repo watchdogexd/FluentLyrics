@@ -11,24 +11,51 @@ class QQMusicService {
     return language == 'zh';
   }
 
-  Future<LyricsResult> fetchTranslation(
-    GeneralTranslationRequestData data,
-  ) async {
+  Future<LyricsResult> fetchLyrics({
+    required String title,
+    required String artist,
+    required String album,
+    required int durationSeconds,
+    Function(String)? onStatusUpdate,
+    bool trimMetadata = false,
+  }) async {
     try {
+      onStatusUpdate?.call('[QQMusic] Searching songs...');
+
       final bestMatch = await _searchSong(
-        title: data.title,
-        artist: data.artist,
-        durationSeconds: 0,
+        title: title,
+        artist: artist,
+        durationSeconds: durationSeconds,
       );
 
-      if (bestMatch == null) return LyricsResult.empty();
+      if (bestMatch == null) {
+        return LyricsResult.empty();
+      }
 
+      // 3. Fetch Lyrics
       final songMid = bestMatch['mid'] as String;
+      // Extract album mid for artwork if available
+      final albumMid = bestMatch['album']?['mid'] as String?;
+      String? artworkUrl;
+      if (albumMid != null && albumMid.isNotEmpty) {
+        artworkUrl =
+            'https://y.gtimg.cn/music/photo_new/T002R300x300M000$albumMid.jpg';
+      }
+
+      onStatusUpdate?.call('[QQMusic] Fetching lyrics...');
+
       final lyricsResponse = await _getLyrics(songMid);
+      if (lyricsResponse == null) {
+        debugPrint('[QQMusic] Lyrics response for best match is null');
+        return LyricsResult.empty();
+      }
 
-      if (lyricsResponse == null) return LyricsResult.empty();
-
+      String? lrc = lyricsResponse['lyric'];
       String? trans = lyricsResponse['trans'];
+
+      if (lrc != null && lrc.isNotEmpty) {
+        lrc = utf8.decode(base64.decode(lrc));
+      }
       if (trans != null && trans.isNotEmpty) {
         try {
           trans = utf8.decode(base64.decode(trans));
@@ -37,16 +64,68 @@ class QQMusicService {
         }
       }
 
-      if (trans != null && trans.isNotEmpty) {
-        final transParse = LrcParser.parse(trans);
-        if (transParse.lyrics.isNotEmpty) {
-          return LyricsResult(
-            lyrics: transParse.lyrics,
-            source: 'QQ Music',
-            translation: true,
-            isSynced: true,
-          );
+      if (lrc != null && lrc.isNotEmpty) {
+        onStatusUpdate?.call('[QQMusic] Processing lyrics...');
+
+        final parseResult = LrcParser.parse(lrc, trimMetadata: trimMetadata);
+
+        // Parse translation
+        LyricsResult? subLyrics;
+        if (trans != null && trans.isNotEmpty) {
+          final transParse = LrcParser.parse(trans);
+          if (transParse.lyrics.isNotEmpty) {
+            subLyrics = LyricsResult(
+              lyrics: transParse.lyrics,
+              source: 'QQ Music',
+              isSynced: true,
+              translation: true,
+            );
+          }
         }
+
+        return LyricsResult(
+          lyrics: parseResult.lyrics,
+          source: 'QQ Music',
+          artworkUrl: artworkUrl,
+          writtenBy:
+              parseResult.trimmedMetadata['作词'] ??
+              parseResult.trimmedMetadata['作詞'] ??
+              parseResult.trimmedMetadata['Lyrics by'],
+          composer:
+              parseResult.trimmedMetadata['作曲'] ??
+              parseResult.trimmedMetadata['Composer'] ??
+              parseResult.trimmedMetadata['Composed by'],
+          isPureMusic: false,
+          subLyrics: subLyrics,
+          metadata: {
+            ...parseResult.lrcMetadata,
+            ...parseResult.trimmedMetadata,
+          },
+        );
+      }
+
+      return LyricsResult.empty();
+    } catch (e) {
+      debugPrint('[QQMusic] Error fetching lyrics: $e');
+      return LyricsResult.empty();
+    }
+  }
+
+  Future<LyricsResult> fetchTranslation(
+    GeneralTranslationRequestData data,
+  ) async {
+    try {
+      final lyricData = await fetchLyrics(
+        title: data.title,
+        artist: data.artist,
+        album: data.album,
+        durationSeconds: data.durationSeconds,
+      );
+
+      if (lyricData.subLyrics == null) {
+        return LyricsResult.empty();
+      } else {
+        return lyricData.subLyrics!;
       }
     } catch (e) {
       debugPrint('[QQMusic] Error fetching translation: $e');
@@ -150,106 +229,6 @@ class QQMusicService {
     } catch (e) {
       debugPrint('[QQMusic] Error searching song: $e');
       return null;
-    }
-  }
-
-  Future<LyricsResult> fetchLyrics({
-    required String title,
-    required String artist,
-    required String album,
-    required int durationSeconds,
-    Function(String)? onStatusUpdate,
-    bool trimMetadata = false,
-  }) async {
-    try {
-      onStatusUpdate?.call('[QQMusic] Searching songs...');
-
-      final bestMatch = await _searchSong(
-        title: title,
-        artist: artist,
-        durationSeconds: durationSeconds,
-      );
-
-      if (bestMatch == null) {
-        return LyricsResult.empty();
-      }
-
-      // 3. Fetch Lyrics
-      final songMid = bestMatch['mid'] as String;
-      // Extract album mid for artwork if available
-      final albumMid = bestMatch['album']?['mid'] as String?;
-      String? artworkUrl;
-      if (albumMid != null && albumMid.isNotEmpty) {
-        artworkUrl =
-            'https://y.gtimg.cn/music/photo_new/T002R300x300M000$albumMid.jpg';
-      }
-
-      onStatusUpdate?.call('[QQMusic] Fetching lyrics...');
-
-      final lyricsResponse = await _getLyrics(songMid);
-      if (lyricsResponse == null) {
-        debugPrint('[QQMusic] Lyrics response for best match is null');
-        return LyricsResult.empty();
-      }
-
-      String? lrc = lyricsResponse['lyric'];
-      String? trans = lyricsResponse['trans'];
-
-      if (lrc != null && lrc.isNotEmpty) {
-        lrc = utf8.decode(base64.decode(lrc));
-      }
-      if (trans != null && trans.isNotEmpty) {
-        try {
-          trans = utf8.decode(base64.decode(trans));
-        } catch (e) {
-          trans = null;
-        }
-      }
-
-      if (lrc != null && lrc.isNotEmpty) {
-        onStatusUpdate?.call('[QQMusic] Processing lyrics...');
-
-        final parseResult = LrcParser.parse(lrc, trimMetadata: trimMetadata);
-
-        // Parse translation
-        LyricsResult? subLyrics;
-        if (trans != null && trans.isNotEmpty) {
-          final transParse = LrcParser.parse(trans);
-          if (transParse.lyrics.isNotEmpty) {
-            subLyrics = LyricsResult(
-              lyrics: transParse.lyrics,
-              source: 'QQ Music',
-              isSynced: true,
-              translation: true,
-            );
-          }
-        }
-
-        return LyricsResult(
-          lyrics: parseResult.lyrics,
-          source: 'QQ Music',
-          artworkUrl: artworkUrl,
-          writtenBy:
-              parseResult.trimmedMetadata['作词'] ??
-              parseResult.trimmedMetadata['作詞'] ??
-              parseResult.trimmedMetadata['Lyrics by'],
-          composer:
-              parseResult.trimmedMetadata['作曲'] ??
-              parseResult.trimmedMetadata['Composer'] ??
-              parseResult.trimmedMetadata['Composed by'],
-          isPureMusic: false,
-          subLyrics: subLyrics,
-          metadata: {
-            ...parseResult.lrcMetadata,
-            ...parseResult.trimmedMetadata,
-          },
-        );
-      }
-
-      return LyricsResult.empty();
-    } catch (e) {
-      debugPrint('[QQMusic] Error fetching lyrics: $e');
-      return LyricsResult.empty();
     }
   }
 
