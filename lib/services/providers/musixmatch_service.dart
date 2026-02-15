@@ -411,6 +411,8 @@ class MusixmatchService {
           translation: true,
           isSynced: true,
           language: lang ?? language,
+          translationProvider: 'Musixmatch',
+          // translationContributor: 'N/A?',
         );
       }
 
