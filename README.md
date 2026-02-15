@@ -27,10 +27,31 @@ The main interface.
 - no other platform support planned
 - PR welcome
 
+## Installations
+
+### Linux
+
+1. Arch Linux (x86_64)
+
+```bash
+paru -Sy fluent-lyrics-bin
+```
+
+2. Other Linux Distros
+
+Please use the AppImage or kindly package it yourself :3
+
+### Android
+
+see Releases
+
 ## Quick start (developer)
+
 Requirements:
-- Flutter SDK with desktop support enabled
+- Flutter SDK
 - Dart
+- Android toolchain (for android)
+- Linux toolchain (for linux)
 
 Common commands:
 - flutter pub get
