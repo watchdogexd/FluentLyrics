@@ -225,6 +225,8 @@ class LyricsService {
       final requestData = GeneralTranslationRequestData(
         title: title,
         artist: artist,
+        album: album,
+        durationSeconds: durationSeconds,
         content: bestResult.lyrics
             .map((l) {
               final m = l.startTime.inMinutes
