@@ -131,7 +131,11 @@ class LyricLine extends StatelessWidget {
     if (!isHighlighted ||
         lyric.inlineParts == null ||
         lyric.inlineParts!.isEmpty) {
-      return Text(text, textAlign: TextAlign.left);
+      return Text(
+        text,
+        textAlign: TextAlign.left,
+        style: DefaultTextStyle.of(context).style,
+      );
     } else if (lyric.inlineParts!.length == 1) {
       return Text(
         lyric.inlineParts!.first.text,
