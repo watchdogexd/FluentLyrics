@@ -15,6 +15,7 @@ class TranslationCache {
   late String? translationContributor;
   late String language;
   late List<TranslationItem> lyrics;
+  late List<RawTranslationPair>? rawTranslation;
 
   LyricsResult toLyricsResult() {
     return LyricsResult(
@@ -28,6 +29,9 @@ class TranslationCache {
               text: l.text,
             ),
           )
+          .toList(),
+      rawTranslation: rawTranslation
+          ?.map((e) => {'original': e.original ?? '', 'translated': e.translated ?? ''})
           .toList(),
       source: source,
       language: language,
@@ -54,8 +58,21 @@ class TranslationCache {
               ..endTimeMs = l.endTime?.inMilliseconds
               ..text = l.text,
           )
+          .toList()
+      ..rawTranslation = result.rawTranslation
+          ?.map(
+            (e) => RawTranslationPair()
+              ..original = e['original']
+              ..translated = e['translated'],
+          )
           .toList();
   }
+}
+
+@embedded
+class RawTranslationPair {
+  String? original;
+  String? translated;
 }
 
 @embedded

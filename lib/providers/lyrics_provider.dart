@@ -9,6 +9,7 @@ import '../services/media_service.dart';
 import '../services/lyrics_service.dart';
 import '../services/settings_service.dart';
 import '../services/providers/lyrics_cache_service.dart';
+import '../utils/lyric_aligner.dart';
 
 class LyricsProvider with ChangeNotifier {
   final MediaService mediaService = MediaService.create();
@@ -139,23 +140,46 @@ class LyricsProvider with ChangeNotifier {
 
   MediaMetadata? get currentMetadata => _currentMetadata;
 
+  List<Lyric>? _cachedAlignedLyrics;
+  LyricsResult? _lastLyricsResultForAlignment;
+  bool? _lastRichSyncEnabledForAlignment;
+
+  List<Lyric> _stripRichSync(List<Lyric> source) {
+    return source.map((l) {
+      if (l.inlineParts != null && l.inlineParts!.isNotEmpty) {
+        return Lyric(
+          startTime: l.startTime,
+          endTime: l.endTime,
+          text: l.text,
+          inlineParts: null,
+          translation: l.translation,
+        );
+      }
+      return l;
+    }).toList();
+  }
+
   List<Lyric> get lyrics {
-    if (!_richSyncEnabled.current && _lyricsResult.isRichSync) {
-      // Return a processed list where lyrics don't have inline parts
-      return _lyricsResult.lyrics.map((l) {
-        if (l.inlineParts != null && l.inlineParts!.isNotEmpty) {
-          return Lyric(
-            startTime: l.startTime,
-            endTime: l.endTime,
-            text: l.text,
-            inlineParts: null,
-            translation: l.translation, // Preserve translation
-          );
-        }
-        return l;
-      }).toList();
+    final curRichSync = _richSyncEnabled.current;
+    final baseLyrics =
+        curRichSync ? _lyricsResult.lyrics : _stripRichSync(_lyricsResult.lyrics);
+
+    if (_lyricsResult.subLyrics?.rawTranslation != null) {
+      if (_cachedAlignedLyrics != null &&
+          _lastLyricsResultForAlignment == _lyricsResult &&
+          _lastRichSyncEnabledForAlignment == curRichSync) {
+        return _cachedAlignedLyrics!;
+      }
+      _cachedAlignedLyrics = LyricAligner.align(
+        originalLyrics: baseLyrics,
+        rawTranslation: _lyricsResult.subLyrics!.rawTranslation!,
+      );
+      _lastLyricsResultForAlignment = _lyricsResult;
+      _lastRichSyncEnabledForAlignment = curRichSync;
+      return _cachedAlignedLyrics!;
     }
-    return _lyricsResult.lyrics;
+
+    return baseLyrics;
   }
 
   LyricsResult get lyricsResult {

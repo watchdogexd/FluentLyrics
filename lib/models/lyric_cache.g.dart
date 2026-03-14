@@ -68,8 +68,14 @@ const LyricCacheSchema = CollectionSchema(
       name: r'source',
       type: IsarType.string,
     ),
-    r'writtenBy': PropertySchema(
+    r'subLyrics': PropertySchema(
       id: 10,
+      name: r'subLyrics',
+      type: IsarType.object,
+      target: r'SubLyricsItem',
+    ),
+    r'writtenBy': PropertySchema(
+      id: 11,
       name: r'writtenBy',
       type: IsarType.string,
     )
@@ -96,6 +102,8 @@ const LyricCacheSchema = CollectionSchema(
   },
   links: {},
   embeddedSchemas: {
+    r'SubLyricsItem': SubLyricsItemSchema,
+    r'RawTranslationPair': RawTranslationPairSchema,
     r'LyricItem': LyricItemSchema,
     r'LyricItemInlinePart': LyricItemInlinePartSchema
   },
@@ -146,6 +154,14 @@ int _lyricCacheEstimateSize(
   }
   bytesCount += 3 + object.source.length * 3;
   {
+    final value = object.subLyrics;
+    if (value != null) {
+      bytesCount += 3 +
+          SubLyricsItemSchema.estimateSize(
+              value, allOffsets[SubLyricsItem]!, allOffsets);
+    }
+  }
+  {
     final value = object.writtenBy;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -175,7 +191,13 @@ void _lyricCacheSerialize(
     object.lyrics,
   );
   writer.writeString(offsets[9], object.source);
-  writer.writeString(offsets[10], object.writtenBy);
+  writer.writeObject<SubLyricsItem>(
+    offsets[10],
+    allOffsets,
+    SubLyricsItemSchema.serialize,
+    object.subLyrics,
+  );
+  writer.writeString(offsets[11], object.writtenBy);
 }
 
 LyricCache _lyricCacheDeserialize(
@@ -202,7 +224,12 @@ LyricCache _lyricCacheDeserialize(
       ) ??
       [];
   object.source = reader.readString(offsets[9]);
-  object.writtenBy = reader.readStringOrNull(offsets[10]);
+  object.subLyrics = reader.readObjectOrNull<SubLyricsItem>(
+    offsets[10],
+    SubLyricsItemSchema.deserialize,
+    allOffsets,
+  );
+  object.writtenBy = reader.readStringOrNull(offsets[11]);
   return object;
 }
 
@@ -240,6 +267,12 @@ P _lyricCacheDeserializeProp<P>(
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
+      return (reader.readObjectOrNull<SubLyricsItem>(
+        offset,
+        SubLyricsItemSchema.deserialize,
+        allOffsets,
+      )) as P;
+    case 11:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1482,6 +1515,24 @@ extension LyricCacheQueryFilter
   }
 
   QueryBuilder<LyricCache, LyricCache, QAfterFilterCondition>
+      subLyricsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'subLyrics',
+      ));
+    });
+  }
+
+  QueryBuilder<LyricCache, LyricCache, QAfterFilterCondition>
+      subLyricsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'subLyrics',
+      ));
+    });
+  }
+
+  QueryBuilder<LyricCache, LyricCache, QAfterFilterCondition>
       writtenByIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1640,6 +1691,13 @@ extension LyricCacheQueryObject
       FilterQuery<LyricItem> q) {
     return QueryBuilder.apply(this, (query) {
       return query.object(q, r'lyrics');
+    });
+  }
+
+  QueryBuilder<LyricCache, LyricCache, QAfterFilterCondition> subLyrics(
+      FilterQuery<SubLyricsItem> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'subLyrics');
     });
   }
 }
@@ -2043,6 +2101,13 @@ extension LyricCacheQueryProperty
     });
   }
 
+  QueryBuilder<LyricCache, SubLyricsItem?, QQueryOperations>
+      subLyricsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'subLyrics');
+    });
+  }
+
   QueryBuilder<LyricCache, String?, QQueryOperations> writtenByProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'writtenBy');
@@ -2053,6 +2118,1293 @@ extension LyricCacheQueryProperty
 // **************************************************************************
 // IsarEmbeddedGenerator
 // **************************************************************************
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const SubLyricsItemSchema = Schema(
+  name: r'SubLyricsItem',
+  id: -9160089796500191658,
+  properties: {
+    r'language': PropertySchema(
+      id: 0,
+      name: r'language',
+      type: IsarType.string,
+    ),
+    r'rawTranslation': PropertySchema(
+      id: 1,
+      name: r'rawTranslation',
+      type: IsarType.objectList,
+      target: r'RawTranslationPair',
+    ),
+    r'source': PropertySchema(
+      id: 2,
+      name: r'source',
+      type: IsarType.string,
+    ),
+    r'translationContributor': PropertySchema(
+      id: 3,
+      name: r'translationContributor',
+      type: IsarType.string,
+    ),
+    r'translationProvider': PropertySchema(
+      id: 4,
+      name: r'translationProvider',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _subLyricsItemEstimateSize,
+  serialize: _subLyricsItemSerialize,
+  deserialize: _subLyricsItemDeserialize,
+  deserializeProp: _subLyricsItemDeserializeProp,
+);
+
+int _subLyricsItemEstimateSize(
+  SubLyricsItem object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.language;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final list = object.rawTranslation;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[RawTranslationPair]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount +=
+              RawTranslationPairSchema.estimateSize(value, offsets, allOffsets);
+        }
+      }
+    }
+  }
+  {
+    final value = object.source;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.translationContributor;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.translationProvider;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _subLyricsItemSerialize(
+  SubLyricsItem object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.language);
+  writer.writeObjectList<RawTranslationPair>(
+    offsets[1],
+    allOffsets,
+    RawTranslationPairSchema.serialize,
+    object.rawTranslation,
+  );
+  writer.writeString(offsets[2], object.source);
+  writer.writeString(offsets[3], object.translationContributor);
+  writer.writeString(offsets[4], object.translationProvider);
+}
+
+SubLyricsItem _subLyricsItemDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = SubLyricsItem();
+  object.language = reader.readStringOrNull(offsets[0]);
+  object.rawTranslation = reader.readObjectList<RawTranslationPair>(
+    offsets[1],
+    RawTranslationPairSchema.deserialize,
+    allOffsets,
+    RawTranslationPair(),
+  );
+  object.source = reader.readStringOrNull(offsets[2]);
+  object.translationContributor = reader.readStringOrNull(offsets[3]);
+  object.translationProvider = reader.readStringOrNull(offsets[4]);
+  return object;
+}
+
+P _subLyricsItemDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readStringOrNull(offset)) as P;
+    case 1:
+      return (reader.readObjectList<RawTranslationPair>(
+        offset,
+        RawTranslationPairSchema.deserialize,
+        allOffsets,
+        RawTranslationPair(),
+      )) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readStringOrNull(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension SubLyricsItemQueryFilter
+    on QueryBuilder<SubLyricsItem, SubLyricsItem, QFilterCondition> {
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'language',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'language',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'language',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'language',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'language',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      languageIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'language',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      rawTranslationIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'rawTranslation',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      rawTranslationIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'rawTranslation',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      rawTranslationLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawTranslation',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      rawTranslationIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawTranslation',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      rawTranslationIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawTranslation',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      rawTranslationLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawTranslation',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      rawTranslationLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawTranslation',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      rawTranslationLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawTranslation',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'source',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'source',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'source',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'source',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'source',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      sourceIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'source',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'translationContributor',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'translationContributor',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'translationContributor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'translationContributor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'translationContributor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'translationContributor',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'translationContributor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'translationContributor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'translationContributor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'translationContributor',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'translationContributor',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationContributorIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'translationContributor',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'translationProvider',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'translationProvider',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'translationProvider',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'translationProvider',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'translationProvider',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'translationProvider',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'translationProvider',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'translationProvider',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'translationProvider',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'translationProvider',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'translationProvider',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      translationProviderIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'translationProvider',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension SubLyricsItemQueryObject
+    on QueryBuilder<SubLyricsItem, SubLyricsItem, QFilterCondition> {
+  QueryBuilder<SubLyricsItem, SubLyricsItem, QAfterFilterCondition>
+      rawTranslationElement(FilterQuery<RawTranslationPair> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'rawTranslation');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const RawTranslationPairSchema = Schema(
+  name: r'RawTranslationPair',
+  id: -2519904812350907104,
+  properties: {
+    r'original': PropertySchema(
+      id: 0,
+      name: r'original',
+      type: IsarType.string,
+    ),
+    r'translated': PropertySchema(
+      id: 1,
+      name: r'translated',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _rawTranslationPairEstimateSize,
+  serialize: _rawTranslationPairSerialize,
+  deserialize: _rawTranslationPairDeserialize,
+  deserializeProp: _rawTranslationPairDeserializeProp,
+);
+
+int _rawTranslationPairEstimateSize(
+  RawTranslationPair object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.original;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.translated;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _rawTranslationPairSerialize(
+  RawTranslationPair object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.original);
+  writer.writeString(offsets[1], object.translated);
+}
+
+RawTranslationPair _rawTranslationPairDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = RawTranslationPair();
+  object.original = reader.readStringOrNull(offsets[0]);
+  object.translated = reader.readStringOrNull(offsets[1]);
+  return object;
+}
+
+P _rawTranslationPairDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readStringOrNull(offset)) as P;
+    case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension RawTranslationPairQueryFilter
+    on QueryBuilder<RawTranslationPair, RawTranslationPair, QFilterCondition> {
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'original',
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'original',
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'original',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'original',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'original',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'original',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'original',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'original',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'original',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'original',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'original',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      originalIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'original',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'translated',
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'translated',
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'translated',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'translated',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'translated',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'translated',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'translated',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'translated',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'translated',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'translated',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'translated',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RawTranslationPair, RawTranslationPair, QAfterFilterCondition>
+      translatedIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'translated',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension RawTranslationPairQueryObject
+    on QueryBuilder<RawTranslationPair, RawTranslationPair, QFilterCondition> {}
 
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types

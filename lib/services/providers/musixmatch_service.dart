@@ -366,7 +366,8 @@ class MusixmatchService {
       }
 
       // 4. Map Translations to Original Lyrics
-      Map<String, String> translationMap = {};
+      List<Map<String, String>> rawTranslation = [];
+      String? lang;
 
       for (var item in translationsList) {
         final translation = item['translation'];
@@ -377,26 +378,15 @@ class MusixmatchService {
           if (matchedLine != null &&
               description != null &&
               description.isNotEmpty) {
-            translationMap[matchedLine.trim()] = description;
+            rawTranslation.add({
+              'original': matchedLine.trim(),
+              'translated': description,
+            });
           }
         }
       }
 
-      List<Lyric> translatedLyrics = [];
-      String? lang;
-
-      for (var lyric in originalLyrics) {
-        final originalText = lyric.text.trim();
-        final transText = translationMap[originalText];
-
-        if (transText != null) {
-          translatedLyrics.add(
-            Lyric(startTime: lyric.startTime, text: transText),
-          );
-        }
-      }
-
-      if (translatedLyrics.isNotEmpty) {
+      if (rawTranslation.isNotEmpty) {
         // Try to get language from first translation item
         if (translationsList.isNotEmpty) {
           final firstTrans = translationsList[0]['translation'];
@@ -407,13 +397,13 @@ class MusixmatchService {
         }
 
         return LyricsResult(
-          lyrics: translatedLyrics,
+          lyrics: [],
+          rawTranslation: rawTranslation,
           source: 'Musixmatch',
           translation: true,
           isSynced: true,
           language: lang ?? language,
           translationProvider: 'Musixmatch',
-          // translationContributor: 'N/A?',
         );
       }
 

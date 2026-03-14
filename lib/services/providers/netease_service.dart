@@ -22,6 +22,7 @@ class NeteaseService {
     required int durationSeconds,
     Function(String)? onStatusUpdate,
     bool trimMetadata = false,
+    int translationBias = 0,
   }) async {
     try {
       onStatusUpdate?.call('[NeteaseMusic] Searching songs...');
@@ -40,7 +41,7 @@ class NeteaseService {
           bestMatch['al']?['picUrl'] ?? bestMatch['album']?['picUrl'];
 
       onStatusUpdate?.call('[NeteaseMusic] Fetching lyrics...');
-      final lyricData = await _getLyrics(songId, trimMetadata);
+      final lyricData = await _getLyrics(songId, trimMetadata, translationBias);
 
       if (lyricData == null) {
         return LyricsResult.empty();
@@ -54,14 +55,16 @@ class NeteaseService {
   }
 
   Future<LyricsResult> fetchTranslation(
-    GeneralTranslationRequestData data,
-  ) async {
+    GeneralTranslationRequestData data, {
+    int translationBias = 0,
+  }) async {
     try {
       final lyricData = await fetchLyrics(
         title: data.title,
         artist: data.artist,
         album: data.album,
         durationSeconds: data.durationSeconds,
+        translationBias: translationBias,
       );
 
       if (lyricData.subLyrics == null) {
@@ -88,73 +91,30 @@ class NeteaseService {
   }) async {
     try {
       final keyword = '$title - $artist';
-      const eapiSearchUrl =
-          'https://interface.music.163.com/eapi/cloudsearch/pc';
-
-      final now = DateTime.now().toUtc();
-      final buildver = (now.millisecondsSinceEpoch ~/ 1000).toString();
-      final requestId =
-          '${now.millisecondsSinceEpoch}_${Random().nextInt(1000).toString().padLeft(4, '0')}';
-
-      final eapiHeader = {
-        '__csrf': '',
-        'appver': '8.0.0',
-        'buildver': buildver,
-        'channel': '',
-        'deviceId': '',
-        'mobilename': '',
-        'resolution': '1920x1080',
-        'os': 'android',
-        'osver': '',
-        'requestId': requestId,
-        'versioncode': '140',
-        'MUSIC_U': '',
-      };
-
-      final eapiData = {
+      final searchUrl = Uri.parse('https://music.163.com/api/search/get/web');
+      final searchParams = {
         's': keyword,
-        'type': '1', // Single song
-        'limit': '20',
+        'type': '1', // 1 for song
         'offset': '0',
-        'total': 'true',
-        'header': jsonEncode(eapiHeader),
+        'limit': '20',
       };
-
-      final encrypted = _NeteaseEapiHelper.encrypt(eapiSearchUrl, eapiData);
-      final headers = _NeteaseEapiHelper.buildHeaders(eapiHeader);
 
       final searchResponse = await http
-          .post(Uri.parse(eapiSearchUrl), headers: headers, body: encrypted)
+          .post(searchUrl, headers: _headers, body: searchParams)
           .timeout(const Duration(seconds: 10));
 
       if (searchResponse.statusCode != 200) {
-        debugPrint(
-          '[NeteaseMusic] Search failed: ${searchResponse.statusCode}',
-        );
         return null;
       }
 
       final searchData = jsonDecode(searchResponse.body);
-      if (searchData['code'] != 200) {
-        debugPrint(
-          '[NeteaseMusic] Search returned unexpected code: ${searchData['code']}',
-        );
+      final songList = searchData['result']?['songs'] as List? ?? [];
+      if (songList.isEmpty) {
         return null;
       }
 
-      final result = searchData['result'];
-      if (result == null ||
-          (result['songs'] == null && result['songCount'] == 0)) {
-        return null;
-      }
-
-      final songs = result['songs'] as List? ?? [];
-      if (songs.isEmpty) {
-        return null;
-      }
-
-      // Filter based on similarity
-      final filteredSongs = songs.where((song) {
+      // Filter songs
+      final filteredSongs = songList.where((song) {
         final songName = song['name'] as String?;
         if (songName == null) return false;
 
@@ -162,27 +122,23 @@ class NeteaseService {
           title.toLowerCase(),
           songName.toLowerCase(),
         );
+
         return similarity >= 0.7;
       }).toList();
 
       if (filteredSongs.isEmpty) {
-        debugPrint(
-          '[NeteaseMusic] search returned songs but none matched the title similarity threshold',
-        );
         return null;
       }
 
-      // Select best match
+      // Find the best match based on duration
       dynamic bestMatch = filteredSongs[0];
       double minDiff = 1000000;
 
       for (var song in filteredSongs) {
-        final songDurationMs = song['duration'] ?? song['dt'];
-        if (songDurationMs != null) {
-          final diff = (songDurationMs / 1000 - durationSeconds)
-              .abs()
-              .toDouble();
-          if (diff < 1) {
+        final songDuration = song['duration']; // Duration in ms
+        if (songDuration != null && songDuration is int) {
+          final diff = (songDuration - (durationSeconds * 1000)).abs().toDouble();
+          if (diff < 1000) {
             bestMatch = song;
             minDiff = 0;
             break;
@@ -200,7 +156,11 @@ class NeteaseService {
     }
   }
 
-  Future<LyricsResult?> _getLyrics(String songId, bool trimMetadata) async {
+  Future<LyricsResult?> _getLyrics(
+    String songId,
+    bool trimMetadata,
+    int translationBias,
+  ) async {
     try {
       final lyricUri = Uri.parse('https://music.163.com/api/song/lyric')
           .replace(
@@ -263,8 +223,35 @@ class NeteaseService {
         if (tlyric != null && tlyric.isNotEmpty) {
           final transParse = LrcParser.parse(tlyric);
           if (transParse.lyrics.isNotEmpty) {
+            final List<Map<String, String>> rawTranslation = [];
+            // Try to pair with original lyrics based on timestamps + bias
+            for (var transLine in transParse.lyrics) {
+              final adjustedTransTime =
+                  transLine.startTime.inMilliseconds + translationBias;
+
+              // Find matching original line (closest within 2s)
+              Lyric? bestMatch;
+              int minAbsDiff = 2000;
+
+              for (var l in lyrics) {
+                final diff = (l.startTime.inMilliseconds - adjustedTransTime).abs();
+                if (diff < minAbsDiff) {
+                  minAbsDiff = diff.toInt();
+                  bestMatch = l;
+                }
+              }
+
+              if (bestMatch != null && bestMatch.text.isNotEmpty) {
+                rawTranslation.add({
+                  'original': bestMatch.text,
+                  'translated': transLine.text,
+                });
+              }
+            }
+
             subLyrics = LyricsResult(
-              lyrics: transParse.lyrics,
+              lyrics: [],
+              rawTranslation: rawTranslation,
               source: 'Netease Music',
               isSynced: true,
               language: 'zh',
@@ -278,60 +265,76 @@ class NeteaseService {
         return LyricsResult(
           lyrics: lyrics,
           source: 'Netease Music',
-          contributor: lyricContributor,
-          writtenBy: trimmedMetadata['作词'] ?? trimmedMetadata['作詞'],
-          composer: trimmedMetadata['作曲'],
           isPureMusic: isPureMusic,
+          contributor: lyricContributor,
           subLyrics: subLyrics,
+          metadata: trimmedMetadata,
         );
-      } else {
-        debugPrint('[NeteaseMusic] returned no lyrics for songId: $songId');
-        return null;
       }
-    } catch (e, s) {
-      debugPrint('[NeteaseMusic] Error fetching lyrics JSON: $e\n$s');
-      return null;
+    } catch (e) {
+      debugPrint('[NeteaseMusic] Error fetching lyrics: $e');
     }
+    return null;
   }
 }
 
-class _NeteaseEapiHelper {
-  static const String _eapiKey = 'e82ckenh8dichen8';
-  static const String _userAgent =
-      'Mozilla/5.0 (Linux; Android 9; PCT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.64 HuaweiBrowser/10.0.3.311 Mobile Safari/537.36';
+class NeteaseYrcParser {
+  static List<Lyric> parse(String text) {
+    final List<Lyric> lyrics = [];
+    final lines = text.split('\n');
 
-  static Map<String, String> buildHeaders(Map<String, String> cookieData) {
-    final cookie = cookieData.entries
-        .map((e) => '${e.key}=${e.value}')
-        .join('; ');
-    return {
-      'User-Agent': _userAgent,
-      'Referer': 'https://music.163.com/',
-      'Cookie': cookie,
-    };
-  }
+    for (var line in lines) {
+      if (line.trim().isEmpty) continue;
 
-  static Map<String, String> encrypt(String url, Map<String, dynamic> data) {
-    final path = url
-        .replaceAll('https://interface3.music.163.com/e', '/')
-        .replaceAll('https://interface.music.163.com/e', '/');
+      try {
+        // [123,456]text or [123,456](0,0,0)text
+        final match = RegExp(r'^\[(\d+),(\d+)\](.*)$').firstMatch(line);
+        if (match != null) {
+          final startMs = int.parse(match.group(1)!);
+          final durationMs = int.parse(match.group(2)!);
+          final content = match.group(3)!;
 
-    final text = jsonEncode(data);
-    final message = 'nobody${path}use${text}md5forencrypt';
-    final digest = md5.convert(utf8.encode(message)).toString();
+          // Parse inline parts if available
+          final List<LyricInlinePart> inlineParts = [];
+          final partMatches =
+              RegExp(r'\((\d+),(\d+),(\d+)\)([^\(\[]*)').allMatches(content);
 
-    final payload = '$path-36cd479b6b5-$text-36cd479b6b5-$digest';
+          String plainText = '';
+          if (partMatches.isNotEmpty) {
+            for (var pm in partMatches) {
+              final pStartOffset = int.parse(pm.group(1)!);
+              final pDuration = int.parse(pm.group(2)!);
+              final pText = pm.group(4)!;
+              
+              inlineParts.add(
+                LyricInlinePart(
+                  startTime: Duration(milliseconds: startMs + pStartOffset),
+                  endTime: Duration(
+                    milliseconds: startMs + pStartOffset + pDuration,
+                  ),
+                  text: pText,
+                ),
+              );
+              plainText += pText;
+            }
+          } else {
+            plainText = content.replaceAll(RegExp(r'\(.*\)'), '');
+          }
 
-    final key = encrypt_pkg.Key.fromUtf8(_eapiKey);
-    final encrypter = encrypt_pkg.Encrypter(
-      encrypt_pkg.AES(key, mode: encrypt_pkg.AESMode.ecb, padding: 'PKCS7'),
-    );
-    final encrypted = encrypter.encrypt(payload);
+          lyrics.add(
+            Lyric(
+              startTime: Duration(milliseconds: startMs),
+              endTime: Duration(milliseconds: startMs + durationMs),
+              text: plainText,
+              inlineParts: inlineParts.isNotEmpty ? inlineParts : null,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error parsing Netease YRC line: $line - $e');
+      }
+    }
 
-    return {
-      'params': encrypted.bytes
-          .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
-          .join(),
-    };
+    return lyrics;
   }
 }

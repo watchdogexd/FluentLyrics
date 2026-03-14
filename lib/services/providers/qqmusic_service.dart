@@ -18,6 +18,7 @@ class QQMusicService {
     required int durationSeconds,
     Function(String)? onStatusUpdate,
     bool trimMetadata = false,
+    int translationBias = 0,
   }) async {
     try {
       onStatusUpdate?.call('[QQMusic] Searching songs...');
@@ -74,14 +75,40 @@ class QQMusicService {
         if (trans != null && trans.isNotEmpty) {
           final transParse = LrcParser.parse(trans);
           if (transParse.lyrics.isNotEmpty) {
+            final List<Map<String, String>> rawTranslation = [];
+            // Try to pair with original lyrics based on timestamps + bias
+            for (var transLine in transParse.lyrics) {
+              final adjustedTransTime =
+                  transLine.startTime.inMilliseconds + translationBias;
+
+              // Find matching original line (closest within 2s)
+              Lyric? bestMatch;
+              int minDiff = 2000;
+
+              for (var l in parseResult.lyrics) {
+                final diff = (l.startTime.inMilliseconds - adjustedTransTime).abs();
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  bestMatch = l;
+                }
+              }
+
+              if (bestMatch != null && bestMatch.text.isNotEmpty) {
+                rawTranslation.add({
+                  'original': bestMatch.text,
+                  'translated': transLine.text,
+                });
+              }
+            }
+
             subLyrics = LyricsResult(
-              lyrics: transParse.lyrics,
+              lyrics: [],
+              rawTranslation: rawTranslation,
               source: 'QQ Music',
               isSynced: true,
               translation: true,
               language: 'zh',
               translationProvider: 'QQ Music',
-              // translationContributor: 'N/A',
             );
           }
         }
@@ -115,14 +142,16 @@ class QQMusicService {
   }
 
   Future<LyricsResult> fetchTranslation(
-    GeneralTranslationRequestData data,
-  ) async {
+    GeneralTranslationRequestData data, {
+    int translationBias = 0,
+  }) async {
     try {
       final lyricData = await fetchLyrics(
         title: data.title,
         artist: data.artist,
         album: data.album,
         durationSeconds: data.durationSeconds,
+        translationBias: translationBias,
       );
 
       if (lyricData.subLyrics == null) {

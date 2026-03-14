@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 import '../../models/lyric_model.dart';
 import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
@@ -186,27 +185,19 @@ return new Response(
         return LyricsResult.empty();
       }
 
-      final List<Lyric> newLyrics = [];
-      int nextSearchStartIndex = 0;
-      for (var line in originalLyrics) {
-        for (int i = nextSearchStartIndex; i < translatedLines.length; i++) {
-          if (_calcLineSimilarity(line.text, translatedLines[i]['original']) >
-              80) {
-            newLyrics.add(
-              Lyric(
-                startTime: line.startTime,
-                endTime: line.endTime,
-                text: translatedLines[i]['translated'],
-              ),
-            );
-            nextSearchStartIndex = i + 1;
-            break;
-          }
+      final List<Map<String, String>> rawTranslation = [];
+      for (var item in translatedLines) {
+        if (item is Map) {
+          rawTranslation.add({
+            'original': item['original']?.toString() ?? '',
+            'translated': item['translated']?.toString() ?? '',
+          });
         }
       }
 
       return LyricsResult(
-        lyrics: newLyrics,
+        lyrics: [],
+        rawTranslation: rawTranslation,
         source: 'LLM Translation',
         language: targetLanguage,
         translation: true,
@@ -221,14 +212,3 @@ return new Response(
   }
 }
 
-int _calcLineSimilarity(String line1, String line2) {
-  // 1. Simple normalization
-  String clean1 = line1.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '').trim();
-  String clean2 = line2.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '').trim();
-
-  // 2. Calculate similarity (0-100)
-  int score = ratio(clean1, clean2);
-
-  // 3. Return true if similarity is above 80%
-  return score;
-}

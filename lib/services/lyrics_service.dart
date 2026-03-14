@@ -89,6 +89,7 @@ class LyricsService {
           durationSeconds: durationSeconds,
           onStatusUpdate: onStatusUpdate,
           trimMetadata: shouldTrimMetadata,
+          translationBias: translationBias,
         );
       } else if (provider == LyricProviderType.qqmusic) {
         result = await _qqMusicService.fetchLyrics(
@@ -98,6 +99,7 @@ class LyricsService {
           durationSeconds: durationSeconds,
           onStatusUpdate: onStatusUpdate,
           trimMetadata: shouldTrimMetadata,
+          translationBias: translationBias,
         );
       }
 
@@ -171,11 +173,7 @@ class LyricsService {
         // Yield intermediate best result (without translation merge yet, or maybe merge if subLyrics exists?)
         // If we yield here, UI sees it.
         // We should merge if we can.
-        if (translationEnabled && targetLanguages.isNotEmpty) {
-          yield _processTranslation(bestResult, translationBias);
-        } else {
-          yield bestResult;
-        }
+        yield bestResult;
       }
 
       // If we have (rich sync lyrics OR pure music) AND artwork, we can stop early.
@@ -275,13 +273,19 @@ class LyricsService {
               continue;
             }
             debugPrint('Fetching translation from Netease');
-            transResult = await _neteaseService.fetchTranslation(requestData);
+            transResult = await _neteaseService.fetchTranslation(
+              requestData,
+              translationBias: translationBias,
+            );
           } else if (tProvider == LyricProviderType.qqmusic) {
             if (!_qqMusicService.checkTranslationSupport(targetLanguage)) {
               continue;
             }
             debugPrint('Fetching translation from QQMusic');
-            transResult = await _qqMusicService.fetchTranslation(requestData);
+            transResult = await _qqMusicService.fetchTranslation(
+              requestData,
+              translationBias: translationBias,
+            );
           } else if (tProvider == LyricProviderType.musixmatch) {
             if (!_musixmatchService.checkTranslationSupport(targetLanguage)) {
               continue;
@@ -335,7 +339,7 @@ class LyricsService {
         if (transResult != null && transResult.translation) {
           // Update bestResult with new translation
           bestResult = bestResult!.copyWith(subLyrics: transResult);
-          yield _processTranslation(bestResult, translationBias);
+          yield bestResult;
           break;
         } else if (transResult != null && transResult.source == 'SKIPPED') {
           debugPrint('Translation skipped by provider');
@@ -343,52 +347,5 @@ class LyricsService {
         }
       }
     }
-  }
-
-  LyricsResult _processTranslation(LyricsResult result, int bias) {
-    if (result.subLyrics != null) {
-      return _mergeLyrics(result, result.subLyrics!, bias);
-    }
-    return result;
-  }
-
-  LyricsResult _mergeLyrics(
-    LyricsResult original,
-    LyricsResult translation,
-    int biasMs,
-  ) {
-    if (original.lyrics.isEmpty || translation.lyrics.isEmpty) return original;
-
-    final mergedLyrics = original.lyrics.map((lyric) {
-      Lyric? bestMatch;
-      int minDiff = 2000; // 2s window
-
-      for (var transLyric in translation.lyrics) {
-        final transTime = transLyric.startTime.inMilliseconds + biasMs;
-        final diff = (lyric.startTime.inMilliseconds - transTime).abs();
-
-        if (diff < minDiff) {
-          minDiff = diff;
-          bestMatch = transLyric;
-        }
-      }
-
-      if (bestMatch != null) {
-        return Lyric(
-          startTime: lyric.startTime,
-          endTime: lyric.endTime,
-          text: lyric.text,
-          inlineParts: lyric.inlineParts,
-          translation: bestMatch.text,
-        );
-      }
-      return lyric;
-    }).toList();
-
-    return original.copyWith(
-      lyrics: mergedLyrics,
-      translationProvider: translation.source,
-      translationContributor: translation.contributor,
-    );
   }
 }
