@@ -104,6 +104,11 @@ class LyricsProvider with ChangeNotifier {
     defaultValue: AppDefaults.llmModel,
     changed: false,
   );
+  Setting<bool> _keepScreenOn = const Setting(
+    current: AppDefaults.keepScreenOn,
+    defaultValue: AppDefaults.keepScreenOn,
+    changed: false,
+  );
 
   Duration _trackOffset = Duration.zero;
   int _currentIndex = -1;
@@ -189,6 +194,7 @@ class LyricsProvider with ChangeNotifier {
   Setting<String> get llmApiEndpoint => _llmApiEndpoint;
   Setting<String> get llmApiKey => _llmApiKey;
   Setting<String> get llmModel => _llmModel;
+  Setting<bool> get keepScreenOn => _keepScreenOn;
 
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
@@ -278,6 +284,7 @@ class LyricsProvider with ChangeNotifier {
     _llmApiEndpoint = await _settingsService.getLlmApiEndpoint();
     _llmApiKey = await _settingsService.getLlmApiKey();
     _llmModel = await _settingsService.getLlmModel();
+    _keepScreenOn = await _settingsService.getKeepScreenOn();
 
     notifyListeners();
   }
@@ -457,6 +464,17 @@ class LyricsProvider with ChangeNotifier {
       changed: model != _llmModel.defaultValue,
     );
     _settingsService.setLlmModel(model);
+    notifyListeners();
+  }
+
+  void setKeepScreenOn(bool enabled) {
+    if (_keepScreenOn.current == enabled) return;
+    _keepScreenOn = Setting(
+      current: enabled,
+      defaultValue: _keepScreenOn.defaultValue,
+      changed: enabled != _keepScreenOn.defaultValue,
+    );
+    _settingsService.setKeepScreenOn(enabled);
     notifyListeners();
   }
 

@@ -11,6 +11,7 @@ import '../providers/lyrics_provider.dart';
 import '../widgets/lyric_line.dart';
 import '../widgets/interlude_indicator.dart';
 import '../services/media_service.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'settings_screen.dart';
 
 class LyricsScreen extends StatefulWidget {
@@ -54,6 +55,15 @@ class _LyricsScreenState extends State<LyricsScreen> {
   Widget build(BuildContext context) {
     return Consumer<LyricsProvider>(
       builder: (context, provider, child) {
+        // Wakelock logic (Android only)
+        if (Platform.isAndroid) {
+          if (provider.keepScreenOn.current) {
+            WakelockPlus.enable();
+          } else {
+            WakelockPlus.disable();
+          }
+        }
+
         // Auto-scroll logic
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (provider.currentIndex != _previousIndex) {
@@ -547,6 +557,9 @@ class _LyricsScreenState extends State<LyricsScreen> {
   @override
   void dispose() {
     _autoResumeTimer?.cancel();
+    if (Platform.isAndroid) {
+      WakelockPlus.disable();
+    }
     super.dispose();
   }
 

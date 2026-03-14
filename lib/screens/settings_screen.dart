@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -434,6 +435,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   : null,
               resetTooltip: 'Reset to 5s',
             ),
+            if (Platform.isAndroid) ...[
+              const SizedBox(height: 24),
+              SettingsToggleCard(
+                title: 'Keep Screen On',
+                subtitle: 'Prevent device from sleeping while lyrics screen is active.',
+                value: provider.keepScreenOn.current,
+                onChanged: (value) => provider.setKeepScreenOn(value),
+              ),
+            ],
           ],
         );
       },

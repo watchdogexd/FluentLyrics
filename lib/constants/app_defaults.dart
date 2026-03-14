@@ -30,4 +30,5 @@ class AppDefaults {
       'https://api.openai.com/v1/chat/completions';
   static const String llmApiKey = 'sk-dummy';
   static const String llmModel = 'gpt-oss-120b';
+  static const bool keepScreenOn = true;
 }

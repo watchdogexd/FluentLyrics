@@ -20,6 +20,7 @@ class SettingsService {
   static const String _llmEndpointKey = 'llm_api_endpoint';
   static const String _llmApiKeyKey = 'llm_api_key';
   static const String _llmModelKey = 'llm_model';
+  static const String _keepScreenOnKey = 'keep_screen_on';
 
   Future<Setting<List<LyricProviderType>>> getAllProvidersOrdered() async {
     final prefs = await SharedPreferences.getInstance();
@@ -421,5 +422,21 @@ class SettingsService {
   Future<void> setLlmModel(String model) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_llmModelKey, model);
+  }
+
+  Future<Setting<bool>> getKeepScreenOn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getBool(_keepScreenOnKey) ?? AppDefaults.keepScreenOn;
+
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.keepScreenOn,
+      changed: current != AppDefaults.keepScreenOn,
+    );
+  }
+
+  Future<void> setKeepScreenOn(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keepScreenOnKey, enabled);
   }
 }
