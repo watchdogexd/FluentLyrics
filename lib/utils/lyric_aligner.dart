@@ -17,24 +17,30 @@ class LyricAligner {
 
     for (var line in originalLyrics) {
       bool matched = false;
-      for (int i = nextSearchStartIndex; i < rawTranslation.length; i++) {
-        final originalText = rawTranslation[i]['original'] ?? '';
-        final translatedText = rawTranslation[i]['translated'] ?? '';
-        final similarity = _calcLineSimilarity(line.text, originalText);
 
-        if (similarity > similarityThreshold) {
-          newLyrics.add(
-            Lyric(
-              startTime: line.startTime,
-              endTime: line.endTime,
-              text: line.text,
-              inlineParts: line.inlineParts,
-              translation: translatedText,
-            ),
-          );
-          nextSearchStartIndex = i + 1;
-          matched = true;
-          break;
+      if (line.text.isNotEmpty) {
+        for (int i = nextSearchStartIndex; i < rawTranslation.length; i++) {
+          final originalText = rawTranslation[i]['original'] ?? '';
+          final translatedText = rawTranslation[i]['translated'] ?? '';
+          final similarity = _calcLineSimilarity(line.text, originalText);
+          // debugPrint(
+          //   'similarity: $similarity for current "${line.text}" and source "$originalText"',
+          // );
+
+          if (similarity > similarityThreshold) {
+            newLyrics.add(
+              Lyric(
+                startTime: line.startTime,
+                endTime: line.endTime,
+                text: line.text,
+                inlineParts: line.inlineParts,
+                translation: translatedText,
+              ),
+            );
+            nextSearchStartIndex = i + 1;
+            matched = true;
+            break;
+          }
         }
       }
 
