@@ -76,7 +76,7 @@ class QQMusicService {
         if (trans != null && trans.isNotEmpty) {
           final transParse = LrcParser.parse(trans);
           if (transParse.lyrics.isNotEmpty) {
-            final rawTranslation = TranslationHelper.pairTranslations(
+            final rawTranslation = TranslationHelper.pair(
               originalLyrics: parseResult.lyrics,
               translatedLyrics: transParse.lyrics,
               translationBias: translationBias,

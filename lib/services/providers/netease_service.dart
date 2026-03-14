@@ -222,7 +222,7 @@ class NeteaseService {
         if (tlyric != null && tlyric.isNotEmpty) {
           final transParse = LrcParser.parse(tlyric);
           if (transParse.lyrics.isNotEmpty) {
-            final rawTranslation = TranslationHelper.pairTranslations(
+            final rawTranslation = TranslationHelper.pair(
               originalLyrics: lyrics,
               translatedLyrics: transParse.lyrics,
               translationBias: translationBias,

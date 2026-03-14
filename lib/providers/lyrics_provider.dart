@@ -9,7 +9,7 @@ import '../services/media_service.dart';
 import '../services/lyrics_service.dart';
 import '../services/settings_service.dart';
 import '../services/providers/lyrics_cache_service.dart';
-import '../utils/lyric_aligner.dart';
+import '../utils/translation_helper.dart';
 
 class LyricsProvider with ChangeNotifier {
   final MediaService mediaService = MediaService.create();
@@ -161,8 +161,9 @@ class LyricsProvider with ChangeNotifier {
 
   List<Lyric> get lyrics {
     final curRichSync = _richSyncEnabled.current;
-    final baseLyrics =
-        curRichSync ? _lyricsResult.lyrics : _stripRichSync(_lyricsResult.lyrics);
+    final baseLyrics = curRichSync
+        ? _lyricsResult.lyrics
+        : _stripRichSync(_lyricsResult.lyrics);
 
     if (_lyricsResult.subLyrics?.rawTranslation != null) {
       if (_cachedAlignedLyrics != null &&
@@ -170,7 +171,7 @@ class LyricsProvider with ChangeNotifier {
           _lastRichSyncEnabledForAlignment == curRichSync) {
         return _cachedAlignedLyrics!;
       }
-      _cachedAlignedLyrics = LyricAligner.align(
+      _cachedAlignedLyrics = TranslationHelper.align(
         originalLyrics: baseLyrics,
         rawTranslation: _lyricsResult.subLyrics!.rawTranslation!,
       );
