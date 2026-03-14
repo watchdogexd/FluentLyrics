@@ -4,16 +4,23 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../models/lyric_model.dart';
 import '../../models/lyric_cache.dart';
-import '../../models/translation_cache.dart';
 
 class LyricsCacheService {
   static Isar? _isar;
+  static Future<Isar>? _openFuture;
 
   Future<Isar> get _db async {
     if (_isar != null) return _isar!;
+    
+    if (_openFuture != null) return _openFuture!;
+
+    _openFuture = _initDb();
+    return _openFuture!;
+  }
+
+  Future<Isar> _initDb() async {
     final dir = await getApplicationSupportDirectory();
-    _isar ??=
-        Isar.getInstance() ??
+    _isar = Isar.getInstance('lyrics_cache') ??
         await Isar.open(
           [LyricCacheSchema, TranslationCacheSchema],
           directory: dir.path,
