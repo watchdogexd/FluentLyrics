@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import '../models/lyric_model.dart';
 import '../providers/lyrics_provider.dart';
-import '../widgets/lyric_line.dart';
-import '../widgets/interlude_indicator.dart';
 import '../services/media_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'settings_screen.dart';
+
+import '../widgets/screen/lyrics/lyrics_background.dart';
+import '../widgets/screen/lyrics/lyrics_header.dart';
+import '../widgets/screen/lyrics/lyrics_list.dart';
+import '../widgets/screen/lyrics/lyrics_control_area.dart';
+import '../widgets/screen/lyrics/permission_overlay.dart';
 
 class LyricsScreen extends StatefulWidget {
   const LyricsScreen({super.key});
@@ -96,64 +96,87 @@ class _LyricsScreenState extends State<LyricsScreen> {
           body: Stack(
             children: [
               // Background Layer
-              _buildBackground(bgArt),
+              LyricsBackground(artProvider: bgArt),
 
               // Content Layer
               SafeArea(
                 child: Column(
                   children: [
-                    _buildHeader(provider, fgArt),
+                    LyricsHeader(
+                      provider: provider,
+                      artProvider: fgArt,
+                      onRefresh: () async {
+                        setState(() {
+                          _isForceReloading = true;
+                          _lastArtUrl = null;
+                        });
+                        if (_foregroundArtProvider != null) {
+                          _foregroundArtProvider!.evict();
+                        }
+                        if (_backgroundArtProvider != null) {
+                          _backgroundArtProvider!.evict();
+                        }
+                        await provider.clearCurrentTrackCache();
+                      },
+                    ),
                     Expanded(
                       child: ShaderMask(
                         shaderCallback: (Rect bounds) {
                           return LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [
+                            colors: const [
                               Colors.transparent,
                               Colors.black,
                               Colors.black,
                               Colors.transparent,
                             ],
-                            stops: [0.0, 0.05, 0.95, 1.0],
+                            stops: const [0.0, 0.05, 0.95, 1.0],
                           ).createShader(bounds);
                         },
                         blendMode: BlendMode.dstIn,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 1),
-                          child: _buildLyricsList(provider),
+                          child: LyricsList(
+                            provider: provider,
+                            itemScrollController: _itemScrollController,
+                            itemPositionsListener: _itemPositionsListener,
+                            isManualScrolling: _isManualScrolling,
+                            onUserInteraction: _handleUserInteraction,
+                          ),
                         ),
                       ),
                     ),
-                    _buildControlArea(provider),
+                    LyricsControlArea(
+                      provider: provider,
+                      isScrubbing: _isScrubbing,
+                      scrubValue: _scrubValue,
+                      onScrubChanged: (value) {
+                        setState(() {
+                          _isScrubbing = true;
+                          _scrubValue = value;
+                        });
+                      },
+                      onScrubEnd: (value) {
+                        final totalMs =
+                            provider.currentMetadata?.duration.inMilliseconds ??
+                            1;
+                        final ms = (value * totalMs).round();
+                        provider.seek(Duration(milliseconds: ms));
+                        setState(() {
+                          _isScrubbing = false;
+                        });
+                      },
+                    ),
                   ],
                 ),
               ),
               // Permission Overlay
-              _buildPermissionOverlay(provider),
+              PermissionOverlay(provider: provider),
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildBackground(ImageProvider artProvider) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 350),
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        return FadeTransition(opacity: animation, child: child);
-      },
-      child: Container(
-        key: ValueKey(artProvider),
-        decoration: BoxDecoration(
-          image: DecorationImage(image: artProvider, fit: BoxFit.cover),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-          child: Container(color: Colors.black.withAlpha(136)),
-        ),
-      ),
     );
   }
 
@@ -176,19 +199,15 @@ class _LyricsScreenState extends State<LyricsScreen> {
         _precacheAndSwap(_foregroundArtProvider!, artUrl);
       }
     } else {
-      // If artUrl is empty/fallback, check if we still have the same song.
       if (!forceReload && title == _lastTitle && artist == _lastArtist) {
-        // Keep current providers
+        // Keep current
       } else {
-        // New song with no art or forced reload
         if (metadata == null) {
           _lastArtUrl = null;
           _foregroundArtProvider = const AssetImage('assets/album_art.png');
           _backgroundArtProvider = _foregroundArtProvider;
         } else {
-          // Reset to default but allow fetching logic to trigger again
           _foregroundArtProvider = const AssetImage('assets/album_art.png');
-          // Don't set background immediately to allow preloading of the new fallback result
           _lastArtUrl = artUrl;
         }
       }
@@ -208,7 +227,6 @@ class _LyricsScreenState extends State<LyricsScreen> {
           }
         })
         .catchError((e) {
-          // Still swap so errorBuilder can handle it
           if (mounted && _lastArtUrl == url) {
             setState(() {
               _backgroundArtProvider = provider;
@@ -222,7 +240,6 @@ class _LyricsScreenState extends State<LyricsScreen> {
       return const AssetImage('assets/album_art.png');
     }
 
-    // Handle data URIs
     if (artUrl.startsWith('data:')) {
       final commaIndex = artUrl.indexOf(',');
       if (commaIndex != -1) {
@@ -239,7 +256,6 @@ class _LyricsScreenState extends State<LyricsScreen> {
       }
     }
 
-    // Handle file URIs
     if (artUrl.startsWith('file://')) {
       try {
         return FileImage(File(Uri.parse(artUrl).toFilePath()));
@@ -248,7 +264,6 @@ class _LyricsScreenState extends State<LyricsScreen> {
       }
     }
 
-    // Handle local paths without file://
     if (artUrl.startsWith('/')) {
       try {
         return FileImage(File(artUrl));
@@ -257,277 +272,11 @@ class _LyricsScreenState extends State<LyricsScreen> {
       }
     }
 
-    // Fallback to NetworkImage for everything else (http, etc.)
     try {
       return NetworkImage(artUrl);
     } catch (e) {
       return const AssetImage('assets/album_art.png');
     }
-  }
-
-  Widget _buildHeader(LyricsProvider provider, ImageProvider artProvider) {
-    final metadata = provider.currentMetadata;
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Row(
-        children: [
-          _buildArtThumb(artProvider),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  metadata?.title ?? 'No Media Playing',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  metadata?.artist ?? 'Wait for music...',
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(136),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.refresh, color: Colors.white.withAlpha(200)),
-            onPressed: () async {
-              setState(() {
-                _isForceReloading = true;
-                _lastArtUrl = null; // Invalidate current art tracking
-              });
-              // Evict current images from Flutter's memory cache
-              if (_foregroundArtProvider != null) {
-                _foregroundArtProvider!.evict();
-              }
-              if (_backgroundArtProvider != null) {
-                _backgroundArtProvider!.evict();
-              }
-              await provider.clearCurrentTrackCache();
-            },
-            tooltip: 'Clear cache & reload',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-            tooltip: 'Settings',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildArtThumb(ImageProvider artImage) {
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(100),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: _DelayedLoadingImage(
-          image: artImage,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            debugPrint('Error loading album art: $error');
-            return Image.asset('assets/album_art.png', fit: BoxFit.cover);
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLyricsList(LyricsProvider provider) {
-    if (provider.isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              provider.loadingStatus.toUpperCase(),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2.0,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (provider.lyrics.isEmpty) {
-      String message = 'No lyrics found for this track';
-      if (provider.currentMetadata == null) {
-        message = 'Start playing music';
-      } else if (provider.lyricsResult.isPureMusic) {
-        message = 'Pure Music / Instrumental';
-      }
-
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40.0),
-          child: Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is UserScrollNotification &&
-            notification.direction != ScrollDirection.idle) {
-          _handleUserInteraction(provider.scrollAutoResumeDelay.current);
-        }
-        return false;
-      },
-      child: ScrollablePositionedList.builder(
-        itemCount: provider.lyrics.length + 1,
-        itemScrollController: _itemScrollController,
-        itemPositionsListener: _itemPositionsListener,
-        itemBuilder: (context, index) {
-          // Metadata Line
-          if (index == provider.lyrics.length) {
-            return _buildLyricsInfoLine(provider.lyricsResult);
-          }
-
-          // Lyric Lines
-          final lyric = provider.lyrics[index];
-          final isHighlighted = index == provider.currentIndex;
-          final distance = (index - provider.currentIndex).toDouble();
-
-          final lyricLine = LyricLine(
-            lyric: lyric,
-            isHighlighted: isHighlighted,
-            distance: distance,
-            isManualScrolling: _isManualScrolling,
-            blurEnabled: provider.blurEnabled.current,
-          );
-
-          Widget content = lyricLine;
-
-          // Handle Interludes (empty lines, now including injected prelude)
-          if (isHighlighted &&
-              provider.isInterlude &&
-              lyric.text.trim().isEmpty) {
-            content = InterludeIndicator(
-              progress: provider.interludeProgress,
-              duration: provider.interludeDuration,
-            );
-          }
-
-          return GestureDetector(
-            onDoubleTap: provider.controlAbility.canSeek
-                ? () => provider.seek(lyric.startTime)
-                : null,
-            behavior: HitTestBehavior.translucent,
-            child: content,
-          );
-        },
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).size.height / 3,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLyricsInfoLine(LyricsResult result) {
-    final List<String> infoParts = [];
-    if (result.source.isNotEmpty) {
-      infoParts.add('Source: ${result.source}');
-    }
-    if (result.writtenBy != null && result.writtenBy!.isNotEmpty) {
-      infoParts.add('Written by: ${result.writtenBy}');
-    }
-    if (result.composer != null && result.composer!.isNotEmpty) {
-      infoParts.add('Composer: ${result.composer}');
-    }
-    if (result.contributor != null && result.contributor!.isNotEmpty) {
-      infoParts.add('Contributor: ${result.contributor}');
-    }
-    if (result.copyright != null && result.copyright!.isNotEmpty) {
-      infoParts.add('Copyright: ${result.copyright}');
-    }
-    if (result.subLyrics != null &&
-        result.subLyrics!.translationProvider != null &&
-        result.subLyrics!.translationProvider!.isNotEmpty) {
-      infoParts.add(
-        'Translation Provider: ${result.subLyrics!.translationProvider}',
-      );
-    }
-    if (result.subLyrics != null &&
-        result.subLyrics!.translationContributor != null &&
-        result.subLyrics!.translationContributor!.isNotEmpty) {
-      infoParts.add(
-        'Translation Contributor: ${result.subLyrics!.translationContributor}',
-      );
-    }
-
-    if (infoParts.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 48, left: 24, right: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: infoParts
-            .map(
-              (info) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Text(
-                  info,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.45),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
   }
 
   void _handleUserInteraction(int delaySeconds) {
@@ -561,353 +310,5 @@ class _LyricsScreenState extends State<LyricsScreen> {
       WakelockPlus.disable();
     }
     super.dispose();
-  }
-
-  Widget _buildControlArea(LyricsProvider provider) {
-    final metadata = provider.currentMetadata;
-    final totalMs = metadata?.duration.inMilliseconds ?? 1;
-    final currentMs = provider.currentPosition.inMilliseconds;
-    final progress = (currentMs / totalMs).clamp(0.0, 1.0);
-
-    final offsetSeconds = provider.trackOffset.inMilliseconds / 1000.0;
-    final offsetText =
-        "${offsetSeconds >= 0 ? '+' : ''}${offsetSeconds.toStringAsFixed(2)}s";
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _OffsetButton(
-                icon: Icons.remove_circle_outline,
-                onPressed: () => provider.adjustTrackOffset(
-                  const Duration(milliseconds: -250),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onLongPress: () => provider.setTrackOffset(Duration.zero),
-                child: Container(
-                  padding: const EdgeInsets.only(
-                    left: 8,
-                    right: 10,
-                    top: 4,
-                    bottom: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(25),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.sync,
-                        size: 14,
-                        color: Colors.white.withAlpha(150),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        offsetText,
-                        style: TextStyle(
-                          color: Colors.white.withAlpha(150),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              _OffsetButton(
-                icon: Icons.add_circle_outline,
-                onPressed: () => provider.adjustTrackOffset(
-                  const Duration(milliseconds: 250),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: Colors.white,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-              disabledActiveTrackColor: Colors.white,
-              disabledInactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-              thumbColor: Colors.white,
-              trackHeight: 4,
-              thumbShape: provider.controlAbility.canSeek
-                  ? const RoundSliderThumbShape(enabledThumbRadius: 6)
-                  : SliderComponentShape.noThumb,
-              overlayColor: Colors.white.withValues(alpha: 0.1),
-              trackShape: _CustomSliderTrackShape(),
-            ),
-            child: Slider(
-              value: _isScrubbing ? _scrubValue : progress,
-              onChanged: provider.controlAbility.canSeek
-                  ? (value) {
-                      setState(() {
-                        _isScrubbing = true;
-                        _scrubValue = value;
-                      });
-                    }
-                  : null,
-              onChangeEnd: (value) {
-                final ms = (value * totalMs).round();
-                provider.seek(Duration(milliseconds: ms));
-                setState(() {
-                  _isScrubbing = false;
-                });
-              },
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _formatDuration(
-                  _isScrubbing
-                      ? Duration(milliseconds: (_scrubValue * totalMs).round())
-                      : provider.currentPosition,
-                ),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-              Text(
-                _formatDuration(metadata?.duration ?? Duration.zero),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.skip_previous),
-                color: Colors.white,
-                iconSize: 32,
-                onPressed: provider.controlAbility.canGoPrevious
-                    ? provider.previousTrack
-                    : null,
-                disabledColor: Colors.white.withValues(alpha: 0.35),
-              ),
-              const SizedBox(width: 24),
-              IconButton(
-                icon: Icon(provider.isPlaying ? Icons.pause : Icons.play_arrow),
-                color: Colors.white,
-                iconSize: 48,
-                onPressed: provider.controlAbility.canPlayPause
-                    ? provider.playPause
-                    : null,
-                disabledColor: Colors.white.withValues(alpha: 0.35),
-              ),
-              const SizedBox(width: 24),
-              IconButton(
-                icon: const Icon(Icons.skip_next),
-                color: Colors.white,
-                iconSize: 32,
-                onPressed: provider.controlAbility.canGoNext
-                    ? provider.nextTrack
-                    : null,
-                disabledColor: Colors.white.withValues(alpha: 0.35),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-    return '$twoDigitMinutes:$twoDigitSeconds';
-  }
-
-  Widget _buildPermissionOverlay(LyricsProvider provider) {
-    if (provider.androidPermissionGranted) return const SizedBox.shrink();
-
-    return Material(
-      color: Colors.black.withValues(alpha: 0.8),
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.security, color: Colors.white, size: 64),
-            const SizedBox(height: 24),
-            const Text(
-              'Notification Access Required',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Fluent Lyrics needs notification access to read media metadata from other apps.',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => provider.requestAndroidPermission(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-              ),
-              child: const Text('GRANT ACCESS'),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => provider.checkAndroidPermission(),
-              child: const Text(
-                'Already granted? Tap to check now.',
-                style: TextStyle(color: Colors.white38, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OffsetButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const _OffsetButton({required this.icon, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(icon, color: Colors.white.withAlpha(100), size: 20),
-      onPressed: onPressed,
-      visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
-    );
-  }
-}
-
-class _DelayedLoadingImage extends StatefulWidget {
-  final ImageProvider image;
-  final BoxFit fit;
-  final Widget Function(BuildContext, Object, StackTrace?)? errorBuilder;
-
-  const _DelayedLoadingImage({
-    required this.image,
-    required this.fit,
-    this.errorBuilder,
-  });
-
-  @override
-  State<_DelayedLoadingImage> createState() => _DelayedLoadingImageState();
-}
-
-class _DelayedLoadingImageState extends State<_DelayedLoadingImage> {
-  bool _showLoading = false;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _startTimer();
-  }
-
-  @override
-  void didUpdateWidget(_DelayedLoadingImage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.image != oldWidget.image) {
-      _startTimer();
-    }
-  }
-
-  void _startTimer() {
-    _timer?.cancel();
-    _showLoading = false;
-    _timer = Timer(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          _showLoading = true;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Image(
-      image: widget.image,
-      fit: widget.fit,
-      errorBuilder: widget.errorBuilder,
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded || frame != null) {
-          _timer?.cancel();
-          return child;
-        }
-
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            child,
-            if (_showLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    color: Colors.white70,
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _CustomSliderTrackShape extends RoundedRectSliderTrackShape {
-  @override
-  Rect getPreferredRect({
-    required RenderBox parentBox,
-    Offset offset = Offset.zero,
-    required SliderThemeData sliderTheme,
-    bool isEnabled = false,
-    bool isDiscrete = false,
-  }) {
-    final trackHeight = sliderTheme.trackHeight;
-    final trackLeft = offset.dx;
-    final trackTop = offset.dy + (parentBox.size.height - trackHeight!) / 2;
-    final trackWidth = parentBox.size.width;
-    return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
   }
 }
