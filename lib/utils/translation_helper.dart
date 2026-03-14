@@ -10,15 +10,17 @@ class TranslationHelper {
   }) {
     final List<Map<String, String>> rawTranslation = [];
     // Try to pair with original lyrics based on timestamps
-
+    int nextSearchStartIndex = 0;
     for (var transLine in translatedLyrics) {
       // Find matching original line
       Lyric? bestMatch;
 
       // 1. Try perfect match first
-      for (var l in originalLyrics) {
+      for (int i = nextSearchStartIndex; i < originalLyrics.length; i++) {
+        final l = originalLyrics[i];
         if (l.startTime.inMilliseconds == transLine.startTime.inMilliseconds) {
           bestMatch = l;
+          nextSearchStartIndex = i + 1;
           break;
         }
       }
@@ -28,14 +30,21 @@ class TranslationHelper {
         // Use bias magnitude as tolerance window
         final int tolerance = translationBias.abs();
         int minDiff = tolerance;
-
-        for (var l in originalLyrics) {
+        for (int i = nextSearchStartIndex; i < originalLyrics.length; i++) {
+          final l = originalLyrics[i];
           final diff =
               (l.startTime.inMilliseconds - transLine.startTime.inMilliseconds)
                   .abs();
-          if (diff < minDiff) {
+
+          if (bestMatch != null && diff > tolerance) {
+            // already found a best match, and the current line is outside the tolerance window, so break
+            break;
+          }
+
+          if (diff <= minDiff) {
             minDiff = diff.toInt();
             bestMatch = l;
+            nextSearchStartIndex = i + 1;
           }
         }
       }
@@ -47,7 +56,6 @@ class TranslationHelper {
         });
       }
     }
-
     return rawTranslation;
   }
 
