@@ -5,6 +5,7 @@ import '../../models/lyric_model.dart';
 import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
 import '../../utils/string_similarity.dart';
+import '../../utils/translation_helper.dart';
 
 class QQMusicService {
   bool checkTranslationSupport(String language) {
@@ -75,31 +76,11 @@ class QQMusicService {
         if (trans != null && trans.isNotEmpty) {
           final transParse = LrcParser.parse(trans);
           if (transParse.lyrics.isNotEmpty) {
-            final List<Map<String, String>> rawTranslation = [];
-            // Try to pair with original lyrics based on timestamps + bias
-            for (var transLine in transParse.lyrics) {
-              final adjustedTransTime =
-                  transLine.startTime.inMilliseconds + translationBias;
-
-              // Find matching original line (closest within 2s)
-              Lyric? bestMatch;
-              int minDiff = 2000;
-
-              for (var l in parseResult.lyrics) {
-                final diff = (l.startTime.inMilliseconds - adjustedTransTime).abs();
-                if (diff < minDiff) {
-                  minDiff = diff;
-                  bestMatch = l;
-                }
-              }
-
-              if (bestMatch != null && bestMatch.text.isNotEmpty) {
-                rawTranslation.add({
-                  'original': bestMatch.text,
-                  'translated': transLine.text,
-                });
-              }
-            }
+            final rawTranslation = TranslationHelper.pairTranslations(
+              originalLyrics: parseResult.lyrics,
+              translatedLyrics: transParse.lyrics,
+              translationBias: translationBias,
+            );
 
             subLyrics = LyricsResult(
               lyrics: [],
