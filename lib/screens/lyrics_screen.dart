@@ -93,7 +93,28 @@ class _LyricsScreenState extends State<LyricsScreen> {
                 child: Column(
                   children: [
                     _buildHeader(provider, fgArt),
-                    Expanded(child: _buildLyricsList(provider)),
+                    Expanded(
+                      child: ShaderMask(
+                        shaderCallback: (Rect bounds) {
+                          return LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black,
+                              Colors.black,
+                              Colors.transparent,
+                            ],
+                            stops: [0.0, 0.05, 0.95, 1.0],
+                          ).createShader(bounds);
+                        },
+                        blendMode: BlendMode.dstIn,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 1),
+                          child: _buildLyricsList(provider),
+                        ),
+                      ),
+                    ),
                     _buildControlArea(provider),
                   ],
                 ),
