@@ -107,7 +107,7 @@ class QQMusicService {
               source: 'QQ Music',
               isSynced: true,
               translation: true,
-              language: 'zh',
+              language: 'zh_CN',
               translationProvider: 'QQ Music',
             );
           }

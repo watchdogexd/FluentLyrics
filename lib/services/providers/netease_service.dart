@@ -253,7 +253,7 @@ class NeteaseService {
               rawTranslation: rawTranslation,
               source: 'Netease Music',
               isSynced: true,
-              language: 'zh',
+              language: 'zh_CN',
               translation: true,
               translationProvider: 'Netease Music',
               translationContributor: translationContributor,
