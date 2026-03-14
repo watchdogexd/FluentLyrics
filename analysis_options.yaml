@@ -1,3 +1,6 @@
+analyzer:
+  errors:
+    experimental_member_use: ignore # for Isar
 include: package:flutter_lints/flutter.yaml
 
 linter:
