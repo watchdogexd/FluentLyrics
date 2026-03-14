@@ -20,6 +20,7 @@ class NeteaseService {
     Function(String)? onStatusUpdate,
     bool trimMetadata = false,
     int translationBias = 0,
+    bool useStandardLyricsForPairing = false,
   }) async {
     try {
       onStatusUpdate?.call('[NeteaseMusic] Searching songs...');
@@ -38,7 +39,12 @@ class NeteaseService {
           bestMatch['al']?['picUrl'] ?? bestMatch['album']?['picUrl'];
 
       onStatusUpdate?.call('[NeteaseMusic] Fetching lyrics...');
-      final lyricData = await _getLyrics(songId, trimMetadata, translationBias);
+      final lyricData = await _getLyrics(
+        songId,
+        trimMetadata,
+        translationBias,
+        useStandardLyricsForPairing,
+      );
 
       if (lyricData == null) {
         return LyricsResult.empty();
@@ -54,6 +60,7 @@ class NeteaseService {
   Future<LyricsResult> fetchTranslation(
     GeneralTranslationRequestData data, {
     int translationBias = 0,
+    bool useStandardLyricsForPairing = false,
   }) async {
     try {
       final lyricData = await fetchLyrics(
@@ -62,6 +69,7 @@ class NeteaseService {
         album: data.album,
         durationSeconds: data.durationSeconds,
         translationBias: translationBias,
+        useStandardLyricsForPairing: useStandardLyricsForPairing,
       );
 
       if (lyricData.subLyrics == null) {
@@ -159,6 +167,7 @@ class NeteaseService {
     String songId,
     bool trimMetadata,
     int translationBias,
+    bool useStandardLyricsForPairing,
   ) async {
     try {
       final lyricUri = Uri.parse('https://music.163.com/api/song/lyric')
@@ -199,19 +208,20 @@ class NeteaseService {
           (yrc != null && yrc.isNotEmpty) ||
           (tlyric != null && tlyric.isNotEmpty) ||
           isPureMusic) {
+        List<Lyric> richLyrics = [];
         List<Lyric> lyrics = [];
         Map<String, String> trimmedMetadata = {};
 
         if (yrc != null && yrc.isNotEmpty) {
-          lyrics = NeteaseYrcParser.parse(yrc);
+          richLyrics = NeteaseYrcParser.parse(yrc);
           if (trimMetadata) {
             final trimResult = LrcParser.trimMetadataLines(lyrics);
-            lyrics = trimResult.lyrics;
+            richLyrics = trimResult.lyrics;
             trimmedMetadata = trimResult.trimmedMetadata;
           }
         }
 
-        if (lyrics.isEmpty && lrc != null && lrc.isNotEmpty) {
+        if (lrc != null && lrc.isNotEmpty) {
           final parseResult = LrcParser.parse(lrc, trimMetadata: trimMetadata);
           lyrics = parseResult.lyrics;
           trimmedMetadata = parseResult.trimmedMetadata;
@@ -223,7 +233,7 @@ class NeteaseService {
           final transParse = LrcParser.parse(tlyric);
           if (transParse.lyrics.isNotEmpty) {
             final rawTranslation = TranslationHelper.pair(
-              originalLyrics: lyrics,
+              originalLyrics: useStandardLyricsForPairing ? lyrics : (richLyrics.isNotEmpty ? richLyrics : lyrics),
               translatedLyrics: transParse.lyrics,
               translationBias: translationBias,
             );
@@ -242,7 +252,7 @@ class NeteaseService {
         }
 
         return LyricsResult(
-          lyrics: lyrics,
+          lyrics: richLyrics.isNotEmpty ? richLyrics : lyrics,
           source: 'Netease Music',
           isPureMusic: isPureMusic,
           contributor: lyricContributor,

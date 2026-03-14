@@ -110,6 +110,12 @@ class LyricsProvider with ChangeNotifier {
     defaultValue: AppDefaults.keepScreenOn,
     changed: false,
   );
+  Setting<List<LyricProviderType>> _useStandardLyricsForPairingProviders =
+      const Setting(
+        current: AppDefaults.useStandardLyricsForPairingProviders,
+        defaultValue: AppDefaults.useStandardLyricsForPairingProviders,
+        changed: false,
+      );
 
   Duration _trackOffset = Duration.zero;
   int _currentIndex = -1;
@@ -220,6 +226,8 @@ class LyricsProvider with ChangeNotifier {
   Setting<String> get llmApiKey => _llmApiKey;
   Setting<String> get llmModel => _llmModel;
   Setting<bool> get keepScreenOn => _keepScreenOn;
+  Setting<List<LyricProviderType>> get useStandardLyricsForPairingProviders =>
+      _useStandardLyricsForPairingProviders;
 
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
@@ -310,6 +318,8 @@ class LyricsProvider with ChangeNotifier {
     _llmApiKey = await _settingsService.getLlmApiKey();
     _llmModel = await _settingsService.getLlmModel();
     _keepScreenOn = await _settingsService.getKeepScreenOn();
+    _useStandardLyricsForPairingProviders =
+        await _settingsService.getUseStandardLyricsForPairingProviders();
 
     notifyListeners();
   }
@@ -500,6 +510,24 @@ class LyricsProvider with ChangeNotifier {
       changed: enabled != _keepScreenOn.defaultValue,
     );
     _settingsService.setKeepScreenOn(enabled);
+    notifyListeners();
+  }
+
+  void setUseStandardLyricsForPairingProviders(
+    List<LyricProviderType> providers,
+  ) {
+    if (listEquals(_useStandardLyricsForPairingProviders.current, providers)) {
+      return;
+    }
+    _useStandardLyricsForPairingProviders = Setting(
+      current: providers,
+      defaultValue: _useStandardLyricsForPairingProviders.defaultValue,
+      changed: !listEquals(
+        providers,
+        _useStandardLyricsForPairingProviders.defaultValue,
+      ),
+    );
+    _settingsService.setUseStandardLyricsForPairingProviders(providers);
     notifyListeners();
   }
 

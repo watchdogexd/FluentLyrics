@@ -44,6 +44,9 @@ class LyricsService {
         (await _settingsService.getTranslationIgnoredLanguages()).current;
     final translationBias =
         (await _settingsService.getTranslationBias()).current;
+    final useStandardLyricsForPairing =
+        (await _settingsService.getUseStandardLyricsForPairingProviders())
+            .current;
 
     // Always prioritize cache first
     final fullPriority = [LyricProviderType.cache, ...priority];
@@ -90,6 +93,9 @@ class LyricsService {
           onStatusUpdate: onStatusUpdate,
           trimMetadata: shouldTrimMetadata,
           translationBias: translationBias,
+          useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
+            LyricProviderType.netease,
+          ),
         );
       } else if (provider == LyricProviderType.qqmusic) {
         result = await _qqMusicService.fetchLyrics(
@@ -100,6 +106,9 @@ class LyricsService {
           onStatusUpdate: onStatusUpdate,
           trimMetadata: shouldTrimMetadata,
           translationBias: translationBias,
+          useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
+            LyricProviderType.qqmusic,
+          ),
         );
       }
 
@@ -276,6 +285,9 @@ class LyricsService {
             transResult = await _neteaseService.fetchTranslation(
               requestData,
               translationBias: translationBias,
+              useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
+                LyricProviderType.netease,
+              ),
             );
           } else if (tProvider == LyricProviderType.qqmusic) {
             if (!_qqMusicService.checkTranslationSupport(targetLanguage)) {
@@ -285,6 +297,9 @@ class LyricsService {
             transResult = await _qqMusicService.fetchTranslation(
               requestData,
               translationBias: translationBias,
+              useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
+                LyricProviderType.qqmusic,
+              ),
             );
           } else if (tProvider == LyricProviderType.musixmatch) {
             if (!_musixmatchService.checkTranslationSupport(targetLanguage)) {
