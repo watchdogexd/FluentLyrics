@@ -115,7 +115,7 @@ class NeteaseService {
         final songName = song['name'] as String?;
         if (songName == null) return false;
 
-        final similarity = StringSimilarity.getJaroWinklerScore(
+        final similarity = JaroWinklerSimilarity.getJaroWinklerScore(
           title.toLowerCase(),
           songName.toLowerCase(),
         );

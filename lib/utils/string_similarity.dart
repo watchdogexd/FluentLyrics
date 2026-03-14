@@ -1,6 +1,6 @@
 import 'dart:math';
 
-class StringSimilarity {
+class JaroWinklerSimilarity {
   /// Calculates the Jaro-Winkler similarity between two strings.
   /// Returns a value between 0.0 (no similarity) and 1.0 (exact match).
   static double getJaroWinklerScore(String s1, String s2) {

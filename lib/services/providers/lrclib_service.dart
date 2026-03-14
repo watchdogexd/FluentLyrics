@@ -45,7 +45,7 @@ class LrclibService {
               result['trackName'] as String? ?? result['name'] as String?;
           if (trackName == null) return false;
 
-          final similarity = StringSimilarity.getJaroWinklerScore(
+          final similarity = JaroWinklerSimilarity.getJaroWinklerScore(
             title.toLowerCase(),
             trackName.toLowerCase(),
           );

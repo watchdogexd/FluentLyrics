@@ -168,11 +168,11 @@ class LrcParser {
       String trimTitleKeyword_2 = '$artist - $title';
       // check the similarity of the first line with the title keyword
       final firstLine = lyrics.first.text.trim();
-      final similarity_1 = StringSimilarity.getJaroWinklerScore(
+      final similarity_1 = JaroWinklerSimilarity.getJaroWinklerScore(
         firstLine,
         trimTitleKeyword_1,
       );
-      final similarity_2 = StringSimilarity.getJaroWinklerScore(
+      final similarity_2 = JaroWinklerSimilarity.getJaroWinklerScore(
         firstLine,
         trimTitleKeyword_2,
       );
