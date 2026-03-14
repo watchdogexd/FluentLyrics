@@ -1,13 +1,9 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:crypto/crypto.dart';
-import 'package:encrypt/encrypt.dart' as encrypt_pkg;
 import '../../models/lyric_model.dart';
 import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
-import '../../utils/rich_lrc_parser.dart';
 import '../../utils/string_similarity.dart';
 
 class NeteaseService {
@@ -137,7 +133,9 @@ class NeteaseService {
       for (var song in filteredSongs) {
         final songDuration = song['duration']; // Duration in ms
         if (songDuration != null && songDuration is int) {
-          final diff = (songDuration - (durationSeconds * 1000)).abs().toDouble();
+          final diff = (songDuration - (durationSeconds * 1000))
+              .abs()
+              .toDouble();
           if (diff < 1000) {
             bestMatch = song;
             minDiff = 0;
@@ -234,7 +232,8 @@ class NeteaseService {
               int minAbsDiff = 2000;
 
               for (var l in lyrics) {
-                final diff = (l.startTime.inMilliseconds - adjustedTransTime).abs();
+                final diff = (l.startTime.inMilliseconds - adjustedTransTime)
+                    .abs();
                 if (diff < minAbsDiff) {
                   minAbsDiff = diff.toInt();
                   bestMatch = l;
@@ -296,8 +295,9 @@ class NeteaseYrcParser {
 
           // Parse inline parts if available
           final List<LyricInlinePart> inlineParts = [];
-          final partMatches =
-              RegExp(r'\((\d+),(\d+),(\d+)\)([^\(\[]*)').allMatches(content);
+          final partMatches = RegExp(
+            r'\((\d+),(\d+),(\d+)\)([^\(\[]*)',
+          ).allMatches(content);
 
           String plainText = '';
           if (partMatches.isNotEmpty) {
@@ -305,7 +305,7 @@ class NeteaseYrcParser {
               final pStartOffset = int.parse(pm.group(1)!);
               final pDuration = int.parse(pm.group(2)!);
               final pText = pm.group(4)!;
-              
+
               inlineParts.add(
                 LyricInlinePart(
                   startTime: Duration(milliseconds: startMs + pStartOffset),
