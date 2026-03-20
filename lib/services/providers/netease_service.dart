@@ -21,6 +21,7 @@ class NeteaseService {
     bool trimMetadata = false,
     int translationBias = 0,
     bool useStandardLyricsForPairing = false,
+    Function(String)? onArtworkUrl,
   }) async {
     try {
       onStatusUpdate?.call('[NeteaseMusic] Searching songs...');
@@ -38,6 +39,10 @@ class NeteaseService {
       final artworkUrl =
           bestMatch['al']?['picUrl'] ?? bestMatch['album']?['picUrl'];
 
+      if (artworkUrl != null) {
+        onArtworkUrl?.call(artworkUrl);
+      }
+
       onStatusUpdate?.call('[NeteaseMusic] Fetching lyrics...');
       final lyricData = await _getLyrics(
         songId,
@@ -50,7 +55,7 @@ class NeteaseService {
         return LyricsResult.empty();
       }
 
-      return lyricData.copyWith(artworkUrl: artworkUrl);
+      return lyricData;
     } catch (e) {
       debugPrint('[NeteaseMusic] Error fetching lyrics: $e');
     }

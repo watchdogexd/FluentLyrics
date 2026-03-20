@@ -21,6 +21,7 @@ class QQMusicService {
     bool trimMetadata = false,
     int translationBias = 0,
     bool useStandardLyricsForPairing = false,
+    Function(String)? onArtworkUrl,
   }) async {
     try {
       onStatusUpdate?.call('[QQMusic] Searching songs...');
@@ -39,10 +40,9 @@ class QQMusicService {
       final songMid = bestMatch['mid'] as String;
       // Extract album mid for artwork if available
       final albumMid = bestMatch['album']?['mid'] as String?;
-      String? artworkUrl;
       if (albumMid != null && albumMid.isNotEmpty) {
-        artworkUrl =
-            'https://y.gtimg.cn/music/photo_new/T002R300x300M000$albumMid.jpg';
+        onArtworkUrl?.call(
+            'https://y.gtimg.cn/music/photo_new/T002R300x300M000$albumMid.jpg');
       }
 
       onStatusUpdate?.call('[QQMusic] Fetching lyrics...');
@@ -98,7 +98,6 @@ class QQMusicService {
         return LyricsResult(
           lyrics: parseResult.lyrics,
           source: 'QQ Music',
-          artworkUrl: artworkUrl,
           writtenBy:
               parseResult.trimmedMetadata['作词'] ??
               parseResult.trimmedMetadata['作詞'] ??

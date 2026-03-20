@@ -15,6 +15,7 @@ class LrclibService {
     required String album,
     required int durationSeconds,
     Function(String)? onStatusUpdate,
+    Function(String)? onArtworkUrl,
   }) async {
     try {
       final queryParams = {
@@ -125,10 +126,7 @@ class LrclibService {
           return LyricsResult(
             lyrics: lyrics,
             source: 'LRCLIB',
-            isSynced:
-                (enhancedLyrics != null && enhancedLyrics.isNotEmpty) ||
-                (syncedLyrics != null && syncedLyrics.isNotEmpty),
-            artworkUrl: null, // lrclib doesn't provide artwork
+            isSynced: true,
             isPureMusic: isInstrumental,
           );
         }

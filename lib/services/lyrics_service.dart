@@ -32,6 +32,7 @@ class LyricsService {
     required List<LyricProviderType> trimMetadataProviders,
     required bool richSyncEnabled,
     bool translationEnabled = true,
+    Function(String)? onArtworkUrl,
   }) async* {
     final priority = await _settingsService.getPriority();
     final cacheEnabledSetting = await _settingsService.getCacheEnabled();
@@ -83,6 +84,7 @@ class LyricsService {
           artist: artist,
           durationSeconds: durationSeconds,
           onStatusUpdate: onStatusUpdate,
+          onArtworkUrl: onArtworkUrl,
         );
       } else if (provider == LyricProviderType.netease) {
         result = await _neteaseService.fetchLyrics(
@@ -112,9 +114,7 @@ class LyricsService {
         );
       }
 
-      if (result.lyrics.isNotEmpty ||
-          result.artworkUrl != null ||
-          result.isPureMusic) {
+      if (result.lyrics.isNotEmpty || result.isPureMusic) {
         // Cache the raw result from other providers
         if (cacheEnabled && provider != LyricProviderType.cache) {
           await _cacheService.cacheLyrics(
@@ -167,15 +167,9 @@ class LyricsService {
               composer: result.composer,
               contributor: result.contributor,
               copyright: result.copyright,
-              artworkUrl: result.artworkUrl ?? bestResult.artworkUrl,
               isPureMusic: result.isPureMusic,
               subLyrics: result.subLyrics, // Copy subLyrics
             );
-          } else {
-            // Keep existing lyrics, but take artwork if missing.
-            if (bestResult.artworkUrl == null && result.artworkUrl != null) {
-              bestResult = bestResult.copyWith(artworkUrl: result.artworkUrl);
-            }
           }
         }
 
@@ -198,8 +192,7 @@ class LyricsService {
           (bestResult.isPureMusic ||
               (bestResult.lyrics.isNotEmpty &&
                   ((bestResult.isRichSync && richSyncEnabled) ||
-                      (!richSyncEnabled && bestResult.isSynced)))) &&
-          bestResult.artworkUrl != null) {
+                      (!richSyncEnabled && bestResult.isSynced))))) {
         // Good enough lyrics. But do we have translation?
         if (translationEnabled &&
             targetLanguages.isNotEmpty &&

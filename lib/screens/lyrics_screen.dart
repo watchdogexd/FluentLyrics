@@ -26,6 +26,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
 
+  final Set<String> _failedArtUrls = {};
   int _previousIndex = 0;
   String? _lastArtUrl;
   ImageProvider? _foregroundArtProvider;
@@ -81,6 +82,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
         _updateArtProviders(
           metadata,
           provider.mediaService,
+          provider.artworkUrlsNotifier.value,
           forceReload: _isForceReloading,
         );
         if (_isForceReloading) _isForceReloading = false;
@@ -109,6 +111,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
                         setState(() {
                           _isForceReloading = true;
                           _lastArtUrl = null;
+                          _failedArtUrls.clear();
                         });
                         if (_foregroundArtProvider != null) {
                           _foregroundArtProvider!.evict();
@@ -182,12 +185,30 @@ class _LyricsScreenState extends State<LyricsScreen> {
 
   void _updateArtProviders(
     MediaMetadata? metadata,
-    MediaService mediaService, {
+    MediaService mediaService,
+    List<String> alternateUrls, {
     bool forceReload = false,
   }) {
-    final artUrl = metadata?.artUrl.trim();
+    String? artUrl = metadata?.artUrl.trim();
     final title = metadata?.title;
     final artist = metadata?.artist;
+
+    if (title != _lastTitle || artist != _lastArtist) {
+      _failedArtUrls.clear();
+    }
+
+    if (artUrl != null && _failedArtUrls.contains(artUrl)) {
+      artUrl = 'fallback';
+    }
+
+    if (artUrl == null || artUrl.isEmpty || artUrl == 'fallback') {
+      for (final url in alternateUrls) {
+        if (!_failedArtUrls.contains(url)) {
+          artUrl = url;
+          break;
+        }
+      }
+    }
 
     final hasValidArt =
         artUrl != null && artUrl.isNotEmpty && artUrl != 'fallback';
@@ -229,7 +250,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
         .catchError((e) {
           if (mounted && _lastArtUrl == url) {
             setState(() {
-              _backgroundArtProvider = provider;
+              _failedArtUrls.add(url);
             });
           }
         });

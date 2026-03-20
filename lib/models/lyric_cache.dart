@@ -52,7 +52,6 @@ class LyricCache {
       composer: composer,
       contributor: contributor,
       copyright: copyright,
-      artworkUrl: artworkUrl,
       isPureMusic: isPureMusic,
       subLyrics: subLyrics?.toLyricsResult(),
     );
@@ -68,7 +67,6 @@ class LyricCache {
     cache.composer = result.composer;
     cache.contributor = result.contributor;
     cache.copyright = result.copyright;
-    cache.artworkUrl = result.artworkUrl;
     cache.isPureMusic = result.isPureMusic;
     cache.lyrics = result.lyrics
         .map(
@@ -121,7 +119,12 @@ class TranslationCache {
           )
           .toList(),
       rawTranslation: rawTranslation
-          ?.map((e) => {'original': e.original ?? '', 'translated': e.translated ?? ''})
+          ?.map(
+            (e) => {
+              'original': e.original ?? '',
+              'translated': e.translated ?? '',
+            },
+          )
           .toList(),
       source: source,
       language: language,
@@ -175,15 +178,14 @@ class SubLyricsItem {
       translation: true,
       translationProvider: translationProvider,
       translationContributor: translationContributor,
-      rawTranslation:
-          rawTranslation
-              ?.map(
-                (e) => {
-                  'original': e.original ?? '',
-                  'translated': e.translated ?? '',
-                },
-              )
-              .toList(),
+      rawTranslation: rawTranslation
+          ?.map(
+            (e) => {
+              'original': e.original ?? '',
+              'translated': e.translated ?? '',
+            },
+          )
+          .toList(),
     );
   }
 
@@ -193,15 +195,13 @@ class SubLyricsItem {
     item.language = result.language;
     item.translationProvider = result.translationProvider;
     item.translationContributor = result.translationContributor;
-    item.rawTranslation =
-        result.rawTranslation
-            ?.map(
-              (e) =>
-                  RawTranslationPair()
-                    ..original = e['original']
-                    ..translated = e['translated'],
-            )
-            .toList();
+    item.rawTranslation = result.rawTranslation
+        ?.map(
+          (e) => RawTranslationPair()
+            ..original = e['original']
+            ..translated = e['translated'],
+        )
+        .toList();
     return item;
   }
 }

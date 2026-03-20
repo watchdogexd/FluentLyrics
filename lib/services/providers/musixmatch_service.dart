@@ -42,6 +42,7 @@ class MusixmatchService {
     required String artist,
     required int durationSeconds,
     Function(String)? onStatusUpdate,
+    Function(String)? onArtworkUrl,
   }) async {
     try {
       String? token = (await _settingsService.getMusixmatchToken()).current;
@@ -61,6 +62,7 @@ class MusixmatchService {
         artist,
         durationSeconds,
         token,
+        onArtworkUrl,
       );
 
       if (result != null) {
@@ -97,6 +99,7 @@ class MusixmatchService {
     String artist,
     int duration,
     String token,
+    Function(String)? onArtworkUrl,
   ) async {
     final t = _randomId();
     final url =
@@ -156,6 +159,9 @@ class MusixmatchService {
                     !url.contains('nocover.png'),
                 orElse: () => null,
               );
+          if (artworkUrl != null) {
+            onArtworkUrl?.call(artworkUrl);
+          }
         }
 
         bool isInstrumental = false;
@@ -241,7 +247,6 @@ class MusixmatchService {
             source: 'Musixmatch',
             writtenBy: writtenBy,
             copyright: copyright,
-            artworkUrl: artworkUrl,
             isPureMusic: isPureMusic,
           );
         }

@@ -234,6 +234,7 @@ class LyricsProvider with ChangeNotifier {
   bool get androidPermissionGranted => _androidPermissionGranted;
   String get loadingStatus => _loadingStatus;
   MediaControlAbility get controlAbility => _controlAbility;
+  final ValueNotifier<List<String>> artworkUrlsNotifier = ValueNotifier([]);
 
   final Duration _interludeOffset = Duration(
     milliseconds: 500, // auto scroll takes 500ms
@@ -728,6 +729,7 @@ class LyricsProvider with ChangeNotifier {
     _isLoading = true;
     _loadingStatus = 'Starting search...';
     _lyricsResult = LyricsResult.empty();
+    artworkUrlsNotifier.value = [];
     notifyListeners();
 
     try {
@@ -744,6 +746,12 @@ class LyricsProvider with ChangeNotifier {
         trimMetadataProviders: _trimMetadataProviders.current,
         richSyncEnabled: _richSyncEnabled.current,
         translationEnabled: _translationEnabled.current,
+        onArtworkUrl: (url) {
+          if (!artworkUrlsNotifier.value.contains(url)) {
+            artworkUrlsNotifier.value = List.from(artworkUrlsNotifier.value)
+              ..add(url);
+          }
+        },
       );
 
       await for (var result in stream) {
@@ -768,13 +776,6 @@ class LyricsProvider with ChangeNotifier {
         _lyricsResult = result;
         if (result.lyrics.isNotEmpty || result.isPureMusic) {
           _isLoading = false;
-        }
-
-        if (_currentMetadata?.artUrl == 'fallback' &&
-            result.artworkUrl != null) {
-          _currentMetadata = _currentMetadata!.copyWith(
-            artUrl: result.artworkUrl,
-          );
         }
 
         _updateCurrentIndex();

@@ -71,7 +71,6 @@ class LyricsResult {
   final String? composer;
   final String? contributor;
   final String? copyright;
-  final String? artworkUrl;
   final bool isPureMusic;
   final Map<String, String>? metadata;
   final List<Map<String, String>>? rawTranslation;
@@ -93,7 +92,6 @@ class LyricsResult {
     this.composer,
     this.contributor,
     this.copyright,
-    this.artworkUrl,
     this.isPureMusic = false,
     this.metadata,
     this.language,
@@ -160,7 +158,6 @@ class LyricsResult {
     String? composer,
     String? contributor,
     String? copyright,
-    String? artworkUrl,
     bool? isPureMusic,
     Map<String, String>? metadata,
     String? language,
@@ -179,7 +176,6 @@ class LyricsResult {
       composer: composer ?? this.composer,
       contributor: contributor ?? this.contributor,
       copyright: copyright ?? this.copyright,
-      artworkUrl: artworkUrl ?? this.artworkUrl,
       isPureMusic: isPureMusic ?? this.isPureMusic,
       metadata: metadata ?? this.metadata,
       language: language ?? this.language,
@@ -212,7 +208,7 @@ class LyricsResult {
   }
 
   static LyricsResult empty() =>
-      LyricsResult(lyrics: [], source: '', isSynced: false, artworkUrl: null);
+      LyricsResult(lyrics: [], source: '', isSynced: false);
 
   Map<String, dynamic> toJson() => {
     'lyrics': lyrics.map((l) => l.toJson()).toList(),
@@ -223,7 +219,6 @@ class LyricsResult {
     'composer': composer,
     'contributor': contributor,
     'copyright': copyright,
-    'artworkUrl': artworkUrl,
     'isPureMusic': isPureMusic,
     if (metadata != null) 'metadata': metadata,
     if (language != null) 'language': language,
@@ -246,7 +241,6 @@ class LyricsResult {
     composer: json['composer'] as String?,
     contributor: json['contributor'] as String?,
     copyright: json['copyright'] as String?,
-    artworkUrl: json['artworkUrl'] as String?,
     isPureMusic: json['isPureMusic'] as bool? ?? false,
     metadata: json['metadata'] != null
         ? Map<String, String>.from(json['metadata'])
