@@ -10,6 +10,7 @@ class LyricLine extends StatelessWidget {
   final double distance; // 0 is current, 1 is adjacent, etc.
   final bool isManualScrolling;
   final bool blurEnabled;
+  final bool inViewport;
 
   const LyricLine({
     super.key,
@@ -18,6 +19,7 @@ class LyricLine extends StatelessWidget {
     this.distance = 0,
     this.isManualScrolling = false,
     this.blurEnabled = true,
+    this.inViewport = true,
   });
 
   @override
@@ -26,15 +28,24 @@ class LyricLine extends StatelessWidget {
     final fontSize = lyricsProvider.fontSize.current;
     final inactiveScale = lyricsProvider.inactiveScale.current;
 
+    const double minOpacity = 0.4;
+
     // Calculate opacity and blur based on distance
     // Current line (distance 0) has full opacity and no blur.
     // Further lines fade and blur out.
-    final double opacity = isHighlighted
+    final double opacity = !inViewport
+        ? minOpacity
+        : isHighlighted
         ? 1.0
         : (isManualScrolling
               ? 0.55
-              : (0.4 / (distance.abs() * 0.5 + 1)).clamp(0.05, 0.4));
-    final double blur = (isHighlighted || isManualScrolling || !blurEnabled)
+              : (minOpacity / (distance.abs() * 0.5 + 1)).clamp(
+                  0.05,
+                  minOpacity,
+                ));
+    final double blur = !inViewport
+        ? 0.0
+        : (isHighlighted || isManualScrolling || !blurEnabled)
         ? 0.0
         : (distance.abs() * 1.5).clamp(0.0, 4.0);
 

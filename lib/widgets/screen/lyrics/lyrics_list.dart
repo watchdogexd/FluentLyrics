@@ -88,6 +88,7 @@ class LyricsList extends StatelessWidget {
         itemCount: provider.lyrics.length + 1,
         itemScrollController: itemScrollController,
         itemPositionsListener: itemPositionsListener,
+        minCacheExtent: 0,
         itemBuilder: (context, index) {
           // Metadata Line
           if (index == provider.lyrics.length) {
@@ -99,32 +100,40 @@ class LyricsList extends StatelessWidget {
           final isHighlighted = index == provider.currentIndex;
           final distance = (index - provider.currentIndex).toDouble();
 
-          final lyricLine = LyricLine(
-            lyric: lyric,
-            isHighlighted: isHighlighted,
-            distance: distance,
-            isManualScrolling: isManualScrolling,
-            blurEnabled: provider.blurEnabled.current,
-          );
-
-          Widget content = lyricLine;
-
-          // Handle Interludes (empty lines, now including injected prelude)
+          Widget? interludeContent;
           if (isHighlighted &&
               provider.isInterlude &&
               lyric.text.trim().isEmpty) {
-            content = InterludeIndicator(
+            interludeContent = InterludeIndicator(
               progress: provider.interludeProgress,
               duration: provider.interludeDuration,
             );
           }
 
-          return GestureDetector(
-            onDoubleTap: provider.controlAbility.canSeek
-                ? () => provider.seek(lyric.startTime)
-                : null,
-            behavior: HitTestBehavior.translucent,
-            child: content,
+          return ValueListenableBuilder<Iterable<ItemPosition>>(
+            valueListenable: itemPositionsListener.itemPositions,
+            builder: (context, positions, child) {
+              final inViewport = positions.any((pos) => pos.index == index);
+
+              final lyricLine = LyricLine(
+                lyric: lyric,
+                isHighlighted: isHighlighted,
+                distance: distance,
+                isManualScrolling: isManualScrolling,
+                blurEnabled: provider.blurEnabled.current,
+                inViewport: inViewport,
+              );
+
+              Widget currentContent = interludeContent ?? lyricLine;
+
+              return GestureDetector(
+                onDoubleTap: provider.controlAbility.canSeek
+                    ? () => provider.seek(lyric.startTime)
+                    : null,
+                behavior: HitTestBehavior.translucent,
+                child: currentContent,
+              );
+            },
           );
         },
         padding: EdgeInsets.only(
