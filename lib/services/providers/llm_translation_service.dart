@@ -127,42 +127,60 @@ return new Response(
         return LyricsResult.empty();
       }
 
-      final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
-      final content = jsonResponse['choices']?[0]?['message']?['content'];
+      var jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
+      final content = jsonResponse['choices']?[0]?['message']?['content']
+          ?.trim();
 
       if (content == null) {
         return LyricsResult.empty();
       }
 
-      String cleanContent = content.trim();
-
       // Handle SKIP response (case-insensitive and trimmed)
-      if (cleanContent.toUpperCase() == 'SKIP') {
+      if (content.toUpperCase() == 'SKIP') {
         return LyricsResult(
           lyrics: originalLyrics,
           source: 'SKIPPED',
           translation: false,
         );
       }
-      // Remove markdown code blocks if present
-      if (cleanContent.startsWith('```json')) {
-        cleanContent = cleanContent.substring(7);
-      } else if (cleanContent.startsWith('```')) {
-        cleanContent = cleanContent.substring(3);
-      }
-      if (cleanContent.endsWith('```')) {
-        cleanContent = cleanContent.substring(0, cleanContent.length - 3);
-      }
-      cleanContent = cleanContent.trim();
-
       dynamic translatedLines;
+      // try to decode raw as json directly
       try {
-        translatedLines = jsonDecode(cleanContent)['translation'];
+        jsonResponse = jsonDecode(content);
+        translatedLines = jsonResponse['translation'];
       } catch (e) {
         debugPrint(
-          '[LLM Translation] JSON Parse Error: $e\nContent: $cleanContent',
+          '[LLM Translation] Fail to parse response as raw JSON, trying to strip...',
         );
-        return LyricsResult.empty();
+        try {
+          // check if markdown codeblock present
+          final codeblockPattern = RegExp(
+            r'\`\`\`(?:.*)\n([\s\S]*?)\n\s*\`\`\`',
+          );
+
+          final match = codeblockPattern.allMatches(content);
+          if (match.isNotEmpty) {
+            // try every group until we found a valid response
+            for (var m in match) {
+              final codeblockContent = m.group(1);
+              if (codeblockContent != null) {
+                try {
+                  jsonResponse = jsonDecode(codeblockContent);
+                  translatedLines = jsonResponse['translation'];
+                  if (translatedLines != null) {
+                    break;
+                  }
+                } catch (e) {
+                  continue;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint(
+            '[LLM Translation] Error: Model produced malformed JSON. Expected List or "SKIP", got $translatedLines',
+          );
+        }
       }
 
       // Handle SKIP response (case-insensitive and trimmed)
@@ -211,4 +229,3 @@ return new Response(
     }
   }
 }
-
