@@ -17,4 +17,4 @@ cp build/app/outputs/flutter-apk/*.apk "$DIST_DIR"/
 $RENAME_CMD -- "app" "fluent_lyrics-$VERSION_NO_V" "$DIST_DIR"/*.apk
 $RENAME_CMD -- ".apk" "-android.apk" "$DIST_DIR"/*.apk
 
-$RENAME_CMD -- "-profile" "" "$DIST_DIR"/*
+$RENAME_CMD -- "-release" "" "$DIST_DIR"/*
