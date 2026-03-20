@@ -31,6 +31,12 @@ class LlmTranslationService {
         debugPrint('[LLM Translation] Endpoint or API Key is empty.');
         return LyricsResult.empty();
       }
+      // check for dummy endpoint
+      final host = Uri.parse(endpoint).host;
+      if (host.contains('dummy.endpoint.example')) {
+        debugPrint('[LLM Translation] Endpoint is dummy, skipping.');
+        return LyricsResult.empty();
+      }
 
       // 1. Parse original content to get lines
       final parsed = LrcParser.parse(data.content);

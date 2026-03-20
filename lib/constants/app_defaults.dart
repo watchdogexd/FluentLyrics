@@ -29,7 +29,7 @@ class AppDefaults {
   static const int translationAlignmentThreshold = 80;
   static const String? musixmatchToken = null;
   static const String llmApiEndpoint =
-      'https://api.openai.com/v1/chat/completions';
+      'https://dummy.endpoint.example/v1/chat/completions';
   static const String llmApiKey = 'sk-dummy';
   static const String llmModel = 'gpt-oss-120b';
   static const bool keepScreenOn = true;
