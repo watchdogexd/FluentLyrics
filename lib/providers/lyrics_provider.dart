@@ -24,6 +24,11 @@ class LyricsProvider with ChangeNotifier {
   Duration _currentPosition = Duration.zero;
 
   // Settings
+  Setting<bool> _cacheEnabled = const Setting(
+    current: AppDefaults.cacheEnabled,
+    defaultValue: AppDefaults.cacheEnabled,
+    changed: false,
+  );
   Setting<int> _linesBefore = const Setting(
     current: AppDefaults.linesBefore,
     defaultValue: AppDefaults.linesBefore,
@@ -217,6 +222,7 @@ class LyricsProvider with ChangeNotifier {
   int get currentIndex => _currentIndex;
 
   // Setting getters
+  Setting<bool> get cacheEnabled => _cacheEnabled;
   Setting<int> get linesBefore => _linesBefore;
   Setting<int> get scrollAutoResumeDelay => _scrollAutoResumeDelay;
   Setting<bool> get blurEnabled => _blurEnabled;
@@ -234,7 +240,8 @@ class LyricsProvider with ChangeNotifier {
   Setting<List<String>> get translationIgnoredLanguages =>
       _translationIgnoredLanguages;
   Setting<int> get translationBias => _translationBias;
-  Setting<int> get translationAlignmentThreshold => _translationAlignmentThreshold;
+  Setting<int> get translationAlignmentThreshold =>
+      _translationAlignmentThreshold;
   Setting<String> get llmApiEndpoint => _llmApiEndpoint;
   Setting<String> get llmApiKey => _llmApiKey;
   Setting<String> get llmModel => _llmModel;
@@ -311,6 +318,7 @@ class LyricsProvider with ChangeNotifier {
   }
 
   Future<void> _loadSettings() async {
+    _cacheEnabled = await _settingsService.getCacheEnabled();
     _linesBefore = await _settingsService.getLinesBefore();
     _globalOffsetMs = await _settingsService.getGlobalOffset();
     _scrollAutoResumeDelay = await _settingsService.getScrollAutoResumeDelay();
@@ -328,7 +336,8 @@ class LyricsProvider with ChangeNotifier {
     _translationIgnoredLanguages = await _settingsService
         .getTranslationIgnoredLanguages();
     _translationBias = await _settingsService.getTranslationBias();
-    _translationAlignmentThreshold = await _settingsService.getTranslationAlignmentThreshold();
+    _translationAlignmentThreshold = await _settingsService
+        .getTranslationAlignmentThreshold();
     _llmApiEndpoint = await _settingsService.getLlmApiEndpoint();
     _llmApiKey = await _settingsService.getLlmApiKey();
     _llmModel = await _settingsService.getLlmModel();
@@ -336,6 +345,17 @@ class LyricsProvider with ChangeNotifier {
     _useStandardLyricsForPairingProviders = await _settingsService
         .getUseStandardLyricsForPairingProviders();
 
+    notifyListeners();
+  }
+
+  void setCacheEnabled(bool enabled) {
+    if (_cacheEnabled.current == enabled) return;
+    _cacheEnabled = Setting(
+      current: enabled,
+      defaultValue: _cacheEnabled.defaultValue,
+      changed: enabled != _cacheEnabled.defaultValue,
+    );
+    _settingsService.setCacheEnabled(enabled);
     notifyListeners();
   }
 
@@ -470,9 +490,9 @@ class LyricsProvider with ChangeNotifier {
       changed: threshold != _translationAlignmentThreshold.defaultValue,
     );
     _settingsService.setTranslationAlignmentThreshold(threshold);
-    
+
     // Changing the threshold requires realigning lyrics
-    _lastTranslationResultForAlignment = null; 
+    _lastTranslationResultForAlignment = null;
     notifyListeners();
   }
 
@@ -796,6 +816,19 @@ class LyricsProvider with ChangeNotifier {
             if (match || _translationTargetLanguages.current.isEmpty) {
               _translationResult = trans;
               notifyListeners();
+              if (_cacheEnabled.current &&
+                  (trans.translation || trans.source == 'SKIPPED')) {
+                final cacheId = _cacheService.generateTranslationCacheId(
+                  metadata.title,
+                  metadata.artist,
+                  trans.language!,
+                );
+                _cacheService.cacheTranslation(cacheId, trans).then((_) {
+                  debugPrint(
+                    'Cached translation from ${trans.source} for ${metadata.title} - ${metadata.artist}',
+                  );
+                });
+              }
             }
           }
         },
