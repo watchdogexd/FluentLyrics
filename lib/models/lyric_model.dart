@@ -80,8 +80,6 @@ class LyricsResult {
   final bool translation;
   final String? translationProvider;
   final String? translationContributor;
-  final LyricsResult?
-  subLyrics; // For unmerged translation attached to original
 
   LyricsResult({
     required this.lyrics,
@@ -98,7 +96,6 @@ class LyricsResult {
     this.translation = false,
     this.translationProvider,
     this.translationContributor,
-    this.subLyrics,
     this.rawTranslation,
   }) : isSynced = isSynced ?? _checkIfSynced(lyrics),
        isRichSync = isRichSync ?? _checkIfRichSynced(lyrics);
@@ -164,7 +161,6 @@ class LyricsResult {
     bool? translation,
     String? translationProvider,
     String? translationContributor,
-    LyricsResult? subLyrics,
     List<Map<String, String>>? rawTranslation,
   }) {
     return LyricsResult(
@@ -183,7 +179,6 @@ class LyricsResult {
       translationProvider: translationProvider ?? this.translationProvider,
       translationContributor:
           translationContributor ?? this.translationContributor,
-      subLyrics: subLyrics ?? this.subLyrics,
       rawTranslation: rawTranslation ?? this.rawTranslation,
     );
   }
@@ -226,7 +221,6 @@ class LyricsResult {
     if (translationProvider != null) 'translationProvider': translationProvider,
     if (translationContributor != null)
       'translationContributor': translationContributor,
-    if (subLyrics != null) 'subLyrics': subLyrics!.toJson(),
     if (rawTranslation != null) 'rawTranslation': rawTranslation,
   };
 
@@ -249,9 +243,6 @@ class LyricsResult {
     translation: json['translation'] as bool? ?? false,
     translationProvider: json['translationProvider'] as String?,
     translationContributor: json['translationContributor'] as String?,
-    subLyrics: json['subLyrics'] != null
-        ? LyricsResult.fromJson(json['subLyrics'] as Map<String, dynamic>)
-        : null,
     rawTranslation: json['rawTranslation'] != null
         ? (json['rawTranslation'] as List)
               .map((e) => Map<String, String>.from(e as Map))

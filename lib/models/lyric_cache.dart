@@ -19,8 +19,6 @@ class LyricCache {
   String? copyright;
   String? artworkUrl;
   late bool isPureMusic;
-  SubLyricsItem? subLyrics;
-
   late List<LyricItem> lyrics;
 
   LyricsResult toLyricsResult() {
@@ -53,7 +51,6 @@ class LyricCache {
       contributor: contributor,
       copyright: copyright,
       isPureMusic: isPureMusic,
-      subLyrics: subLyrics?.toLyricsResult(),
     );
   }
 
@@ -84,9 +81,6 @@ class LyricCache {
                 .toList(),
         )
         .toList();
-    if (result.subLyrics != null) {
-      cache.subLyrics = SubLyricsItem.fromLyricsResult(result.subLyrics!);
-    }
     return cache;
   }
 }
@@ -159,50 +153,6 @@ class TranslationCache {
               ..translated = e['translated'],
           )
           .toList();
-  }
-}
-
-@embedded
-class SubLyricsItem {
-  String? source;
-  String? language;
-  String? translationProvider;
-  String? translationContributor;
-  List<RawTranslationPair>? rawTranslation;
-
-  LyricsResult toLyricsResult() {
-    return LyricsResult(
-      lyrics: [],
-      source: source ?? '',
-      language: language,
-      translation: true,
-      translationProvider: translationProvider,
-      translationContributor: translationContributor,
-      rawTranslation: rawTranslation
-          ?.map(
-            (e) => {
-              'original': e.original ?? '',
-              'translated': e.translated ?? '',
-            },
-          )
-          .toList(),
-    );
-  }
-
-  static SubLyricsItem fromLyricsResult(LyricsResult result) {
-    final item = SubLyricsItem();
-    item.source = result.source;
-    item.language = result.language;
-    item.translationProvider = result.translationProvider;
-    item.translationContributor = result.translationContributor;
-    item.rawTranslation = result.rawTranslation
-        ?.map(
-          (e) => RawTranslationPair()
-            ..original = e['original']
-            ..translated = e['translated'],
-        )
-        .toList();
-    return item;
   }
 }
 

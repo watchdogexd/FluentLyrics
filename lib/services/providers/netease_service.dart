@@ -22,6 +22,7 @@ class NeteaseService {
     int translationBias = 0,
     bool useStandardLyricsForPairing = false,
     Function(String)? onArtworkUrl,
+    Function(LyricsResult)? onTranslation,
   }) async {
     try {
       onStatusUpdate?.call('[NeteaseMusic] Searching songs...');
@@ -49,6 +50,7 @@ class NeteaseService {
         trimMetadata,
         translationBias,
         useStandardLyricsForPairing,
+        onTranslation,
       );
 
       if (lyricData == null) {
@@ -68,20 +70,20 @@ class NeteaseService {
     bool useStandardLyricsForPairing = false,
   }) async {
     try {
-      final lyricData = await fetchLyrics(
+      LyricsResult? translationResult;
+      await fetchLyrics(
         title: data.title,
         artist: data.artist,
         album: data.album,
         durationSeconds: data.durationSeconds,
         translationBias: translationBias,
         useStandardLyricsForPairing: useStandardLyricsForPairing,
+        onTranslation: (trans) {
+          translationResult = trans;
+        },
       );
 
-      if (lyricData.subLyrics == null) {
-        return LyricsResult.empty();
-      } else {
-        return lyricData.subLyrics!;
-      }
+      return translationResult ?? LyricsResult.empty();
     } catch (e) {
       debugPrint('[NeteaseMusic] Error fetching translation: $e');
     }
@@ -173,6 +175,7 @@ class NeteaseService {
     bool trimMetadata,
     int translationBias,
     bool useStandardLyricsForPairing,
+    Function(LyricsResult)? onTranslation,
   ) async {
     try {
       final lyricUri = Uri.parse('https://music.163.com/api/song/lyric')
@@ -232,8 +235,6 @@ class NeteaseService {
           trimmedMetadata = parseResult.trimmedMetadata;
         }
 
-        // Parse translation
-        LyricsResult? subLyrics;
         if (tlyric != null && tlyric.isNotEmpty) {
           final transParse = LrcParser.parse(tlyric);
           if (transParse.lyrics.isNotEmpty) {
@@ -243,7 +244,7 @@ class NeteaseService {
               translationBias: translationBias,
             );
 
-            subLyrics = LyricsResult(
+            onTranslation?.call(LyricsResult(
               lyrics: [],
               rawTranslation: rawTranslation,
               source: 'Netease Music',
@@ -252,7 +253,7 @@ class NeteaseService {
               translation: true,
               translationProvider: 'Netease Music',
               translationContributor: translationContributor,
-            );
+            ));
           }
         }
 
@@ -261,7 +262,6 @@ class NeteaseService {
           source: 'Netease Music',
           isPureMusic: isPureMusic,
           contributor: lyricContributor,
-          subLyrics: subLyrics,
           metadata: trimmedMetadata,
         );
       }

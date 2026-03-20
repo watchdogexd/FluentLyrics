@@ -20,6 +20,7 @@ class LyricsProvider with ChangeNotifier {
   MediaMetadata? _currentMetadata;
   Timer? _permissionTimer;
   LyricsResult _lyricsResult = LyricsResult.empty();
+  LyricsResult? _translationResult;
   Duration _currentPosition = Duration.zero;
 
   // Settings
@@ -148,6 +149,7 @@ class LyricsProvider with ChangeNotifier {
 
   List<Lyric>? _cachedAlignedLyrics;
   LyricsResult? _lastLyricsResultForAlignment;
+  LyricsResult? _lastTranslationResultForAlignment;
   bool? _lastRichSyncEnabledForAlignment;
 
   List<Lyric> _stripRichSync(List<Lyric> source) {
@@ -171,17 +173,19 @@ class LyricsProvider with ChangeNotifier {
         ? _lyricsResult.lyrics
         : _stripRichSync(_lyricsResult.lyrics);
 
-    if (_lyricsResult.subLyrics?.rawTranslation != null) {
+    if (_translationResult?.rawTranslation != null) {
       if (_cachedAlignedLyrics != null &&
           _lastLyricsResultForAlignment == _lyricsResult &&
+          _lastTranslationResultForAlignment == _translationResult &&
           _lastRichSyncEnabledForAlignment == curRichSync) {
         return _cachedAlignedLyrics!;
       }
       _cachedAlignedLyrics = TranslationHelper.align(
         originalLyrics: baseLyrics,
-        rawTranslation: _lyricsResult.subLyrics!.rawTranslation!,
+        rawTranslation: _translationResult!.rawTranslation!,
       );
       _lastLyricsResultForAlignment = _lyricsResult;
+      _lastTranslationResultForAlignment = _translationResult;
       _lastRichSyncEnabledForAlignment = curRichSync;
       return _cachedAlignedLyrics!;
     }
@@ -198,6 +202,8 @@ class LyricsProvider with ChangeNotifier {
     }
     return _lyricsResult;
   }
+
+  LyricsResult? get translationResult => _translationResult;
 
   Duration get currentPosition => _currentPosition;
   Duration get globalOffset => Duration(milliseconds: _globalOffsetMs.current);
@@ -319,8 +325,8 @@ class LyricsProvider with ChangeNotifier {
     _llmApiKey = await _settingsService.getLlmApiKey();
     _llmModel = await _settingsService.getLlmModel();
     _keepScreenOn = await _settingsService.getKeepScreenOn();
-    _useStandardLyricsForPairingProviders =
-        await _settingsService.getUseStandardLyricsForPairingProviders();
+    _useStandardLyricsForPairingProviders = await _settingsService
+        .getUseStandardLyricsForPairingProviders();
 
     notifyListeners();
   }
@@ -616,13 +622,12 @@ class LyricsProvider with ChangeNotifier {
         _currentMetadata!.album,
         _currentMetadata!.duration.inSeconds,
       );
-      if (_lyricsResult.subLyrics != null &&
-          _lyricsResult.subLyrics!.language != null) {
+      if (_translationResult != null && _translationResult!.language != null) {
         await _cacheService.clearTranslationCache(
           _cacheService.generateTranslationCacheId(
             _currentMetadata!.title,
             _currentMetadata!.artist,
-            _lyricsResult.subLyrics!.language!,
+            _translationResult!.language!,
           ),
         );
       }
@@ -686,11 +691,13 @@ class LyricsProvider with ChangeNotifier {
         } else {
           _isLoading = false;
           _lyricsResult = LyricsResult.empty();
+          _translationResult = null;
           notifyListeners();
         }
       } else {
         _isLoading = false;
         _lyricsResult = LyricsResult.empty();
+        _translationResult = null;
         notifyListeners();
       }
     } else if (processedMetadata != _currentMetadata) {
@@ -729,6 +736,7 @@ class LyricsProvider with ChangeNotifier {
     _isLoading = true;
     _loadingStatus = 'Starting search...';
     _lyricsResult = LyricsResult.empty();
+    _translationResult = null;
     artworkUrlsNotifier.value = [];
     notifyListeners();
 
@@ -745,11 +753,28 @@ class LyricsProvider with ChangeNotifier {
         isCancelled: () => !metadata.isSameTrack(_currentMetadata),
         trimMetadataProviders: _trimMetadataProviders.current,
         richSyncEnabled: _richSyncEnabled.current,
-        translationEnabled: _translationEnabled.current,
         onArtworkUrl: (url) {
           if (!artworkUrlsNotifier.value.contains(url)) {
             artworkUrlsNotifier.value = List.from(artworkUrlsNotifier.value)
               ..add(url);
+          }
+        },
+        onTranslation: (trans) {
+          if (_translationEnabled.current &&
+              _translationResult == null &&
+              trans.language != null) {
+            String lowercaseTransLang = trans.language!.toLowerCase();
+            bool match = false;
+            for (var target in _translationTargetLanguages.current) {
+              if (target.toLowerCase() == lowercaseTransLang) {
+                match = true;
+                break;
+              }
+            }
+            if (match || _translationTargetLanguages.current.isEmpty) {
+              _translationResult = trans;
+              notifyListeners();
+            }
           }
         },
       );
@@ -780,6 +805,28 @@ class LyricsProvider with ChangeNotifier {
 
         _updateCurrentIndex();
         notifyListeners();
+      }
+
+      if (!metadata.isSameTrack(_currentMetadata)) return;
+
+      if (_translationEnabled.current &&
+          _lyricsResult.lyrics.isNotEmpty &&
+          _translationResult == null) {
+        final transStream = _lyricsService.fetchTranslation(
+          bestResult: _lyricsResult,
+          title: metadata.title,
+          artist: metadata.artist,
+          album: metadata.album,
+          durationSeconds: metadata.duration.inSeconds,
+          isCancelled: () => !metadata.isSameTrack(_currentMetadata),
+        );
+
+        await for (var transResult in transStream) {
+          if (!metadata.isSameTrack(_currentMetadata)) return;
+          _translationResult = transResult;
+          _updateCurrentIndex();
+          notifyListeners();
+        }
       }
     } catch (e) {
       if (!metadata.isSameTrack(_currentMetadata)) return;

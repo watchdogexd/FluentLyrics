@@ -22,6 +22,7 @@ class QQMusicService {
     int translationBias = 0,
     bool useStandardLyricsForPairing = false,
     Function(String)? onArtworkUrl,
+    Function(LyricsResult)? onTranslation,
   }) async {
     try {
       onStatusUpdate?.call('[QQMusic] Searching songs...');
@@ -72,8 +73,6 @@ class QQMusicService {
 
         final parseResult = LrcParser.parse(lrc, trimMetadata: trimMetadata);
 
-        // Parse translation
-        LyricsResult? subLyrics;
         if (trans != null && trans.isNotEmpty) {
           final transParse = LrcParser.parse(trans);
           if (transParse.lyrics.isNotEmpty) {
@@ -83,7 +82,7 @@ class QQMusicService {
               translationBias: translationBias,
             );
 
-            subLyrics = LyricsResult(
+            onTranslation?.call(LyricsResult(
               lyrics: [],
               rawTranslation: rawTranslation,
               source: 'QQ Music',
@@ -91,7 +90,7 @@ class QQMusicService {
               translation: true,
               language: 'zh_CN',
               translationProvider: 'QQ Music',
-            );
+            ));
           }
         }
 
@@ -107,7 +106,6 @@ class QQMusicService {
               parseResult.trimmedMetadata['Composer'] ??
               parseResult.trimmedMetadata['Composed by'],
           isPureMusic: false,
-          subLyrics: subLyrics,
           metadata: {
             ...parseResult.lrcMetadata,
             ...parseResult.trimmedMetadata,
@@ -128,20 +126,20 @@ class QQMusicService {
     bool useStandardLyricsForPairing = false,
   }) async {
     try {
-      final lyricData = await fetchLyrics(
+      LyricsResult? translationResult;
+      await fetchLyrics(
         title: data.title,
         artist: data.artist,
         album: data.album,
         durationSeconds: data.durationSeconds,
         translationBias: translationBias,
         useStandardLyricsForPairing: useStandardLyricsForPairing,
+        onTranslation: (trans) {
+          translationResult = trans;
+        },
       );
 
-      if (lyricData.subLyrics == null) {
-        return LyricsResult.empty();
-      } else {
-        return lyricData.subLyrics!;
-      }
+      return translationResult ?? LyricsResult.empty();
     } catch (e) {
       debugPrint('[QQMusic] Error fetching translation: $e');
     }

@@ -31,18 +31,13 @@ class LyricsService {
     bool Function()? isCancelled,
     required List<LyricProviderType> trimMetadataProviders,
     required bool richSyncEnabled,
-    bool translationEnabled = true,
     Function(String)? onArtworkUrl,
+    Function(LyricsResult)? onTranslation,
   }) async* {
     final priority = await _settingsService.getPriority();
     final cacheEnabledSetting = await _settingsService.getCacheEnabled();
     final cacheEnabled = cacheEnabledSetting.current;
 
-    // Translation settings
-    final targetLanguages =
-        (await _settingsService.getTranslationTargetLanguages()).current;
-    final ignoredLanguages =
-        (await _settingsService.getTranslationIgnoredLanguages()).current;
     final translationBias =
         (await _settingsService.getTranslationBias()).current;
     final useStandardLyricsForPairing =
@@ -98,6 +93,7 @@ class LyricsService {
           useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
             LyricProviderType.netease,
           ),
+          onTranslation: onTranslation,
         );
       } else if (provider == LyricProviderType.qqmusic) {
         result = await _qqMusicService.fetchLyrics(
@@ -111,6 +107,7 @@ class LyricsService {
           useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
             LyricProviderType.qqmusic,
           ),
+          onTranslation: onTranslation,
         );
       }
 
@@ -146,17 +143,6 @@ class LyricsService {
               !bestResult.isSynced) {
             newBetter = true;
           }
-          // New: Check for translation (subLyrics)
-          else if (result.subLyrics != null && bestResult.subLyrics == null) {
-            // If we prefer translation, maybe this is better?
-            // But valid lyrics are more important.
-            // If both have lyrics, and this one has translation, usage depends.
-            // Let's assume if qualities are equal, one with translation is better.
-            if (result.isSynced == bestResult.isSynced &&
-                result.isRichSync == bestResult.isRichSync) {
-              newBetter = true;
-            }
-          }
 
           if (newBetter) {
             bestResult = result.copyWith(
@@ -168,7 +154,6 @@ class LyricsService {
               contributor: result.contributor,
               copyright: result.copyright,
               isPureMusic: result.isPureMusic,
-              subLyrics: result.subLyrics, // Copy subLyrics
             );
           }
         }
@@ -193,30 +178,40 @@ class LyricsService {
               (bestResult.lyrics.isNotEmpty &&
                   ((bestResult.isRichSync && richSyncEnabled) ||
                       (!richSyncEnabled && bestResult.isSynced))))) {
-        // Good enough lyrics. But do we have translation?
-        if (translationEnabled &&
-            targetLanguages.isNotEmpty &&
-            bestResult.subLyrics == null) {
-          // Continue searching to see if other providers have translation (via fetchLyrics returning subLyrics)
-          // or just break and fall into fetchTranslation phase.
-          // If we already checked high priority providers...
-          // Let's break and try fetchTranslation.
-          break;
-        } else {
-          // We have translation or don't want it.
-          break;
-        }
+        break;
       }
     }
+  }
 
-    // Post-loop translation fetching
-    if (translationEnabled &&
-        bestResult != null &&
-        targetLanguages.isNotEmpty &&
-        bestResult.subLyrics == null &&
-        bestResult.lyrics.isNotEmpty &&
-        (bestResult.language == null ||
-            !ignoredLanguages.contains(bestResult.language))) {
+  Stream<LyricsResult> fetchTranslation({
+    required LyricsResult bestResult,
+    required String title,
+    required String artist,
+    required String album,
+    required int durationSeconds,
+    bool Function()? isCancelled,
+  }) async* {
+    final cacheEnabledSetting = await _settingsService.getCacheEnabled();
+    final cacheEnabled = cacheEnabledSetting.current;
+
+    final targetLanguages =
+        (await _settingsService.getTranslationTargetLanguages()).current;
+    final ignoredLanguages =
+        (await _settingsService.getTranslationIgnoredLanguages()).current;
+    final translationBias =
+        (await _settingsService.getTranslationBias()).current;
+    final useStandardLyricsForPairing =
+        (await _settingsService.getUseStandardLyricsForPairingProviders())
+            .current;
+    final priority = await _settingsService.getPriority();
+    final fullPriority = [LyricProviderType.cache, ...priority];
+
+    if (targetLanguages.isEmpty ||
+        bestResult.lyrics.isEmpty ||
+        (bestResult.language != null &&
+            ignoredLanguages.contains(bestResult.language))) {
+      return;
+    }
       // Prepare request with LRC formatted content to preserve timestamps for LLM
       final requestData = GeneralTranslationRequestData(
         title: title,
@@ -255,6 +250,7 @@ class LyricsService {
         bool cachedResult = false;
         debugPrint('Checking translation providers for $targetLanguage');
         for (var tProvider in fullPriority) {
+          if (isCancelled?.call() == true) return;
           if (tProvider == LyricProviderType.cache && cacheEnabled) {
             debugPrint('Checking cache for translation');
             final cacheId = _cacheService.generateTranslationCacheId(
@@ -345,15 +341,12 @@ class LyricsService {
           }
         }
         if (transResult != null && transResult.translation) {
-          // Update bestResult with new translation
-          bestResult = bestResult!.copyWith(subLyrics: transResult);
-          yield bestResult;
+          yield transResult;
           break;
         } else if (transResult != null && transResult.source == 'SKIPPED') {
           debugPrint('Translation skipped by provider');
           break;
         }
       }
-    }
   }
 }

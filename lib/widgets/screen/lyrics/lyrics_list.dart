@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import '../../../models/lyric_model.dart';
 import '../../../providers/lyrics_provider.dart';
 import '../../lyric_line.dart';
 import '../../interlude_indicator.dart';
@@ -92,7 +91,7 @@ class LyricsList extends StatelessWidget {
         itemBuilder: (context, index) {
           // Metadata Line
           if (index == provider.lyrics.length) {
-            return _buildLyricsInfoLine(provider.lyricsResult);
+            return _buildLyricsInfoLine();
           }
 
           // Lyric Lines
@@ -143,7 +142,9 @@ class LyricsList extends StatelessWidget {
     );
   }
 
-  Widget _buildLyricsInfoLine(LyricsResult result) {
+  Widget _buildLyricsInfoLine() {
+    final result = provider.lyricsResult;
+    final transResult = provider.translationResult;
     final List<String> infoParts = [];
     if (result.source.isNotEmpty) {
       infoParts.add('Source: ${result.source}');
@@ -160,18 +161,18 @@ class LyricsList extends StatelessWidget {
     if (result.copyright != null && result.copyright!.isNotEmpty) {
       infoParts.add('Copyright: ${result.copyright}');
     }
-    if (result.subLyrics != null &&
-        result.subLyrics!.translationProvider != null &&
-        result.subLyrics!.translationProvider!.isNotEmpty) {
+    if (transResult != null &&
+        transResult.translationProvider != null &&
+        transResult.translationProvider!.isNotEmpty) {
       infoParts.add(
-        'Translation Provider: ${result.subLyrics!.translationProvider}',
+        'Translation Provider: ${transResult.translationProvider}',
       );
     }
-    if (result.subLyrics != null &&
-        result.subLyrics!.translationContributor != null &&
-        result.subLyrics!.translationContributor!.isNotEmpty) {
+    if (transResult != null &&
+        transResult.translationContributor != null &&
+        transResult.translationContributor!.isNotEmpty) {
       infoParts.add(
-        'Translation Contributor: ${result.subLyrics!.translationContributor}',
+        'Translation Contributor: ${transResult.translationContributor}',
       );
     }
 
