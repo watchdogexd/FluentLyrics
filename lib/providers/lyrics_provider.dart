@@ -91,6 +91,11 @@ class LyricsProvider with ChangeNotifier {
     defaultValue: AppDefaults.translationBias,
     changed: false,
   );
+  Setting<int> _translationAlignmentThreshold = const Setting(
+    current: AppDefaults.translationAlignmentThreshold,
+    defaultValue: AppDefaults.translationAlignmentThreshold,
+    changed: false,
+  );
   Setting<String> _llmApiEndpoint = const Setting(
     current: AppDefaults.llmApiEndpoint,
     defaultValue: AppDefaults.llmApiEndpoint,
@@ -183,6 +188,7 @@ class LyricsProvider with ChangeNotifier {
       _cachedAlignedLyrics = TranslationHelper.align(
         originalLyrics: baseLyrics,
         rawTranslation: _translationResult!.rawTranslation!,
+        similarityThreshold: _translationAlignmentThreshold.current,
       );
       _lastLyricsResultForAlignment = _lyricsResult;
       _lastTranslationResultForAlignment = _translationResult;
@@ -228,6 +234,7 @@ class LyricsProvider with ChangeNotifier {
   Setting<List<String>> get translationIgnoredLanguages =>
       _translationIgnoredLanguages;
   Setting<int> get translationBias => _translationBias;
+  Setting<int> get translationAlignmentThreshold => _translationAlignmentThreshold;
   Setting<String> get llmApiEndpoint => _llmApiEndpoint;
   Setting<String> get llmApiKey => _llmApiKey;
   Setting<String> get llmModel => _llmModel;
@@ -321,6 +328,7 @@ class LyricsProvider with ChangeNotifier {
     _translationIgnoredLanguages = await _settingsService
         .getTranslationIgnoredLanguages();
     _translationBias = await _settingsService.getTranslationBias();
+    _translationAlignmentThreshold = await _settingsService.getTranslationAlignmentThreshold();
     _llmApiEndpoint = await _settingsService.getLlmApiEndpoint();
     _llmApiKey = await _settingsService.getLlmApiKey();
     _llmModel = await _settingsService.getLlmModel();
@@ -451,6 +459,20 @@ class LyricsProvider with ChangeNotifier {
       changed: bias != _translationBias.defaultValue,
     );
     _settingsService.setTranslationBias(bias);
+    notifyListeners();
+  }
+
+  void setTranslationAlignmentThreshold(int threshold) {
+    if (_translationAlignmentThreshold.current == threshold) return;
+    _translationAlignmentThreshold = Setting(
+      current: threshold,
+      defaultValue: _translationAlignmentThreshold.defaultValue,
+      changed: threshold != _translationAlignmentThreshold.defaultValue,
+    );
+    _settingsService.setTranslationAlignmentThreshold(threshold);
+    
+    // Changing the threshold requires realigning lyrics
+    _lastTranslationResultForAlignment = null; 
     notifyListeners();
   }
 

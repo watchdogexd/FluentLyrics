@@ -126,6 +126,26 @@ class TranslationSection extends StatelessWidget {
                 resetTooltip: 'Reset to 50ms',
               ),
               const SizedBox(height: 24),
+              // Alignment Threshold
+              SettingsSliderCard(
+                title: 'Alignment Similarity Threshold',
+                subtitle: 'Min % similarity required to pair translation with original line.',
+                value: provider.translationAlignmentThreshold.current.toDouble(),
+                min: 0,
+                max: 100,
+                divisions: 20,
+                label: '${provider.translationAlignmentThreshold.current}%',
+                valueText: '${provider.translationAlignmentThreshold.current}%',
+                onChanged: (value) =>
+                    provider.setTranslationAlignmentThreshold(value.toInt()),
+                onReset: provider.translationAlignmentThreshold.changed
+                    ? () => provider.setTranslationAlignmentThreshold(
+                        provider.translationAlignmentThreshold.defaultValue,
+                      )
+                    : null,
+                resetTooltip: 'Reset to 80%',
+              ),
+              const SizedBox(height: 24),
               // LLM Configuration
               LlmConfigurationCard(provider: provider),
             ],

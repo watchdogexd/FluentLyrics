@@ -26,6 +26,7 @@ class AppDefaults {
   static const bool translationHighlightOnly = true;
   static const List<String> translationIgnoredLanguages = [];
   static const int translationBias = 50;
+  static const int translationAlignmentThreshold = 80;
   static const String? musixmatchToken = null;
   static const String llmApiEndpoint =
       'https://api.openai.com/v1/chat/completions';

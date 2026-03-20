@@ -322,6 +322,7 @@ class SettingsService {
   static const String _translationIgnoredLanguagesKey =
       'translation_ignored_languages';
   static const String _translationBiasKey = 'translation_bias';
+  static const String _translationAlignmentThresholdKey = 'translation_alignment_threshold';
 
   Future<Setting<List<String>>> getTranslationTargetLanguages() async {
     final prefs = await SharedPreferences.getInstance();
@@ -375,6 +376,22 @@ class SettingsService {
   Future<void> setTranslationBias(int bias) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_translationBiasKey, bias);
+  }
+
+  Future<Setting<int>> getTranslationAlignmentThreshold() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getInt(_translationAlignmentThresholdKey) ?? AppDefaults.translationAlignmentThreshold;
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.translationAlignmentThreshold,
+      changed: current != AppDefaults.translationAlignmentThreshold,
+    );
+  }
+
+  Future<void> setTranslationAlignmentThreshold(int threshold) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_translationAlignmentThresholdKey, threshold);
   }
 
   Future<Setting<String>> getLlmApiEndpoint() async {
