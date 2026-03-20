@@ -34,6 +34,9 @@ class LyricsService {
     Function(String)? onArtworkUrl,
     Function(LyricsResult)? onTranslation,
   }) async* {
+    debugPrint(
+      '[LyricsService.fetchLyrics] Fetching lyrics for $title - $artist',
+    );
     final priority = await _settingsService.getPriority();
     final cacheEnabledSetting = await _settingsService.getCacheEnabled();
     final cacheEnabled = cacheEnabledSetting.current;
@@ -47,6 +50,7 @@ class LyricsService {
     LyricsResult? bestResult;
 
     for (var provider in priority) {
+      debugPrint('[LyricsService.fetchLyrics]   ==> Fetching from $provider');
       if (isCancelled?.call() == true) {
         if (bestResult != null) yield bestResult;
         return;
@@ -109,24 +113,11 @@ class LyricsService {
       }
 
       if (result.lyrics.isNotEmpty || result.isPureMusic) {
-        // Cache the raw result from other providers
-        if (cacheEnabled && provider != LyricProviderType.cache) {
-          debugPrint('Caching lyrics from $provider for $title - $artist');
-          await _cacheService.cacheLyrics(
-            title,
-            artist,
-            album,
-            durationSeconds,
-            result,
-          );
-        }
-
+        bool newBetter = false;
         if (bestResult == null) {
+          newBetter = true;
           bestResult = result;
         } else {
-          // If the new result has lyrics/pureMusic and the current best doesn't,
-          // or if the new one is synced and old isn't.
-          bool newBetter = false;
           if (result.isPureMusic && !bestResult.isPureMusic) {
             newBetter = true;
           } else if (result.lyrics.isNotEmpty && bestResult.lyrics.isEmpty) {
@@ -153,23 +144,37 @@ class LyricsService {
               copyright: result.copyright,
               isPureMusic: result.isPureMusic,
             );
+          } else {
+            continue;
           }
         }
+        if (newBetter) {
+          debugPrint(
+            '[LyricsService.fetchLyrics]     ==> Yielding new best result',
+          );
+          yield bestResult;
 
-        // Yield intermediate best result (without translation merge yet, or maybe merge if subLyrics exists?)
-        // If we yield here, UI sees it.
-        // We should merge if we can.
-        yield bestResult;
+          // Cached? break
+          if (provider == LyricProviderType.cache) {
+            debugPrint(
+              '[LyricsService.fetchLyrics]     ==> This LyricsResult is cached, breaking loop',
+            );
+            break;
+          }
+          // Cache the raw result from other providers
+          if (cacheEnabled &&
+              provider != LyricProviderType.cache &&
+              bestResult.lyrics.isNotEmpty) {
+            await _cacheService
+                .cacheLyrics(title, artist, album, durationSeconds, result)
+                .then((_) {
+                  debugPrint(
+                    '[LyricsService.fetchLyrics]     ==> newBetter lyrics cached',
+                  );
+                });
+          }
+        }
       }
-
-      // If we have (rich sync lyrics OR pure music) AND artwork, we can stop early.
-      // But we might want to wait for translation?
-      // "wait for the 'best lyric result', and move on to try those fetchTranslations method"
-      // If we stop early, we might miss translation.
-      // We should only stop early if we are satisfied.
-      // If targetLanguages is set, and we don't have translation, maybe don't stop?
-      // But prompt says "if the provider returns the translation within fetchLyrics... if no, wait for the 'best lyric result', and move on..."
-      // This implies we finish the loop for lyrics first.
 
       if (bestResult != null &&
           (bestResult.isPureMusic ||
@@ -189,6 +194,9 @@ class LyricsService {
     required int durationSeconds,
     bool Function()? isCancelled,
   }) async* {
+    debugPrint(
+      '[LyricsService.fetchTranslation] Fetching translation for $title - $artist',
+    );
     final cacheEnabledSetting = await _settingsService.getCacheEnabled();
     final cacheEnabled = cacheEnabledSetting.current;
 
@@ -238,7 +246,7 @@ class LyricsService {
     if (bestResult.language != null &&
         targetLanguages.contains(bestResult.language)) {
       debugPrint(
-        'Target language contains source language, skipping translation',
+        '[LyricsService.fetchTranslation]   ==> Target language contains source language, skipping translation',
       );
       return;
     }
@@ -246,11 +254,13 @@ class LyricsService {
     for (var targetLanguage in targetLanguages) {
       LyricsResult? transResult;
       bool cachedResult = false;
-      debugPrint('Checking translation providers for $targetLanguage');
+      debugPrint(
+        '[LyricsService.fetchTranslation]   ==> Checking providers for $targetLanguage',
+      );
       for (var tProvider in priority) {
         if (isCancelled?.call() == true) return;
         if (tProvider == LyricProviderType.cache && cacheEnabled) {
-          debugPrint('Checking cache for translation');
+          debugPrint('[LyricsService.fetchTranslation]     ==> Checking cache');
           final cacheId = _cacheService.generateTranslationCacheId(
             title,
             artist,
@@ -268,7 +278,9 @@ class LyricsService {
           if (!_neteaseService.checkTranslationSupport(targetLanguage)) {
             continue;
           }
-          debugPrint('Fetching translation from Netease');
+          debugPrint(
+            '[LyricsService.fetchTranslation]     ==> Fetching from Netease',
+          );
           transResult = await _neteaseService.fetchTranslation(
             requestData,
             translationBias: translationBias,
@@ -280,7 +292,9 @@ class LyricsService {
           if (!_qqMusicService.checkTranslationSupport(targetLanguage)) {
             continue;
           }
-          debugPrint('Fetching translation from QQMusic');
+          debugPrint(
+            '[LyricsService.fetchTranslation]     ==> Fetching from QQMusic',
+          );
           transResult = await _qqMusicService.fetchTranslation(
             requestData,
             translationBias: translationBias,
@@ -292,7 +306,9 @@ class LyricsService {
           if (!_musixmatchService.checkTranslationSupport(targetLanguage)) {
             continue;
           }
-          debugPrint('Fetching translation from Musixmatch');
+          debugPrint(
+            '[LyricsService.fetchTranslation]     ==> Fetching from Musixmatch',
+          );
           transResult = await _musixmatchService.fetchTranslation(
             requestData,
             targetLanguage,
@@ -301,29 +317,35 @@ class LyricsService {
           if (!_llmService.checkTranslationSupport(targetLanguage)) {
             continue;
           }
-          debugPrint('Fetching translation from LLM');
+          debugPrint(
+            '[LyricsService.fetchTranslation]     ==> Fetching from LLM',
+          );
           transResult = await _llmService.fetchTranslation(
             requestData,
             targetLanguage,
           );
         } else {
-          debugPrint('Unsupported translation provider: $tProvider');
+          debugPrint(
+            '[LyricsService.fetchTranslation]     ==> [!] Unsupported provider: $tProvider',
+          );
           continue;
         }
 
         if (transResult == null ||
             !(transResult.translation || transResult.source == 'SKIPPED')) {
-          debugPrint('Failed to fetch translation from $tProvider');
+          debugPrint('[LyricsService.fetchTranslation]       ==> [!] Failed');
           transResult = null;
           continue;
         } else if (!cachedResult) {
           // New translation found, cache it if enabled
-          debugPrint('New translation received');
+          debugPrint(
+            '[LyricsService.fetchTranslation]       ==> New translation received',
+          );
           if (cacheEnabled &&
               tProvider != LyricProviderType.cache &&
               (transResult.translation || transResult.source == 'SKIPPED')) {
             debugPrint(
-              'Caching translation from $tProvider for $title - $artist',
+              '[LyricsService.fetchTranslation]         ==> Caching translation',
             );
             final cacheId = _cacheService.generateTranslationCacheId(
               title,
@@ -334,7 +356,9 @@ class LyricsService {
           }
           break;
         } else if (cachedResult) {
-          // translation is cached, break
+          debugPrint(
+            '[LyricsService.fetchTranslation]       ==> Found cached translation, breaking',
+          );
           break;
         } else {
           // wut
@@ -344,7 +368,9 @@ class LyricsService {
         yield transResult;
         break;
       } else if (transResult != null && transResult.source == 'SKIPPED') {
-        debugPrint('Translation skipped by provider');
+        debugPrint(
+          '[LyricsService.fetchTranslation]       ==> Translation skipped by provider',
+        );
         break;
       }
     }
