@@ -239,21 +239,25 @@ class NeteaseService {
           final transParse = LrcParser.parse(tlyric);
           if (transParse.lyrics.isNotEmpty) {
             final rawTranslation = TranslationHelper.pair(
-              originalLyrics: useStandardLyricsForPairing ? lyrics : (richLyrics.isNotEmpty ? richLyrics : lyrics),
+              originalLyrics: useStandardLyricsForPairing
+                  ? lyrics
+                  : (richLyrics.isNotEmpty ? richLyrics : lyrics),
               translatedLyrics: transParse.lyrics,
               translationBias: translationBias,
             );
 
-            onTranslation?.call(LyricsResult(
-              lyrics: [],
-              rawTranslation: rawTranslation,
-              source: 'Netease Music',
-              isSynced: true,
-              language: 'zh_CN',
-              translation: true,
-              translationProvider: 'Netease Music',
-              translationContributor: translationContributor,
-            ));
+            onTranslation?.call(
+              LyricsResult(
+                lyrics: [],
+                rawTranslation: rawTranslation,
+                source: 'Netease Music',
+                isSynced: true,
+                language: 'zh_CN',
+                translation: true,
+                translationProvider: 'Netease Music',
+                translationContributor: translationContributor,
+              ),
+            );
           }
         }
 
