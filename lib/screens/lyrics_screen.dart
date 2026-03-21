@@ -214,7 +214,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
     final hasValidArt =
         artUrl != null && artUrl.isNotEmpty && artUrl != 'fallback';
 
-    if (hasValidArt) {
+    if (hasValidArt && metadata != null) {
       if (artUrl != _lastArtUrl || forceReload) {
         _lastArtUrl = artUrl;
         _foregroundArtProvider = _getArtProvider(artUrl, mediaService);
@@ -229,7 +229,6 @@ class _LyricsScreenState extends State<LyricsScreen> {
           _foregroundArtProvider = const AssetImage('assets/album_art.png');
           _backgroundArtProvider = _foregroundArtProvider;
         } else {
-          _foregroundArtProvider = const AssetImage('assets/album_art.png');
           _lastArtUrl = artUrl;
         }
       }
