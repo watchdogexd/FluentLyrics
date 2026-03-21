@@ -49,11 +49,19 @@ class LyricLine extends StatelessWidget {
         ? 0.0
         : (distance.abs() * 1.5).clamp(0.0, 4.0);
 
+    TextStyle lineStyle = TextStyle(
+      fontFamily: 'Outfit',
+      fontSize: fontSize,
+      fontWeight: isHighlighted ? FontWeight.w800 : FontWeight.w700,
+      color: Colors.white,
+      height: 1,
+    );
+
     return AnimatedPadding(
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeOutQuart,
       padding: EdgeInsets.symmetric(
-        vertical: isHighlighted ? 16 : 12,
+        vertical: isHighlighted ? 18 : 12,
         horizontal: 24,
       ),
       child: AnimatedOpacity(
@@ -70,17 +78,7 @@ class LyricLine extends StatelessWidget {
             child: AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 500),
               curve: Curves.easeOutQuart,
-              style: TextStyle(
-                fontFamily: 'Outfit',
-                fontSize: fontSize,
-                fontWeight: isHighlighted ? FontWeight.w800 : FontWeight.w600,
-                fontVariations: <FontVariation>[
-                  FontVariation('wght', 600),
-                  FontVariation('wght', 800),
-                ],
-                color: Colors.white,
-                height: 1.2,
-              ),
+              style: lineStyle,
               child: Builder(
                 builder: (context) {
                   final mainText = _buildText(context, lyricsProvider);
@@ -166,7 +164,9 @@ class LyricLine extends StatelessWidget {
               text: part.text,
               startTime: part.startTime,
               endTime: part.endTime,
-              style: DefaultTextStyle.of(context).style,
+              style: DefaultTextStyle.of(context).style.copyWith(
+                fontSize: DefaultTextStyle.of(context).style.fontSize! / 0.9,
+              ),
             ),
           );
         }).toList(),
@@ -269,7 +269,9 @@ class _RichPartState extends State<_RichPart>
       builder: (context, child) {
         final progress = _controller.value;
         final bool isLifting = progress > 0;
-        final bool isShort = duration < _progressAnimationThreshold;
+        final bool isShort =
+            duration < _progressAnimationThreshold ||
+            widget.text.length <= 1; // 1 char length is likely a punctuation
 
         return AnimatedContainer(
           duration: isShort
@@ -281,6 +283,7 @@ class _RichPartState extends State<_RichPart>
             children: [
               Text(
                 widget.text,
+                textAlign: TextAlign.left,
                 style: widget.style.copyWith(
                   color: isShort && isLifting
                       ? Colors.white
