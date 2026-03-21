@@ -322,7 +322,8 @@ class SettingsService {
   static const String _translationIgnoredLanguagesKey =
       'translation_ignored_languages';
   static const String _translationBiasKey = 'translation_bias';
-  static const String _translationAlignmentThresholdKey = 'translation_alignment_threshold';
+  static const String _translationAlignmentThresholdKey =
+      'translation_alignment_threshold';
 
   Future<Setting<List<String>>> getTranslationTargetLanguages() async {
     final prefs = await SharedPreferences.getInstance();
@@ -381,7 +382,8 @@ class SettingsService {
   Future<Setting<int>> getTranslationAlignmentThreshold() async {
     final prefs = await SharedPreferences.getInstance();
     final current =
-        prefs.getInt(_translationAlignmentThresholdKey) ?? AppDefaults.translationAlignmentThreshold;
+        prefs.getInt(_translationAlignmentThresholdKey) ??
+        AppDefaults.translationAlignmentThreshold;
     return Setting(
       current: current,
       defaultValue: AppDefaults.translationAlignmentThreshold,

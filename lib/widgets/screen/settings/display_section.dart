@@ -27,11 +27,9 @@ class DisplaySection extends StatelessWidget {
               label: provider.fontSize.current.toInt().toString(),
               valueText: '${provider.fontSize.current.toInt()}',
               onChanged: (value) => provider.setFontSize(value),
-              onReset:
-                  provider.fontSize.changed
-                      ? () =>
-                          provider.setFontSize(provider.fontSize.defaultValue)
-                      : null,
+              onReset: provider.fontSize.changed
+                  ? () => provider.setFontSize(provider.fontSize.defaultValue)
+                  : null,
               resetTooltip: 'Reset to 36px',
             ),
             const SizedBox(height: 24),
@@ -45,12 +43,11 @@ class DisplaySection extends StatelessWidget {
               label: '${(provider.inactiveScale.current * 100).toInt()}%',
               valueText: '${(provider.inactiveScale.current * 100).toInt()}%',
               onChanged: (value) => provider.setInactiveScale(value),
-              onReset:
-                  provider.inactiveScale.changed
-                      ? () => provider.setInactiveScale(
-                        provider.inactiveScale.defaultValue,
-                      )
-                      : null,
+              onReset: provider.inactiveScale.changed
+                  ? () => provider.setInactiveScale(
+                      provider.inactiveScale.defaultValue,
+                    )
+                  : null,
               resetTooltip: 'Reset to 85%',
             ),
             const SizedBox(height: 24),
@@ -72,12 +69,11 @@ class DisplaySection extends StatelessWidget {
               label: provider.linesBefore.current.toString(),
               valueText: '${provider.linesBefore.current}',
               onChanged: (value) => provider.setLinesBefore(value.toInt()),
-              onReset:
-                  provider.linesBefore.changed
-                      ? () => provider.setLinesBefore(
-                        provider.linesBefore.defaultValue,
-                      )
-                      : null,
+              onReset: provider.linesBefore.changed
+                  ? () => provider.setLinesBefore(
+                      provider.linesBefore.defaultValue,
+                    )
+                  : null,
               resetTooltip: 'Reset to 2',
             ),
             const SizedBox(height: 24),
@@ -93,12 +89,11 @@ class DisplaySection extends StatelessWidget {
               valueText: '${provider.scrollAutoResumeDelay.current}s',
               onChanged: (value) =>
                   provider.setScrollAutoResumeDelay(value.toInt()),
-              onReset:
-                  provider.scrollAutoResumeDelay.changed
-                      ? () => provider.setScrollAutoResumeDelay(
-                        provider.scrollAutoResumeDelay.defaultValue,
-                      )
-                      : null,
+              onReset: provider.scrollAutoResumeDelay.changed
+                  ? () => provider.setScrollAutoResumeDelay(
+                      provider.scrollAutoResumeDelay.defaultValue,
+                    )
+                  : null,
               resetTooltip: 'Reset to 5s',
             ),
             if (Platform.isAndroid) ...[

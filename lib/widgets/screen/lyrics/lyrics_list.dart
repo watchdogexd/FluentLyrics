@@ -164,9 +164,7 @@ class LyricsList extends StatelessWidget {
     if (transResult != null &&
         transResult.translationProvider != null &&
         transResult.translationProvider!.isNotEmpty) {
-      infoParts.add(
-        'Translation Provider: ${transResult.translationProvider}',
-      );
+      infoParts.add('Translation Provider: ${transResult.translationProvider}');
     }
     if (transResult != null &&
         transResult.translationContributor != null &&

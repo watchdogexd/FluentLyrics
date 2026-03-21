@@ -45,4 +45,3 @@ extension LyricProviderTypeMetadata on LyricProviderType {
     }
   }
 }
-

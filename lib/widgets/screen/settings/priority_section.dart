@@ -40,7 +40,8 @@ class PrioritySection extends StatelessWidget {
 
     return SettingsSection(
       title: 'Provider Priority',
-      description: 'Reorder providers to prioritize where we fetch lyrics from first. Drag below "DISABLED AREA" to disable.',
+      description:
+          'Reorder providers to prioritize where we fetch lyrics from first. Drag below "DISABLED AREA" to disable.',
       children: [
         _buildCacheButton(),
         const SizedBox(height: 16),
@@ -193,17 +194,17 @@ class PrioritySection extends StatelessWidget {
               child: Center(
                 child: isEnabled
                     ? Text(
-                      (index + 1).toString(),
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
+                        (index + 1).toString(),
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
                     : Icon(
-                      Icons.block,
-                      size: 20,
-                      color: color.withValues(alpha: 0.5),
-                    ),
+                        Icons.block,
+                        size: 20,
+                        color: color.withValues(alpha: 0.5),
+                      ),
               ),
             ),
             title: Text(

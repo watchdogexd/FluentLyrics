@@ -129,8 +129,10 @@ class TranslationSection extends StatelessWidget {
               // Alignment Threshold
               SettingsSliderCard(
                 title: 'Alignment Similarity Threshold',
-                subtitle: 'Min % similarity required to pair translation with original line.',
-                value: provider.translationAlignmentThreshold.current.toDouble(),
+                subtitle:
+                    'Min % similarity required to pair translation with original line.',
+                value: provider.translationAlignmentThreshold.current
+                    .toDouble(),
                 min: 0,
                 max: 100,
                 divisions: 20,
