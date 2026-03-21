@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:crypto/crypto.dart';
+import 'package:encrypt/encrypt.dart' as encrypt_pkg;
 import '../../models/lyric_model.dart';
 import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
@@ -101,30 +104,73 @@ class NeteaseService {
   }) async {
     try {
       final keyword = '$title - $artist';
-      final searchUrl = Uri.parse('https://music.163.com/api/search/get/web');
-      final searchParams = {
-        's': keyword,
-        'type': '1', // 1 for song
-        'offset': '0',
-        'limit': '20',
+      const eapiSearchUrl =
+          'https://interface.music.163.com/eapi/cloudsearch/pc';
+
+      final now = DateTime.now().toUtc();
+      final buildver = (now.millisecondsSinceEpoch ~/ 1000).toString();
+      final requestId =
+          '${now.millisecondsSinceEpoch}_${Random().nextInt(1000).toString().padLeft(4, '0')}';
+
+      final eapiHeader = {
+        '__csrf': '',
+        'appver': '8.0.0',
+        'buildver': buildver,
+        'channel': '',
+        'deviceId': '',
+        'mobilename': '',
+        'resolution': '1920x1080',
+        'os': 'android',
+        'osver': '',
+        'requestId': requestId,
+        'versioncode': '140',
+        'MUSIC_U': '',
       };
 
+      final eapiData = {
+        's': keyword,
+        'type': '1', // Single song
+        'limit': '20',
+        'offset': '0',
+        'total': 'true',
+        'header': jsonEncode(eapiHeader),
+      };
+
+      final encrypted = _NeteaseEapiHelper.encrypt(eapiSearchUrl, eapiData);
+      final headers = _NeteaseEapiHelper.buildHeaders(eapiHeader);
+
       final searchResponse = await http
-          .post(searchUrl, headers: _headers, body: searchParams)
+          .post(Uri.parse(eapiSearchUrl), headers: headers, body: encrypted)
           .timeout(const Duration(seconds: 10));
 
       if (searchResponse.statusCode != 200) {
+        debugPrint(
+          '[NeteaseMusic] Search failed: ${searchResponse.statusCode}',
+        );
         return null;
       }
 
       final searchData = jsonDecode(searchResponse.body);
-      final songList = searchData['result']?['songs'] as List? ?? [];
-      if (songList.isEmpty) {
+      if (searchData['code'] != 200) {
+        debugPrint(
+          '[NeteaseMusic] Search returned unexpected code: ${searchData['code']}',
+        );
+        return null;
+      }
+
+      final result = searchData['result'];
+      if (result == null ||
+          (result['songs'] == null && result['songCount'] == 0)) {
+        return null;
+      }
+
+      final songs = result['songs'] as List? ?? [];
+      if (songs.isEmpty) {
         return null;
       }
 
       // Filter songs
-      final filteredSongs = songList.where((song) {
+      final filteredSongs = songs.where((song) {
         final songName = song['name'] as String?;
         if (songName == null) return false;
 
@@ -137,6 +183,9 @@ class NeteaseService {
       }).toList();
 
       if (filteredSongs.isEmpty) {
+        debugPrint(
+          '[NeteaseMusic] search returned songs but none matched the title similarity threshold',
+        );
         return null;
       }
 
@@ -329,5 +378,46 @@ class _NeteaseYrcParser {
     }
 
     return lyrics;
+  }
+}
+
+class _NeteaseEapiHelper {
+  static const String _eapiKey = 'e82ckenh8dichen8';
+  static const String _userAgent =
+      'Mozilla/5.0 (Linux; Android 9; PCT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.64 HuaweiBrowser/10.0.3.311 Mobile Safari/537.36';
+
+  static Map<String, String> buildHeaders(Map<String, String> cookieData) {
+    final cookie = cookieData.entries
+        .map((e) => '${e.key}=${e.value}')
+        .join('; ');
+    return {
+      'User-Agent': _userAgent,
+      'Referer': 'https://music.163.com/',
+      'Cookie': cookie,
+    };
+  }
+
+  static Map<String, String> encrypt(String url, Map<String, dynamic> data) {
+    final path = url
+        .replaceAll('https://interface3.music.163.com/e', '/')
+        .replaceAll('https://interface.music.163.com/e', '/');
+
+    final text = jsonEncode(data);
+    final message = 'nobody${path}use${text}md5forencrypt';
+    final digest = md5.convert(utf8.encode(message)).toString();
+
+    final payload = '$path-36cd479b6b5-$text-36cd479b6b5-$digest';
+
+    final key = encrypt_pkg.Key.fromUtf8(_eapiKey);
+    final encrypter = encrypt_pkg.Encrypter(
+      encrypt_pkg.AES(key, mode: encrypt_pkg.AESMode.ecb, padding: 'PKCS7'),
+    );
+    final encrypted = encrypter.encrypt(payload);
+
+    return {
+      'params': encrypted.bytes
+          .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
+          .join(),
+    };
   }
 }
