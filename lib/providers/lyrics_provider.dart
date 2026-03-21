@@ -795,15 +795,6 @@ class LyricsProvider with ChangeNotifier {
         isCancelled: () => !metadata.isSameTrack(_currentMetadata),
         trimMetadataProviders: _trimMetadataProviders.current,
         richSyncEnabled: _richSyncEnabled.current,
-        onArtworkUrl: (url) {
-          if (!artworkUrlsNotifier.value.contains(url)) {
-            debugPrint(
-              '[LyricsProvider._fetchLyrics] Received new Artwork URL: $url',
-            );
-            artworkUrlsNotifier.value = List.from(artworkUrlsNotifier.value)
-              ..add(url);
-          }
-        },
         onTranslation: (trans) {
           if (_translationEnabled.current &&
               _translationResult == null &&
@@ -857,6 +848,16 @@ class LyricsProvider with ChangeNotifier {
         }
 
         _lyricsResult = result;
+        if (result.artworkUrls != null && result.artworkUrls!.isNotEmpty) {
+          final newUrls = result.artworkUrls!
+              .where((url) => !artworkUrlsNotifier.value.contains(url))
+              .toList();
+          if (newUrls.isNotEmpty) {
+            artworkUrlsNotifier.value = List.from(artworkUrlsNotifier.value)
+              ..addAll(newUrls);
+          }
+        }
+
         if (result.lyrics.isNotEmpty || result.isPureMusic) {
           _isLoading = false;
         }

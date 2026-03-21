@@ -74,6 +74,7 @@ class LyricsResult {
   final bool isPureMusic;
   final Map<String, String>? metadata;
   final List<Map<String, String>>? rawTranslation;
+  final List<String>? artworkUrls;
 
   // Translation fields
   final String? language;
@@ -97,6 +98,7 @@ class LyricsResult {
     this.translationProvider,
     this.translationContributor,
     this.rawTranslation,
+    this.artworkUrls,
   }) : isSynced = isSynced ?? _checkIfSynced(lyrics),
        isRichSync = isRichSync ?? _checkIfRichSynced(lyrics);
 
@@ -162,6 +164,7 @@ class LyricsResult {
     String? translationProvider,
     String? translationContributor,
     List<Map<String, String>>? rawTranslation,
+    List<String>? artworkUrls,
   }) {
     return LyricsResult(
       lyrics: lyrics ?? this.lyrics,
@@ -180,6 +183,7 @@ class LyricsResult {
       translationContributor:
           translationContributor ?? this.translationContributor,
       rawTranslation: rawTranslation ?? this.rawTranslation,
+      artworkUrls: artworkUrls ?? this.artworkUrls,
     );
   }
 
@@ -222,6 +226,7 @@ class LyricsResult {
     if (translationContributor != null)
       'translationContributor': translationContributor,
     if (rawTranslation != null) 'rawTranslation': rawTranslation,
+    if (artworkUrls != null) 'artworkUrls': artworkUrls,
   };
 
   factory LyricsResult.fromJson(Map<String, dynamic> json) => LyricsResult(
@@ -247,6 +252,9 @@ class LyricsResult {
         ? (json['rawTranslation'] as List)
               .map((e) => Map<String, String>.from(e as Map))
               .toList()
+        : null,
+    artworkUrls: json['artworkUrls'] != null
+        ? List<String>.from(json['artworkUrls'])
         : null,
   );
 }

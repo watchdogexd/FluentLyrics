@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/lyrics_provider.dart';
 import '../services/media_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -294,7 +295,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
     }
 
     try {
-      return NetworkImage(artUrl);
+      return CachedNetworkImageProvider(artUrl);
     } catch (e) {
       return const AssetImage('assets/album_art.png');
     }

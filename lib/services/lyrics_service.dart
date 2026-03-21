@@ -31,7 +31,6 @@ class LyricsService {
     bool Function()? isCancelled,
     required List<LyricProviderType> trimMetadataProviders,
     required bool richSyncEnabled,
-    Function(String)? onArtworkUrl,
     Function(LyricsResult)? onTranslation,
   }) async* {
     debugPrint(
@@ -58,6 +57,16 @@ class LyricsService {
 
       LyricsResult result = LyricsResult.empty();
       final shouldTrimMetadata = trimMetadataProviders.contains(provider);
+      List<String> accumulatedArtworkUrls = [];
+
+      void onArtworkUrl(String url) {
+        if (url.isNotEmpty && !accumulatedArtworkUrls.contains(url)) {
+          debugPrint(
+            '[LyricsService.fetchLyrics]     ==> Received new artwork url: $url',
+          );
+          accumulatedArtworkUrls.add(url);
+        }
+      }
 
       if (provider == LyricProviderType.cache) {
         result = await _cacheService.fetchLyrics(
@@ -112,6 +121,10 @@ class LyricsService {
         );
       }
 
+      if (accumulatedArtworkUrls.isNotEmpty) {
+        result = result.copyWith(artworkUrls: accumulatedArtworkUrls);
+      }
+
       if (result.lyrics.isNotEmpty || result.isPureMusic) {
         bool newBetter = false;
         if (bestResult == null) {
@@ -119,17 +132,25 @@ class LyricsService {
           bestResult = result;
         } else {
           if (result.isPureMusic && !bestResult.isPureMusic) {
+            // new is pure music, old is not
             newBetter = true;
           } else if (result.lyrics.isNotEmpty && bestResult.lyrics.isEmpty) {
+            // new has lyrics, old does not
             newBetter = true;
           } else if (result.lyrics.isNotEmpty &&
               result.isRichSync &&
               richSyncEnabled &&
               !bestResult.isRichSync) {
+            // new is rich sync, old is not
             newBetter = true;
           } else if (result.lyrics.isNotEmpty &&
               result.isSynced &&
               !bestResult.isSynced) {
+            // new is synced, old is not
+            newBetter = true;
+          } else if ((result.artworkUrls?.length ?? 0) >
+              (bestResult.artworkUrls?.length ?? 0)) {
+            // new have more artwork urls, old does not
             newBetter = true;
           }
 
@@ -143,6 +164,7 @@ class LyricsService {
               contributor: result.contributor,
               copyright: result.copyright,
               isPureMusic: result.isPureMusic,
+              artworkUrls: result.artworkUrls,
             );
           } else {
             continue;

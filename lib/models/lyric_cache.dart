@@ -17,7 +17,7 @@ class LyricCache {
   String? composer;
   String? contributor;
   String? copyright;
-  String? artworkUrl;
+  List<String>? artworkUrls;
   late bool isPureMusic;
   late List<LyricItem> lyrics;
 
@@ -51,6 +51,7 @@ class LyricCache {
       contributor: contributor,
       copyright: copyright,
       isPureMusic: isPureMusic,
+      artworkUrls: artworkUrls,
     );
   }
 
@@ -65,6 +66,7 @@ class LyricCache {
     cache.contributor = result.contributor;
     cache.copyright = result.copyright;
     cache.isPureMusic = result.isPureMusic;
+    cache.artworkUrls = result.artworkUrls;
     cache.lyrics = result.lyrics
         .map(
           (l) => LyricItem()
