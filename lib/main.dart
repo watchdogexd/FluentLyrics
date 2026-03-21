@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,7 +6,15 @@ import 'package:provider/provider.dart';
 import 'providers/lyrics_provider.dart';
 import 'screens/lyrics_screen.dart';
 
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)..userAgent = 'FluentLyrics/git';
+  }
+}
+
 void main() {
+  HttpOverrides.global = MyHttpOverrides();
   LicenseRegistry.addLicense(() async* {
     final String license = await rootBundle.loadString(
       'assets/fonts/google/Outfit/OFL.txt',
