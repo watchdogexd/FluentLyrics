@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../../../providers/lyrics_provider.dart';
 import '../../settings_section.dart';
 import '../../../utils/cache_helper.dart';
@@ -229,7 +228,7 @@ class _CacheSectionState extends State<CacheSection> {
                         );
 
                         if (confirmed == true) {
-                          await DefaultCacheManager().emptyCache();
+                          await CacheHelper.clearArtworkCache();
                           if (mounted) {
                             setState(() {});
                             widget.onRefresh();

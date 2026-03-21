@@ -27,4 +27,16 @@ class CacheHelper {
       return {'count': 0, 'size': 0};
     }
   }
+
+  static Future<void> clearArtworkCache() async {
+    try {
+      final cacheDir = await getApplicationCacheDirectory();
+      final appCacheDir = Directory('${cacheDir.path}/libCachedImageData');
+      if (appCacheDir.existsSync()) {
+        await appCacheDir.delete(recursive: true);
+      }
+    } catch (e) {
+      debugPrint('Error clearing artwork cache: $e');
+    }
+  }
 }
