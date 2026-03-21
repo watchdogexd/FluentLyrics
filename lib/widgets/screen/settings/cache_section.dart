@@ -62,7 +62,7 @@ class _CacheSectionState extends State<CacheSection> {
                             final count = snapshot.data!['count'];
                             final size = snapshot.data!['size'];
                             return Text(
-                              '$count items, ${_formatSize(size)}',
+                              '$count items, ${_formatSize(size)} (Est.)',
                               style: const TextStyle(
                                 color: Colors.blue,
                                 fontSize: 13,
