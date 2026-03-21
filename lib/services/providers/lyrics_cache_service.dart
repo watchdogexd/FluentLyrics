@@ -11,7 +11,7 @@ class LyricsCacheService {
 
   Future<Isar> get _db async {
     if (_isar != null) return _isar!;
-    
+
     if (_openFuture != null) return _openFuture!;
 
     _openFuture = _initDb();
@@ -20,7 +20,8 @@ class LyricsCacheService {
 
   Future<Isar> _initDb() async {
     final dir = await getApplicationSupportDirectory();
-    _isar = Isar.getInstance('lyrics_cache') ??
+    _isar =
+        Isar.getInstance('lyrics_cache') ??
         await Isar.open(
           [LyricCacheSchema, TranslationCacheSchema],
           directory: dir.path,
@@ -70,7 +71,8 @@ class LyricsCacheService {
       isRichSync: false,
     );
     final stdCached = await getCachedLyrics(stdCacheId);
-    if (stdCached != null && stdCached.lyrics.isNotEmpty) {
+    if (stdCached != null &&
+        (stdCached.lyrics.isNotEmpty || stdCached.isPureMusic)) {
       return stdCached.copyWith(source: '${stdCached.source} (cached)');
     }
 

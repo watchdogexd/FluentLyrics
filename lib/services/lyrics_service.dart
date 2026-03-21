@@ -128,49 +128,44 @@ class LyricsService {
       if (result.lyrics.isNotEmpty || result.isPureMusic) {
         bool newBetter = false;
         if (bestResult == null) {
+          // this is the first valid result
           newBetter = true;
-          bestResult = result;
-        } else {
-          if (result.isPureMusic && !bestResult.isPureMusic) {
-            // new is pure music, old is not
-            newBetter = true;
-          } else if (result.lyrics.isNotEmpty && bestResult.lyrics.isEmpty) {
-            // new has lyrics, old does not
-            newBetter = true;
-          } else if (result.lyrics.isNotEmpty &&
-              result.isRichSync &&
-              richSyncEnabled &&
-              !bestResult.isRichSync) {
-            // new is rich sync, old is not
-            newBetter = true;
-          } else if (result.lyrics.isNotEmpty &&
-              result.isSynced &&
-              !bestResult.isSynced) {
-            // new is synced, old is not
-            newBetter = true;
-          } else if ((result.artworkUrls?.length ?? 0) >
-              (bestResult.artworkUrls?.length ?? 0)) {
-            // new have more artwork urls, old does not
-            newBetter = true;
-          }
-
-          if (newBetter) {
-            bestResult = result.copyWith(
-              lyrics: result.lyrics,
-              source: result.source,
-              isSynced: result.isSynced,
-              writtenBy: result.writtenBy,
-              composer: result.composer,
-              contributor: result.contributor,
-              copyright: result.copyright,
-              isPureMusic: result.isPureMusic,
-              artworkUrls: result.artworkUrls,
-            );
-          } else {
-            continue;
-          }
+        } else if (result.isPureMusic && !bestResult.isPureMusic) {
+          // new is pure music, old is not
+          newBetter = true;
+        } else if (result.lyrics.isNotEmpty && bestResult.lyrics.isEmpty) {
+          // new has lyrics, old does not
+          newBetter = true;
+        } else if (result.lyrics.isNotEmpty &&
+            result.isRichSync &&
+            richSyncEnabled &&
+            !bestResult.isRichSync) {
+          // new is rich sync, old is not
+          newBetter = true;
+        } else if (result.lyrics.isNotEmpty &&
+            result.isSynced &&
+            !bestResult.isSynced) {
+          // new is synced, old is not
+          newBetter = true;
+        } else if ((result.artworkUrls?.length ?? 0) >
+            (bestResult.artworkUrls?.length ?? 0)) {
+          // new have more artwork urls, old does not
+          newBetter = true;
         }
+
         if (newBetter) {
+          bestResult = result.copyWith(
+            lyrics: result.lyrics,
+            source: result.source,
+            isSynced: result.isSynced,
+            writtenBy: result.writtenBy,
+            composer: result.composer,
+            contributor: result.contributor,
+            copyright: result.copyright,
+            isPureMusic: result.isPureMusic,
+            artworkUrls: result.artworkUrls,
+          );
+
           debugPrint(
             '[LyricsService.fetchLyrics]     ==> Yielding new best result',
           );
@@ -188,7 +183,7 @@ class LyricsService {
               provider != LyricProviderType.cache &&
               (bestResult.lyrics.isNotEmpty || bestResult.isPureMusic)) {
             await _cacheService
-                .cacheLyrics(title, artist, album, durationSeconds, result)
+                .cacheLyrics(title, artist, album, durationSeconds, bestResult)
                 .then((_) {
                   debugPrint(
                     '[LyricsService.fetchLyrics]     ==> newBetter lyrics cached',
