@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/settings_service.dart';
 import '../models/lyric_provider_type.dart';
 import '../services/providers/musixmatch_service.dart';
@@ -114,75 +116,96 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF1A1A1A), Colors.black],
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Listener(
+      onPointerDown: (PointerDownEvent event) {
+        if (event.buttons == kBackMouseButton) {
+          Navigator.pop(context);
+        }
+      },
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): () =>
+              Navigator.pop(context),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            body: Stack(
               children: [
-                SettingsAppBar(onBackPressed: () => Navigator.pop(context)),
-                Expanded(
-                  child: _isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              PrioritySection(
-                                allProviders: _allProviders,
-                                enabledCount: _enabledCount,
-                                cacheEnabled: _cacheEnabled,
-                                onReorder: (newProviders, newEnabledCount) {
-                                  setState(() {
-                                    _allProviders = newProviders;
-                                    _enabledCount = newEnabledCount;
-                                  });
-                                  _savePriority();
-                                },
-                                onCacheToggle: _toggleCache,
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF1A1A1A), Colors.black],
+                      ),
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SettingsAppBar(
+                        onBackPressed: () => Navigator.pop(context),
+                      ),
+                      Expanded(
+                        child: _isLoading
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    PrioritySection(
+                                      allProviders: _allProviders,
+                                      enabledCount: _enabledCount,
+                                      cacheEnabled: _cacheEnabled,
+                                      onReorder:
+                                          (newProviders, newEnabledCount) {
+                                            setState(() {
+                                              _allProviders = newProviders;
+                                              _enabledCount = newEnabledCount;
+                                            });
+                                            _savePriority();
+                                          },
+                                      onCacheToggle: _toggleCache,
+                                    ),
+                                    const SizedBox(height: 48),
+                                    const DisplaySection(),
+                                    const SizedBox(height: 48),
+                                    const TranslationSection(),
+                                    const SizedBox(height: 48),
+                                    LyricConfigurationSection(
+                                      tokenController: _tokenController,
+                                      isFetchingToken: _isFetchingToken,
+                                      onGetNewToken: _getNewToken,
+                                      onTokenChanged: _saveToken,
+                                    ),
+                                    const SizedBox(height: 48),
+                                    CacheSection(
+                                      onRefresh: () => setState(() {}),
+                                      showSnackBar: _showSnackBar,
+                                    ),
+                                    const SizedBox(height: 48),
+                                    VersionSection(version: _version),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 48),
-                              const DisplaySection(),
-                              const SizedBox(height: 48),
-                              const TranslationSection(),
-                              const SizedBox(height: 48),
-                              LyricConfigurationSection(
-                                tokenController: _tokenController,
-                                isFetchingToken: _isFetchingToken,
-                                onGetNewToken: _getNewToken,
-                                onTokenChanged: _saveToken,
-                              ),
-                              const SizedBox(height: 48),
-                              CacheSection(
-                                onRefresh: () => setState(() {}),
-                                showSnackBar: _showSnackBar,
-                              ),
-                              const SizedBox(height: 48),
-                              VersionSection(version: _version),
-                            ],
-                          ),
-                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
