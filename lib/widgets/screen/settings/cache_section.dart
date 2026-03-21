@@ -5,7 +5,7 @@ import '../../../providers/lyrics_provider.dart';
 import '../../settings_section.dart';
 import '../../../utils/cache_helper.dart';
 
-class CacheSection extends StatelessWidget {
+class CacheSection extends StatefulWidget {
   final VoidCallback onRefresh;
   final Function(String message) showSnackBar;
 
@@ -15,6 +15,11 @@ class CacheSection extends StatelessWidget {
     required this.showSnackBar,
   });
 
+  @override
+  State<CacheSection> createState() => _CacheSectionState();
+}
+
+class _CacheSectionState extends State<CacheSection> {
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
@@ -113,8 +118,11 @@ class CacheSection extends StatelessWidget {
 
                             if (confirmed == true) {
                               await provider.clearAllCache();
-                              onRefresh();
-                              showSnackBar('Cache cleared');
+                              if (mounted) {
+                                setState(() {});
+                                widget.onRefresh();
+                                widget.showSnackBar('Cache cleared');
+                              }
                             }
                           },
                           icon: const Icon(Icons.delete_sweep, size: 18),
@@ -222,8 +230,11 @@ class CacheSection extends StatelessWidget {
 
                         if (confirmed == true) {
                           await DefaultCacheManager().emptyCache();
-                          onRefresh();
-                          showSnackBar('Artwork cache cleared');
+                          if (mounted) {
+                            setState(() {});
+                            widget.onRefresh();
+                            widget.showSnackBar('Artwork cache cleared');
+                          }
                         }
                       },
                       icon: const Icon(Icons.delete_sweep, size: 18),
