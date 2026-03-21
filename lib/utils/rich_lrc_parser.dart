@@ -60,64 +60,6 @@ class MusixmatchRichParser {
   }
 }
 
-class NeteaseYrcParser {
-  static List<Lyric> parse(String yrcContent) {
-    final List<Lyric> lyrics = [];
-    // Pattern for line: [lineStartTime,lineDuration](wordStartTime,wordDuration,0)Word...
-    final lineRegex = RegExp(r'\[(\d+),(\d+)\](.*)');
-    final wordRegex = RegExp(r'\((\d+),(\d+),\d+\)([^\(\[]*)');
-
-    final lines = yrcContent.split('\n');
-    for (var lineStr in lines) {
-      final lineMatch = lineRegex.firstMatch(lineStr);
-      if (lineMatch != null) {
-        final int lineStart = int.parse(lineMatch.group(1)!);
-        final int lineDuration = int.parse(lineMatch.group(2)!);
-        final String wordsContent = lineMatch.group(3)!;
-
-        final List<LyricInlinePart> inlineParts = [];
-        final Iterable<Match> wordMatches = wordRegex.allMatches(wordsContent);
-
-        String fullText = '';
-        for (final wordMatch in wordMatches) {
-          final int wordStart = int.parse(wordMatch.group(1)!);
-          final int wordDuration = int.parse(wordMatch.group(2)!);
-          final String wordText = wordMatch.group(3)!;
-
-          fullText += wordText;
-          inlineParts.add(
-            LyricInlinePart(
-              startTime: Duration(milliseconds: wordStart),
-              endTime: Duration(milliseconds: wordStart + wordDuration),
-              text: wordText,
-            ),
-          );
-        }
-
-        // If no word matches were found, it might be a metadata line or empty line
-        if (inlineParts.isEmpty) {
-          // Check if it's metadata like [0,730](0,730,0) 作词 : ...
-          // The wordRegex should have caught it if it follows the pattern.
-          // In the example: [0,730](0,730,0) 作词 : Ryosuke \"Dr. R\" Sakai/milet
-          // wordStart=0, wordDuration=730, wordText=" 作词 : Ryosuke \"Dr. R\" Sakai/milet"
-          // So it should be caught.
-        }
-
-        lyrics.add(
-          Lyric(
-            startTime: Duration(milliseconds: lineStart),
-            endTime: Duration(milliseconds: lineStart + lineDuration),
-            text: fullText.isEmpty ? wordsContent : fullText,
-            inlineParts: inlineParts.isNotEmpty ? inlineParts : null,
-          ),
-        );
-      }
-    }
-
-    return lyrics;
-  }
-}
-
 class EnhancedLrcParser {
   static List<Lyric> parse(String content) {
     final List<Lyric> lyrics = [];

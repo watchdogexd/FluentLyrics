@@ -219,9 +219,9 @@ class NeteaseService {
         Map<String, String> trimmedMetadata = {};
 
         if (yrc != null && yrc.isNotEmpty) {
-          richLyrics = NeteaseYrcParser.parse(yrc);
+          richLyrics = _NeteaseYrcParser.parse(yrc);
           if (trimMetadata) {
-            final trimResult = LrcParser.trimMetadataLines(lyrics);
+            final trimResult = LrcParser.trimMetadataLines(richLyrics);
             richLyrics = trimResult.lyrics;
             trimmedMetadata = trimResult.trimmedMetadata;
           }
@@ -274,61 +274,57 @@ class NeteaseService {
   }
 }
 
-class NeteaseYrcParser {
-  static List<Lyric> parse(String text) {
+class _NeteaseYrcParser {
+  static List<Lyric> parse(String yrcContent) {
     final List<Lyric> lyrics = [];
-    final lines = text.split('\n');
+    // Pattern for line: [lineStartTime,lineDuration](wordStartTime,wordDuration,0)Word...
+    final lineRegex = RegExp(r'\[(\d+),(\d+)\](.*)');
+    final wordRegex = RegExp(r'\((\d+),(\d+),\d+\)([^\(\[]*)');
 
-    for (var line in lines) {
-      if (line.trim().isEmpty) continue;
+    final lines = yrcContent.split('\n');
+    for (var lineStr in lines) {
+      final lineMatch = lineRegex.firstMatch(lineStr);
+      if (lineMatch != null) {
+        final int lineStart = int.parse(lineMatch.group(1)!);
+        final int lineDuration = int.parse(lineMatch.group(2)!);
+        final String wordsContent = lineMatch.group(3)!;
 
-      try {
-        // [123,456]text or [123,456](0,0,0)text
-        final match = RegExp(r'^\[(\d+),(\d+)\](.*)$').firstMatch(line);
-        if (match != null) {
-          final startMs = int.parse(match.group(1)!);
-          final durationMs = int.parse(match.group(2)!);
-          final content = match.group(3)!;
+        final List<LyricInlinePart> inlineParts = [];
+        final Iterable<Match> wordMatches = wordRegex.allMatches(wordsContent);
 
-          // Parse inline parts if available
-          final List<LyricInlinePart> inlineParts = [];
-          final partMatches = RegExp(
-            r'\((\d+),(\d+),(\d+)\)([^\(\[]*)',
-          ).allMatches(content);
+        String fullText = '';
+        for (final wordMatch in wordMatches) {
+          final int wordStart = int.parse(wordMatch.group(1)!);
+          final int wordDuration = int.parse(wordMatch.group(2)!);
+          final String wordText = wordMatch.group(3)!;
 
-          String plainText = '';
-          if (partMatches.isNotEmpty) {
-            for (var pm in partMatches) {
-              final pStartOffset = int.parse(pm.group(1)!);
-              final pDuration = int.parse(pm.group(2)!);
-              final pText = pm.group(4)!;
-
-              inlineParts.add(
-                LyricInlinePart(
-                  startTime: Duration(milliseconds: startMs + pStartOffset),
-                  endTime: Duration(
-                    milliseconds: startMs + pStartOffset + pDuration,
-                  ),
-                  text: pText,
-                ),
-              );
-              plainText += pText;
-            }
-          } else {
-            plainText = content.replaceAll(RegExp(r'\(.*\)'), '');
-          }
-
-          lyrics.add(
-            Lyric(
-              startTime: Duration(milliseconds: startMs),
-              endTime: Duration(milliseconds: startMs + durationMs),
-              text: plainText,
-              inlineParts: inlineParts.isNotEmpty ? inlineParts : null,
+          fullText += wordText;
+          inlineParts.add(
+            LyricInlinePart(
+              startTime: Duration(milliseconds: wordStart),
+              endTime: Duration(milliseconds: wordStart + wordDuration),
+              text: wordText,
             ),
           );
         }
-      } catch (e) {
-        debugPrint('Error parsing Netease YRC line: $line - $e');
+
+        // If no word matches were found, it might be a metadata line or empty line
+        if (inlineParts.isEmpty) {
+          // Check if it's metadata like [0,730](0,730,0) 作词 : ...
+          // The wordRegex should have caught it if it follows the pattern.
+          // In the example: [0,730](0,730,0) 作词 : Ryosuke \"Dr. R\" Sakai/milet
+          // wordStart=0, wordDuration=730, wordText=" 作词 : Ryosuke \"Dr. R\" Sakai/milet"
+          // So it should be caught.
+        }
+
+        lyrics.add(
+          Lyric(
+            startTime: Duration(milliseconds: lineStart),
+            endTime: Duration(milliseconds: lineStart + lineDuration),
+            text: fullText.isEmpty ? wordsContent : fullText,
+            inlineParts: inlineParts.isNotEmpty ? inlineParts : null,
+          ),
+        );
       }
     }
 
