@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../../../providers/lyrics_provider.dart';
 import '../../settings_section.dart';
+import '../../../utils/cache_helper.dart';
 
 class CacheSection extends StatelessWidget {
   final VoidCallback onRefresh;
@@ -159,6 +160,22 @@ class CacheSection extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  FutureBuilder<int>(
+                    future: CacheHelper.getArtworkCacheSize(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return Text(
+                          _formatSize(snapshot.data!),
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
                   ),
                 ],
               ),
