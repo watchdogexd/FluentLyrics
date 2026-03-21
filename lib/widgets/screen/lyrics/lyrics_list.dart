@@ -112,7 +112,7 @@ class LyricsList extends StatelessWidget {
           return ValueListenableBuilder<Iterable<ItemPosition>>(
             valueListenable: itemPositionsListener.itemPositions,
             builder: (context, positions, child) {
-              final inViewport = positions.any((pos) => pos.index == index);
+              final inViewport = positions.any((pos) => pos.index - index <= 2);
 
               final lyricLine = LyricLine(
                 lyric: lyric,
