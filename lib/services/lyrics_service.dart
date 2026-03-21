@@ -186,7 +186,7 @@ class LyricsService {
           // Cache the raw result from other providers
           if (cacheEnabled &&
               provider != LyricProviderType.cache &&
-              bestResult.lyrics.isNotEmpty) {
+              (bestResult.lyrics.isNotEmpty || bestResult.isPureMusic)) {
             await _cacheService
                 .cacheLyrics(title, artist, album, durationSeconds, result)
                 .then((_) {
