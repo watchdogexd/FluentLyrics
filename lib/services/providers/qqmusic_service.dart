@@ -42,7 +42,8 @@ class QQMusicService {
       final albumMid = bestMatch['album']?['mid'] as String?;
       if (albumMid != null && albumMid.isNotEmpty) {
         onArtworkUrl?.call(
-            'https://y.gtimg.cn/music/photo_new/T002R300x300M000$albumMid.jpg');
+          'https://y.gtimg.cn/music/photo_new/T002R300x300M000$albumMid.jpg',
+        );
       }
 
       onStatusUpdate?.call('[QQMusic] Fetching lyrics...');
@@ -81,15 +82,17 @@ class QQMusicService {
               translationBias: translationBias,
             );
 
-            onTranslation?.call(LyricsResult(
-              lyrics: [],
-              rawTranslation: rawTranslation,
-              source: 'QQ Music',
-              isSynced: true,
-              translation: true,
-              language: 'zh_CN',
-              translationProvider: 'QQ Music',
-            ));
+            onTranslation?.call(
+              LyricsResult(
+                lyrics: [],
+                rawTranslation: rawTranslation,
+                source: 'QQ Music',
+                isSynced: true,
+                translation: true,
+                language: 'zh_CN',
+                translationProvider: 'QQ Music',
+              ),
+            );
           }
         }
 
