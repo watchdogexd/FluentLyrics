@@ -88,6 +88,7 @@ class LyricsService {
           artist: artist,
           durationSeconds: durationSeconds,
           onStatusUpdate: onStatusUpdate,
+          onArtworkUrl: onArtworkUrl,
           trimMetadata: shouldTrimMetadata,
           translationBias: translationBias,
           useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
@@ -100,6 +101,7 @@ class LyricsService {
           title: title,
           artist: artist,
           durationSeconds: durationSeconds,
+          onArtworkUrl: onArtworkUrl,
           onStatusUpdate: onStatusUpdate,
           trimMetadata: shouldTrimMetadata,
           translationBias: translationBias,
