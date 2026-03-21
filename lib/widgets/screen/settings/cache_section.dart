@@ -161,12 +161,14 @@ class CacheSection extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  FutureBuilder<int>(
-                    future: CacheHelper.getArtworkCacheSize(),
+                  FutureBuilder<Map<String, int>>(
+                    future: CacheHelper.getArtworkCacheStats(),
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
+                        final count = snapshot.data!['count']!;
+                        final size = snapshot.data!['size']!;
                         return Text(
-                          _formatSize(snapshot.data!),
+                          '$count items, ${_formatSize(size)}',
                           style: const TextStyle(
                             color: Colors.blue,
                             fontSize: 13,
