@@ -15,7 +15,6 @@ class QQMusicService {
   Future<LyricsResult> fetchLyrics({
     required String title,
     required String artist,
-    required String album,
     required int durationSeconds,
     Function(String)? onStatusUpdate,
     bool trimMetadata = false,
@@ -130,7 +129,6 @@ class QQMusicService {
       await fetchLyrics(
         title: data.title,
         artist: data.artist,
-        album: data.album,
         durationSeconds: data.durationSeconds,
         translationBias: translationBias,
         useStandardLyricsForPairing: useStandardLyricsForPairing,

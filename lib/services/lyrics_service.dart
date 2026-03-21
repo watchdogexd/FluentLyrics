@@ -86,7 +86,6 @@ class LyricsService {
         result = await _neteaseService.fetchLyrics(
           title: title,
           artist: artist,
-          album: album,
           durationSeconds: durationSeconds,
           onStatusUpdate: onStatusUpdate,
           trimMetadata: shouldTrimMetadata,
@@ -100,7 +99,6 @@ class LyricsService {
         result = await _qqMusicService.fetchLyrics(
           title: title,
           artist: artist,
-          album: album,
           durationSeconds: durationSeconds,
           onStatusUpdate: onStatusUpdate,
           trimMetadata: shouldTrimMetadata,
