@@ -797,6 +797,9 @@ class LyricsProvider with ChangeNotifier {
         richSyncEnabled: _richSyncEnabled.current,
         onArtworkUrl: (url) {
           if (!artworkUrlsNotifier.value.contains(url)) {
+            debugPrint(
+              '[LyricsProvider._fetchLyrics] Received new Artwork URL: $url',
+            );
             artworkUrlsNotifier.value = List.from(artworkUrlsNotifier.value)
               ..add(url);
           }
