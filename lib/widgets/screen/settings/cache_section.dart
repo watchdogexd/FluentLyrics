@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../../../providers/lyrics_provider.dart';
 import '../../settings_section.dart';
 
@@ -81,33 +82,32 @@ class CacheSection extends StatelessWidget {
                           onPressed: () async {
                             final confirmed = await showDialog<bool>(
                               context: context,
-                              builder:
-                                  (context) => AlertDialog(
-                                    backgroundColor: const Color(0xFF1A1A1A),
-                                    title: const Text(
-                                      'Clear Cache',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    content: const Text(
-                                      'Are you sure you want to clear all cached lyrics?',
-                                      style: TextStyle(color: Colors.white70),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed:
-                                            () => Navigator.pop(context, false),
-                                        child: const Text('CANCEL'),
-                                      ),
-                                      TextButton(
-                                        onPressed:
-                                            () => Navigator.pop(context, true),
-                                        child: const Text(
-                                          'CLEAR ALL',
-                                          style: TextStyle(color: Colors.red),
-                                        ),
-                                      ),
-                                    ],
+                              builder: (context) => AlertDialog(
+                                backgroundColor: const Color(0xFF1A1A1A),
+                                title: const Text(
+                                  'Clear Cache',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                content: const Text(
+                                  'Are you sure you want to clear all cached lyrics?',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('CANCEL'),
                                   ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text(
+                                      'CLEAR ALL',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             );
 
                             if (confirmed == true) {
@@ -136,6 +136,95 @@ class CacheSection extends StatelessWidget {
                 ],
               );
             },
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Artwork Cache',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Clearing the cache will force the app to download artwork again.',
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: const Color(0xFF1A1A1A),
+                            title: const Text(
+                              'Clear Artwork Cache',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            content: const Text(
+                              'Are you sure you want to clear all cached artwork?',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('CANCEL'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text(
+                                  'CLEAR ALL',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          await DefaultCacheManager().emptyCache();
+                          onRefresh();
+                          showSnackBar('Artwork cache cleared');
+                        }
+                      },
+                      icon: const Icon(Icons.delete_sweep, size: 18),
+                      label: const Text(
+                        'Clear All Artwork Cache',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.withValues(alpha: 0.2),
+                        foregroundColor: Colors.redAccent,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ],
