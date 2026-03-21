@@ -55,8 +55,8 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
         
-        getByName("profile") { 
-            signingConfig = signingConfigs.getByName("release")
+        getByName("profile") {
+            applicationIdSuffix = ".profile"
         }
 
         getByName("debug") {

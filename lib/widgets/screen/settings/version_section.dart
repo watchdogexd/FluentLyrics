@@ -8,7 +8,11 @@ class VersionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final versionDisplay = kDebugMode ? '(dev, parent v$version)' : 'v$version';
+    final versionDisplay = kDebugMode
+        ? '(dev, parent v$version)'
+        : kProfileMode
+        ? '(profile, parent v$version)'
+        : 'v$version';
     return Center(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
