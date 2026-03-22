@@ -54,7 +54,7 @@ class LyricLine extends StatelessWidget {
       fontSize: fontSize,
       fontWeight: isHighlighted ? FontWeight.w800 : FontWeight.w700,
       color: Colors.white,
-      height: 1,
+      height: 1.2,
     );
 
     return AnimatedPadding(
