@@ -45,7 +45,28 @@ class MainActivity : FlutterActivity() {
                         metaMap["artist"] = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
                         metaMap["album"] = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM)
                         metaMap["duration"] = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
-                        metaMap["artUrl"] = "fallback"
+                        
+                        var artUrl = "fallback"
+                        val art = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+                            ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
+                            ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+
+                        if (art != null) {
+                            val stream = ByteArrayOutputStream()
+                            art.compress(Bitmap.CompressFormat.JPEG, 80, stream)
+                            val byteArray = stream.toByteArray()
+                            val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
+                            artUrl = "data:image/jpeg;base64,$base64String"
+                        } else {
+                            val artUri = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
+                                ?: metadata.getString(MediaMetadata.METADATA_KEY_ART_URI)
+                                ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)
+                            if (artUri != null) {
+                                artUrl = artUri
+                            }
+                        }
+                        
+                        metaMap["artUrl"] = artUrl
                         statusMap["metadata"] = metaMap
                     } else {
                         statusMap["metadata"] = null
