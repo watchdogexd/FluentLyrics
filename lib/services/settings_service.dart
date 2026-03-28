@@ -23,6 +23,7 @@ class SettingsService {
   static const String _keepScreenOnKey = 'keep_screen_on';
   static const String _useStandardLyricsForPairingProvidersKey =
       'use_standard_lyrics_for_pairing_providers';
+  static const String _backgroundMotionEnabledKey = 'background_motion_enabled';
 
   Future<Setting<List<LyricProviderType>>> getAllProvidersOrdered() async {
     final prefs = await SharedPreferences.getInstance();
@@ -459,6 +460,23 @@ class SettingsService {
   Future<void> setKeepScreenOn(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keepScreenOnKey, enabled);
+  }
+
+  Future<Setting<bool>> getBackgroundMotionEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getBool(_backgroundMotionEnabledKey) ??
+        AppDefaults.backgroundMotionEnabled;
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.backgroundMotionEnabled,
+      changed: current != AppDefaults.backgroundMotionEnabled,
+    );
+  }
+
+  Future<void> setBackgroundMotionEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_backgroundMotionEnabledKey, enabled);
   }
 
   Future<Setting<List<LyricProviderType>>>

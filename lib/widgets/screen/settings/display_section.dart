@@ -58,6 +58,14 @@ class DisplaySection extends StatelessWidget {
               onChanged: (value) => provider.setBlurEnabled(value),
             ),
             const SizedBox(height: 24),
+            SettingsToggleCard(
+              title: 'Background Motion',
+              subtitle:
+                  'Apply fragmented artwork with slow drifting motion to the background.',
+              value: provider.backgroundMotionEnabled.current,
+              onChanged: (value) => provider.setBackgroundMotionEnabled(value),
+            ),
+            const SizedBox(height: 24),
             SettingsSliderCard(
               title: 'Lines Before Active',
               subtitle:

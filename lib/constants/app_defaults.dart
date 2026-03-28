@@ -33,6 +33,7 @@ class AppDefaults {
   static const String llmApiKey = 'sk-dummy';
   static const String llmModel = 'gpt-oss-120b';
   static const bool keepScreenOn = true;
+  static const bool backgroundMotionEnabled = true;
   static const List<LyricProviderType> useStandardLyricsForPairingProviders = [
     LyricProviderType.netease,
     LyricProviderType.qqmusic,

@@ -121,6 +121,11 @@ class LyricsProvider with ChangeNotifier {
     defaultValue: AppDefaults.keepScreenOn,
     changed: false,
   );
+  Setting<bool> _backgroundMotionEnabled = const Setting(
+    current: AppDefaults.backgroundMotionEnabled,
+    defaultValue: AppDefaults.backgroundMotionEnabled,
+    changed: false,
+  );
   Setting<List<LyricProviderType>> _useStandardLyricsForPairingProviders =
       const Setting(
         current: AppDefaults.useStandardLyricsForPairingProviders,
@@ -246,6 +251,7 @@ class LyricsProvider with ChangeNotifier {
   Setting<String> get llmApiKey => _llmApiKey;
   Setting<String> get llmModel => _llmModel;
   Setting<bool> get keepScreenOn => _keepScreenOn;
+  Setting<bool> get backgroundMotionEnabled => _backgroundMotionEnabled;
   Setting<List<LyricProviderType>> get useStandardLyricsForPairingProviders =>
       _useStandardLyricsForPairingProviders;
 
@@ -342,6 +348,8 @@ class LyricsProvider with ChangeNotifier {
     _llmApiKey = await _settingsService.getLlmApiKey();
     _llmModel = await _settingsService.getLlmModel();
     _keepScreenOn = await _settingsService.getKeepScreenOn();
+    _backgroundMotionEnabled = await _settingsService
+        .getBackgroundMotionEnabled();
     _useStandardLyricsForPairingProviders = await _settingsService
         .getUseStandardLyricsForPairingProviders();
 
@@ -559,6 +567,17 @@ class LyricsProvider with ChangeNotifier {
       changed: enabled != _keepScreenOn.defaultValue,
     );
     _settingsService.setKeepScreenOn(enabled);
+    notifyListeners();
+  }
+
+  void setBackgroundMotionEnabled(bool enabled) {
+    if (_backgroundMotionEnabled.current == enabled) return;
+    _backgroundMotionEnabled = Setting(
+      current: enabled,
+      defaultValue: _backgroundMotionEnabled.defaultValue,
+      changed: enabled != _backgroundMotionEnabled.defaultValue,
+    );
+    _settingsService.setBackgroundMotionEnabled(enabled);
     notifyListeners();
   }
 

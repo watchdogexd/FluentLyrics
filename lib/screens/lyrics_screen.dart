@@ -99,7 +99,10 @@ class _LyricsScreenState extends State<LyricsScreen> {
           body: Stack(
             children: [
               // Background Layer
-              LyricsBackground(artProvider: bgArt),
+              LyricsBackground(
+                artProvider: bgArt,
+                motionEnabled: provider.backgroundMotionEnabled.current,
+              ),
 
               // Content Layer
               SafeArea(
