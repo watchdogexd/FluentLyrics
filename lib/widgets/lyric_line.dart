@@ -248,17 +248,22 @@ class _RichPartState extends State<_RichPart>
       if (durationMs > 0) {
         final double targetProgress =
             (adjustedPosition - widget.startTime).inMilliseconds / durationMs;
-        // If we are significantly out of sync or just started, snap/animate
-        if ((_controller.value - targetProgress).abs() > 0.1) {
-          _controller.value = targetProgress;
-        }
+        if (!lyricsProvider.isPlaying) {
+          if ((_controller.value - targetProgress).abs() > 0.01) {
+            _controller.value = targetProgress;
+          }
+          if (_controller.isAnimating) _controller.stop();
+        } else {
+          final double diffMs =
+              ((_controller.value - targetProgress) * durationMs).abs();
+          // Snap only if we just started, or if we significantly drifted (e.g., buffering/seeking)
+          if (_controller.value == 0.0 || diffMs > 400) {
+            _controller.value = targetProgress;
+          }
 
-        if (lyricsProvider.isPlaying) {
           if (!_controller.isAnimating && _controller.value < 1.0) {
             _controller.forward();
           }
-        } else {
-          if (_controller.isAnimating) _controller.stop();
         }
       } else {
         _controller.value = 1.0;
