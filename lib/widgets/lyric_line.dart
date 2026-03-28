@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/lyric_model.dart';
@@ -337,28 +338,42 @@ class _KaraokeTextPainter extends CustomPainter {
 
     final lines = textPainter.computeLineMetrics();
     final totalWidth = lines.fold(0.0, (sum, line) => sum + line.width);
-    double currentTargetWidth = totalWidth * progress;
 
-    final path = Path();
-    double y = 0;
+    final double fadeWidth = totalWidth * 0.15;
+    final double pRight = totalWidth * progress * (1 + 0.15);
+    final double pLeft = pRight - fadeWidth;
+
+    canvas.saveLayer(Offset.zero & size, Paint());
+    textPainter.paint(canvas, Offset.zero);
+
+    final maskPaint = Paint()..blendMode = BlendMode.dstIn;
+    canvas.saveLayer(Offset.zero & size, maskPaint);
+
+    double lineStart = 0.0;
+    double y = 0.0;
 
     for (final line in lines) {
-      if (currentTargetWidth <= 0) break;
+      final double localLeft = pLeft - lineStart;
+      final double localRight = pRight - lineStart;
 
-      final lineWidth = line.width;
-      final fillWidth = currentTargetWidth >= lineWidth
-          ? lineWidth
-          : currentTargetWidth;
+      final gradientPaint = Paint()
+        ..shader = ui.Gradient.linear(
+          Offset(localLeft, 0),
+          Offset(localRight, 0),
+          [Colors.white, Colors.white.withValues(alpha: 0.0)],
+          [0.0, 1.0],
+        );
 
-      path.addRect(Rect.fromLTWH(0, y, fillWidth, line.height));
+      canvas.drawRect(
+        Rect.fromLTWH(0, y, size.width, line.height),
+        gradientPaint,
+      );
 
-      currentTargetWidth -= lineWidth;
+      lineStart += line.width;
       y += line.height;
     }
 
-    canvas.save();
-    canvas.clipPath(path);
-    textPainter.paint(canvas, Offset.zero);
+    canvas.restore();
     canvas.restore();
   }
 
