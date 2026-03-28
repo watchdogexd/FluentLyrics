@@ -192,7 +192,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
   }) {
     String? artUrl = metadata?.artUrl.trim();
     final title = metadata?.title;
-    final artist = metadata?.artist;
+    final artist = metadata?.artist.join(', ');
 
     if (title != _lastTitle || artist != _lastArtist) {
       _failedArtUrls.clear();

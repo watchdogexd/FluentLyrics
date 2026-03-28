@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 
 class MediaMetadata {
   final String title;
-  final String artist;
+  final List<String> artist;
   final String album;
   final Duration duration;
   final String artUrl;
@@ -21,7 +21,7 @@ class MediaMetadata {
 
   MediaMetadata copyWith({
     String? title,
-    String? artist,
+    List<String>? artist,
     String? album,
     Duration? duration,
     String? artUrl,
@@ -41,18 +41,21 @@ class MediaMetadata {
       other is MediaMetadata &&
           runtimeType == other.runtimeType &&
           title == other.title &&
-          artist == other.artist &&
+          listEquals(artist, other.artist) &&
           album == other.album &&
           artUrl == other.artUrl;
 
   @override
   int get hashCode =>
-      title.hashCode ^ artist.hashCode ^ album.hashCode ^ artUrl.hashCode;
+      title.hashCode ^
+      Object.hashAll(artist) ^
+      album.hashCode ^
+      artUrl.hashCode;
 
   bool isSameTrack(MediaMetadata? other) {
     if (other == null) return false;
     return title == other.title &&
-        artist == other.artist &&
+        listEquals(artist, other.artist) &&
         album == other.album &&
         duration.inSeconds == other.duration.inSeconds;
   }
@@ -228,11 +231,11 @@ class LinuxMediaService extends MediaService implements MediaController {
         final title =
             unwrap(dict['xesam:title'])?.asString() ?? 'Unknown Title';
         final artistValue = unwrap(dict['xesam:artist']);
-        String artist = 'Unknown Artist';
+        List<String> artist = ['Unknown Artist'];
         if (artistValue is DBusArray) {
-          artist = artistValue.children.map((e) => e.asString()).join(', ');
+          artist = artistValue.children.map((e) => e.asString()).toList();
         } else if (artistValue != null) {
-          artist = artistValue.asString();
+          artist = [artistValue.asString()];
         }
 
         final album =
@@ -570,9 +573,17 @@ class AndroidMediaService extends MediaService implements MediaController {
       final metadataMap = result['metadata'] as Map?;
       MediaMetadata? newMetadata;
       if (metadataMap != null) {
+        final rawArtist = metadataMap['artist'];
+        List<String> artist = ['Unknown Artist'];
+        if (rawArtist is String && rawArtist.isNotEmpty) {
+          artist = [rawArtist];
+        } else if (rawArtist is List) {
+          artist = rawArtist.map((e) => e.toString()).toList();
+        }
+
         newMetadata = MediaMetadata(
           title: metadataMap['title'] ?? 'Unknown Title',
-          artist: metadataMap['artist'] ?? 'Unknown Artist',
+          artist: artist,
           album: metadataMap['album'] ?? 'Unknown Album',
           duration: Duration(milliseconds: metadataMap['duration'] ?? 0),
           artUrl:

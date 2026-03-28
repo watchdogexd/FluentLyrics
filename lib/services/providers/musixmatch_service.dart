@@ -39,7 +39,7 @@ class MusixmatchService {
 
   Future<LyricsResult> fetchLyrics({
     required String title,
-    required String artist,
+    required List<String> artist,
     required int durationSeconds,
     Function(String)? onStatusUpdate,
     Function(String)? onArtworkUrl,
@@ -96,7 +96,7 @@ class MusixmatchService {
 
   Future<LyricsResult?> _getLyricsResult(
     String track,
-    String artist,
+    List<String> artist,
     int duration,
     String token,
     Function(String)? onArtworkUrl,
@@ -111,7 +111,7 @@ class MusixmatchService {
             'optional_calls': 'track.richsync,matcher.track.get',
             'subtitle_format': 'lrc',
             'q_track': track,
-            'q_artist': artist,
+            'q_artist': artist.join(', '),
             'f_subtitle_length': duration.toString(),
             'q_duration': duration.toString(),
             'f_subtitle_length_max_deviation': '40',

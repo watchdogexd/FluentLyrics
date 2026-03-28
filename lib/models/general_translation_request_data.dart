@@ -1,6 +1,6 @@
 class GeneralTranslationRequestData {
   final String title;
-  final String artist;
+  final List<String> artist;
   final String album;
   final int durationSeconds;
   final String content; // lyric body

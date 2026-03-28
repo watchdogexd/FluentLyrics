@@ -39,7 +39,7 @@ class LyricsHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  metadata?.artist ?? 'Wait for music...',
+                  metadata?.artist.join(', ') ?? 'Wait for music...',
                   style: TextStyle(
                     color: Colors.white.withAlpha(136),
                     fontSize: 14,

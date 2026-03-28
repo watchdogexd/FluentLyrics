@@ -11,7 +11,7 @@ class LrclibService {
 
   Future<LyricsResult> fetchLyrics({
     required String title,
-    required String artist,
+    required List<String> artist,
     required String album,
     required int durationSeconds,
     Function(String)? onStatusUpdate,
@@ -19,7 +19,7 @@ class LrclibService {
   }) async {
     try {
       final queryParams = {
-        'artist_name': artist,
+        'artist_name': artist.join(', '),
         'track_name': title,
         'album_name': album,
         'duration': durationSeconds.toString(),

@@ -24,7 +24,7 @@ class LyricsService {
 
   Stream<LyricsResult> fetchLyrics({
     required String title,
-    required String artist,
+    required List<String> artist,
     required String album,
     required int durationSeconds,
     Function(String)? onStatusUpdate,
@@ -34,7 +34,7 @@ class LyricsService {
     Function(LyricsResult)? onTranslation,
   }) async* {
     debugPrint(
-      '[LyricsService.fetchLyrics] Fetching lyrics for $title - $artist',
+      '[LyricsService.fetchLyrics] Fetching lyrics for $title - ${artist.join(', ')}',
     );
     final priority = await _settingsService.getPriority();
     final cacheEnabledSetting = await _settingsService.getCacheEnabled();
@@ -206,13 +206,13 @@ class LyricsService {
   Stream<LyricsResult> fetchTranslation({
     required LyricsResult bestResult,
     required String title,
-    required String artist,
+    required List<String> artist,
     required String album,
     required int durationSeconds,
     bool Function()? isCancelled,
   }) async* {
     debugPrint(
-      '[LyricsService.fetchTranslation] Fetching translation for $title - $artist',
+      '[LyricsService.fetchTranslation] Fetching translation for $title - ${artist.join(', ')}',
     );
     final cacheEnabledSetting = await _settingsService.getCacheEnabled();
     final cacheEnabled = cacheEnabledSetting.current;

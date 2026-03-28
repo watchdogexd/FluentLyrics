@@ -32,12 +32,12 @@ class LyricsCacheService {
 
   String generateCacheId(
     String title,
-    String artist,
+    List<String> artist,
     String? album,
     int durationSeconds, {
     bool isRichSync = false,
   }) {
-    final input = '$title|$artist|${album ?? ''}|$durationSeconds';
+    final input = '$title|${artist.join(', ')}|${album ?? ''}|$durationSeconds';
     final bytes = utf8.encode(input);
     final digest = sha256.convert(bytes);
     return '${digest.toString()}_${isRichSync ? 'rich' : 'std'}';
@@ -45,7 +45,7 @@ class LyricsCacheService {
 
   Future<LyricsResult> fetchLyrics({
     required String title,
-    required String artist,
+    required List<String> artist,
     required String? album,
     required int durationSeconds,
   }) async {
@@ -97,7 +97,7 @@ class LyricsCacheService {
 
   Future<void> cacheLyrics(
     String title,
-    String artist,
+    List<String> artist,
     String? album,
     int durationSeconds,
     LyricsResult result,
@@ -125,7 +125,7 @@ class LyricsCacheService {
 
   Future<void> clearTrackCache(
     String title,
-    String artist,
+    List<String> artist,
     String? album,
     int durationSeconds,
   ) async {
@@ -209,10 +209,10 @@ class LyricsCacheService {
 
   String generateTranslationCacheId(
     String title,
-    String artist,
+    List<String> artist,
     String language,
   ) {
-    final input = '$title|$artist|$language';
+    final input = '$title|${artist.join(', ')}|$language';
     final bytes = utf8.encode(input);
     final digest = sha256.convert(bytes);
     return digest.toString();

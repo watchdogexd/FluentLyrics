@@ -14,7 +14,7 @@ class QQMusicService {
 
   Future<LyricsResult> fetchLyrics({
     required String title,
-    required String artist,
+    required List<String> artist,
     required int durationSeconds,
     Function(String)? onStatusUpdate,
     bool trimMetadata = false,
@@ -155,11 +155,11 @@ class QQMusicService {
 
   Future<Map<String, dynamic>?> _searchSong({
     required String title,
-    required String artist,
+    required List<String> artist,
     int durationSeconds = 0,
   }) async {
     try {
-      final keyword = '$title - $artist';
+      final keyword = '$title - ${artist.join(', ')}';
       final searchUrl = Uri.parse('https://u.y.qq.com/cgi-bin/musicu.fcg');
       final searchBody = {
         'req_1': {

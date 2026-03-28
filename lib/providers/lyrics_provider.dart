@@ -819,7 +819,7 @@ class LyricsProvider with ChangeNotifier {
                 );
                 _cacheService.cacheTranslation(cacheId, trans).then((_) {
                   debugPrint(
-                    'Cached translation from ${trans.source} for ${metadata.title} - ${metadata.artist}',
+                    'Cached translation from ${trans.source} for ${metadata.title} - ${metadata.artist.join(', ')}',
                   );
                 });
               }
