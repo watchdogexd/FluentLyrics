@@ -271,7 +271,10 @@ class _RichPartState extends State<_RichPart>
         final bool isLifting = progress > 0;
         final bool isShort =
             duration < _progressAnimationThreshold ||
-            widget.text.length <= 1; // 1 char length is likely a punctuation
+            (widget.text.length <= 1 &&
+                widget.text.contains(
+                  RegExp(r'[\p{P}\p{S}]', unicode: true),
+                )); // check for punctuation
 
         return AnimatedContainer(
           duration: isShort
