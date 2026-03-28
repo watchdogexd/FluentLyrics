@@ -7,10 +7,11 @@ import 'package:encrypt/encrypt.dart' as encrypt_pkg;
 import '../../models/lyric_model.dart';
 import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
-import '../../utils/string_similarity.dart';
 import '../../utils/translation_helper.dart';
+import '../../utils/song_result_helper.dart';
 
 class NeteaseService {
+  static const int lyricEmptyRetryCount = 3;
   bool checkTranslationSupport(String language) {
     return language == 'zh_CN';
   }
@@ -28,38 +29,47 @@ class NeteaseService {
   }) async {
     try {
       onStatusUpdate?.call('[NeteaseMusic] Searching songs...');
-      final bestMatch = await _searchSong(
+      final matchingSongs = await _searchSongs(
         title: title,
         artist: artist,
         durationSeconds: durationSeconds,
       );
 
-      if (bestMatch == null) {
+      if (matchingSongs.isEmpty) {
         return LyricsResult.empty();
       }
 
-      final songId = bestMatch['id'].toString();
-      final artworkUrl =
-          bestMatch['al']?['picUrl'] ?? bestMatch['album']?['picUrl'];
+      for (int i = 0; i < lyricEmptyRetryCount; i++) {
+        final songId = matchingSongs[i].data['id'].toString();
+        final artworkUrl =
+            matchingSongs[i].data['al']?['picUrl'] ??
+            matchingSongs[i].data['album']?['picUrl'];
 
-      if (artworkUrl != null) {
-        onArtworkUrl?.call(artworkUrl);
+        if (artworkUrl != null) {
+          onArtworkUrl?.call(artworkUrl);
+        }
+
+        onStatusUpdate?.call('[NeteaseMusic] Fetching lyrics...');
+        final lyricData = await _getLyrics(
+          songId,
+          trimMetadata,
+          translationBias,
+          useStandardLyricsForPairing,
+          onTranslation,
+        );
+
+        if (lyricData == null) {
+          onStatusUpdate?.call(
+            '[NeteaseMusic] No lyrics found for songId $songId, trying next song (${i + 1}/$lyricEmptyRetryCount)...',
+          );
+          debugPrint(
+            '[NeteaseMusic] No lyrics found for songId $songId, trying next song (${i + 1}/$lyricEmptyRetryCount)...',
+          );
+          continue;
+        }
+
+        return lyricData;
       }
-
-      onStatusUpdate?.call('[NeteaseMusic] Fetching lyrics...');
-      final lyricData = await _getLyrics(
-        songId,
-        trimMetadata,
-        translationBias,
-        useStandardLyricsForPairing,
-        onTranslation,
-      );
-
-      if (lyricData == null) {
-        return LyricsResult.empty();
-      }
-
-      return lyricData;
     } catch (e) {
       debugPrint('[NeteaseMusic] Error fetching lyrics: $e');
     }
@@ -97,123 +107,122 @@ class NeteaseService {
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
   };
 
-  Future<Map<String, dynamic>?> _searchSong({
+  Future<List<ProcessedSong>> _searchSongs({
     required String title,
     required List<String> artist,
     int durationSeconds = 0,
   }) async {
     try {
-      final keyword = '$title - ${artist.join(', ')}';
-      const eapiSearchUrl =
-          'https://interface.music.163.com/eapi/cloudsearch/pc';
+      final keywordList = ['$title - ${artist.join(', ')}', title];
+      for (var keyword in keywordList) {
+        const eapiSearchUrl =
+            'https://interface.music.163.com/eapi/cloudsearch/pc';
 
-      final now = DateTime.now().toUtc();
-      final buildver = (now.millisecondsSinceEpoch ~/ 1000).toString();
-      final requestId =
-          '${now.millisecondsSinceEpoch}_${Random().nextInt(1000).toString().padLeft(4, '0')}';
+        final now = DateTime.now().toUtc();
+        final buildver = (now.millisecondsSinceEpoch ~/ 1000).toString();
+        final requestId =
+            '${now.millisecondsSinceEpoch}_${Random().nextInt(1000).toString().padLeft(4, '0')}';
 
-      final eapiHeader = {
-        '__csrf': '',
-        'appver': '8.0.0',
-        'buildver': buildver,
-        'channel': '',
-        'deviceId': '',
-        'mobilename': '',
-        'resolution': '1920x1080',
-        'os': 'android',
-        'osver': '',
-        'requestId': requestId,
-        'versioncode': '140',
-        'MUSIC_U': '',
-      };
+        final eapiHeader = {
+          '__csrf': '',
+          'appver': '8.0.0',
+          'buildver': buildver,
+          'channel': '',
+          'deviceId': '',
+          'mobilename': '',
+          'resolution': '1920x1080',
+          'os': 'android',
+          'osver': '',
+          'requestId': requestId,
+          'versioncode': '140',
+          'MUSIC_U': '',
+        };
 
-      final eapiData = {
-        's': keyword,
-        'type': '1', // Single song
-        'limit': '20',
-        'offset': '0',
-        'total': 'true',
-        'header': jsonEncode(eapiHeader),
-      };
+        final eapiData = {
+          's': keyword,
+          'type': '1', // Single song
+          'limit': '20',
+          'offset': '0',
+          'total': 'true',
+          'header': jsonEncode(eapiHeader),
+        };
 
-      final encrypted = _NeteaseEapiHelper.encrypt(eapiSearchUrl, eapiData);
-      final headers = _NeteaseEapiHelper.buildHeaders(eapiHeader);
+        final encrypted = _NeteaseEapiHelper.encrypt(eapiSearchUrl, eapiData);
+        final headers = _NeteaseEapiHelper.buildHeaders(eapiHeader);
 
-      final searchResponse = await http
-          .post(Uri.parse(eapiSearchUrl), headers: headers, body: encrypted)
-          .timeout(const Duration(seconds: 10));
+        final searchResponse = await http
+            .post(Uri.parse(eapiSearchUrl), headers: headers, body: encrypted)
+            .timeout(const Duration(seconds: 10));
 
-      if (searchResponse.statusCode != 200) {
-        debugPrint(
-          '[NeteaseMusic] Search failed: ${searchResponse.statusCode}',
-        );
-        return null;
-      }
-
-      final searchData = jsonDecode(searchResponse.body);
-      if (searchData['code'] != 200) {
-        debugPrint(
-          '[NeteaseMusic] Search returned unexpected code: ${searchData['code']}',
-        );
-        return null;
-      }
-
-      final result = searchData['result'];
-      if (result == null ||
-          (result['songs'] == null && result['songCount'] == 0)) {
-        return null;
-      }
-
-      final songs = result['songs'] as List? ?? [];
-      if (songs.isEmpty) {
-        return null;
-      }
-
-      // Filter songs
-      final filteredSongs = songs.where((song) {
-        final songName = song['name'] as String?;
-        if (songName == null) return false;
-
-        final similarity = JaroWinklerSimilarity.getJaroWinklerScore(
-          title.toLowerCase(),
-          songName.toLowerCase(),
-        );
-
-        return similarity >= 0.7;
-      }).toList();
-
-      if (filteredSongs.isEmpty) {
-        debugPrint(
-          '[NeteaseMusic] search returned songs but none matched the title similarity threshold',
-        );
-        return null;
-      }
-
-      // Find the best match based on duration
-      dynamic bestMatch = filteredSongs[0];
-      double minDiff = 1000000;
-
-      for (var song in filteredSongs) {
-        final songDuration = song['duration']; // Duration in ms
-        if (songDuration != null && songDuration is int) {
-          final diff = (songDuration - (durationSeconds * 1000))
-              .abs()
-              .toDouble();
-          if (diff < 1000) {
-            bestMatch = song;
-            minDiff = 0;
-            break;
-          } else if (diff < minDiff) {
-            minDiff = diff;
-            bestMatch = song;
-          }
+        if (searchResponse.statusCode != 200) {
+          debugPrint(
+            '[NeteaseMusic] Search failed: ${searchResponse.statusCode}',
+          );
+          continue;
         }
-      }
 
-      return bestMatch;
+        final searchData = jsonDecode(searchResponse.body);
+        if (searchData['code'] != 200) {
+          debugPrint(
+            '[NeteaseMusic] Search returned unexpected code: ${searchData['code']}',
+          );
+          continue;
+        }
+
+        final result = searchData['result'];
+        if (result == null ||
+            (result['songs'] == null && result['songCount'] == 0)) {
+          continue;
+        }
+
+        final songs = result['songs'] as List? ?? [];
+        if (songs.isEmpty) {
+          continue;
+        }
+
+        // convert songs to GenericSongs
+        List<GenericSong> genericSongs = [];
+        for (var song in songs) {
+          final songName = song['name'] as String?;
+          if (songName == null) continue;
+
+          final artistNames = (song['ar'] as List? ?? [])
+              .map((ar) => (ar as Map?)?['name']?.toString() ?? '')
+              .toList();
+
+          final durationMs = song['dt'] as int? ?? 0;
+
+          genericSongs.add(
+            GenericSong(
+              title: songName,
+              artist: artistNames,
+              data: song,
+              durationMs: durationMs,
+            ),
+          );
+        }
+
+        final processedSongs = SongResultHelper.orderBySimilarity(
+          genericSongs,
+          title,
+          artist,
+          durationSeconds * 1000,
+          5000,
+        );
+
+        if (processedSongs.isEmpty) {
+          debugPrint(
+            '[NeteaseMusic] search returned songs but none matched the similarity threshold or length differ too large',
+          );
+          continue;
+        }
+
+        return processedSongs;
+      }
+      return [];
     } catch (e) {
       debugPrint('[NeteaseMusic] Error searching song: $e');
-      return null;
+      return [];
     }
   }
 
