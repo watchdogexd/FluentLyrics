@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'lyric_model.dart';
 
 part 'lyric_cache.g.dart';

@@ -53,6 +53,7 @@ const LyricCacheSchema = CollectionSchema(
       id: 8,
       name: r'lyrics',
       type: IsarType.objectList,
+
       target: r'LyricItem',
     ),
     r'source': PropertySchema(id: 9, name: r'source', type: IsarType.string),
@@ -62,6 +63,7 @@ const LyricCacheSchema = CollectionSchema(
       type: IsarType.string,
     ),
   },
+
   estimateSize: _lyricCacheEstimateSize,
   serialize: _lyricCacheSerialize,
   deserialize: _lyricCacheDeserialize,
@@ -87,10 +89,11 @@ const LyricCacheSchema = CollectionSchema(
     r'LyricItem': LyricItemSchema,
     r'LyricItemInlinePart': LyricItemInlinePartSchema,
   },
+
   getId: _lyricCacheGetId,
   getLinks: _lyricCacheGetLinks,
   attach: _lyricCacheAttach,
-  version: '3.1.0+1',
+  version: '3.3.2',
 );
 
 int _lyricCacheEstimateSize(
@@ -2168,12 +2171,14 @@ const TranslationCacheSchema = CollectionSchema(
       id: 2,
       name: r'lyrics',
       type: IsarType.objectList,
+
       target: r'TranslationItem',
     ),
     r'rawTranslation': PropertySchema(
       id: 3,
       name: r'rawTranslation',
       type: IsarType.objectList,
+
       target: r'RawTranslationPair',
     ),
     r'source': PropertySchema(id: 4, name: r'source', type: IsarType.string),
@@ -2188,6 +2193,7 @@ const TranslationCacheSchema = CollectionSchema(
       type: IsarType.string,
     ),
   },
+
   estimateSize: _translationCacheEstimateSize,
   serialize: _translationCacheSerialize,
   deserialize: _translationCacheDeserialize,
@@ -2213,10 +2219,11 @@ const TranslationCacheSchema = CollectionSchema(
     r'TranslationItem': TranslationItemSchema,
     r'RawTranslationPair': RawTranslationPairSchema,
   },
+
   getId: _translationCacheGetId,
   getLinks: _translationCacheGetLinks,
   attach: _translationCacheAttach,
-  version: '3.1.0+1',
+  version: '3.3.2',
 );
 
 int _translationCacheEstimateSize(
@@ -3777,6 +3784,7 @@ const RawTranslationPairSchema = Schema(
       type: IsarType.string,
     ),
   },
+
   estimateSize: _rawTranslationPairEstimateSize,
   serialize: _rawTranslationPairSerialize,
   deserialize: _rawTranslationPairDeserialize,
@@ -4182,6 +4190,7 @@ const LyricItemSchema = Schema(
       id: 1,
       name: r'inlineParts',
       type: IsarType.objectList,
+
       target: r'LyricItemInlinePart',
     ),
     r'startTimeMs': PropertySchema(
@@ -4191,6 +4200,7 @@ const LyricItemSchema = Schema(
     ),
     r'text': PropertySchema(id: 3, name: r'text', type: IsarType.string),
   },
+
   estimateSize: _lyricItemEstimateSize,
   serialize: _lyricItemSerialize,
   deserialize: _lyricItemDeserialize,
@@ -4667,6 +4677,7 @@ const LyricItemInlinePartSchema = Schema(
     ),
     r'text': PropertySchema(id: 2, name: r'text', type: IsarType.string),
   },
+
   estimateSize: _lyricItemInlinePartEstimateSize,
   serialize: _lyricItemInlinePartSerialize,
   deserialize: _lyricItemInlinePartDeserialize,
@@ -5011,6 +5022,7 @@ const TranslationItemSchema = Schema(
     ),
     r'text': PropertySchema(id: 2, name: r'text', type: IsarType.string),
   },
+
   estimateSize: _translationItemEstimateSize,
   serialize: _translationItemSerialize,
   deserialize: _translationItemDeserialize,

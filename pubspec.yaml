@@ -8,6 +8,8 @@ publish_to: 'none'
 environment:
   sdk: ^3.10.4
 
+isar_version: &isar_version 3.3.2
+
 dependencies:
   flutter:
     sdk: flutter
@@ -20,8 +22,8 @@ dependencies:
   crypto: ^3.0.7
   encrypt: ^5.0.3
   async: ^2.13.0
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
+  isar_community: *isar_version
+  isar_community_flutter_libs: *isar_version
   path_provider: ^2.1.5
   package_info_plus: ^9.0.0
   html_unescape: ^2.0.0
@@ -34,7 +36,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  isar_generator: ^3.1.0+1
+  isar_community_generator: *isar_version
   build_runner: ^2.4.13
   flutter_launcher_icons: ^0.14.4
 
@@ -53,3 +55,4 @@ flutter_launcher_icons:
   android: "launcher_icon"
   image_path: "assets/logo.png"
   min_sdk_android: 28
+
