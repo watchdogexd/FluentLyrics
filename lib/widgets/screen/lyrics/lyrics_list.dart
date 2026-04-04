@@ -83,60 +83,68 @@ class LyricsList extends StatelessWidget {
         }
         return false;
       },
-      child: ScrollablePositionedList.builder(
-        itemCount: provider.lyrics.length + 1,
-        itemScrollController: itemScrollController,
-        itemPositionsListener: itemPositionsListener,
-        minCacheExtent: 0,
-        itemBuilder: (context, index) {
-          // Metadata Line
-          if (index == provider.lyrics.length) {
-            return _buildLyricsInfoLine();
-          }
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: ScrollablePositionedList.builder(
+          itemCount: provider.lyrics.length + 1,
+          itemScrollController: itemScrollController,
+          itemPositionsListener: itemPositionsListener,
+          minCacheExtent: 0,
+          itemBuilder: (context, index) {
+            // Metadata Line
+            if (index == provider.lyrics.length) {
+              return _buildLyricsInfoLine();
+            }
 
-          // Lyric Lines
-          final lyric = provider.lyrics[index];
-          final isHighlighted = index == provider.currentIndex;
-          final distance = (index - provider.currentIndex).toDouble();
+            // Lyric Lines
+            final lyric = provider.lyrics[index];
+            final isHighlighted = index == provider.currentIndex;
+            final distance = (index - provider.currentIndex).toDouble();
 
-          Widget? interludeContent;
-          if (isHighlighted &&
-              provider.isInterlude &&
-              lyric.text.trim().isEmpty) {
-            interludeContent = InterludeIndicator(
-              progress: provider.interludeProgress,
-              duration: provider.interludeDuration,
+            Widget? interludeContent;
+            if (isHighlighted &&
+                provider.isInterlude &&
+                lyric.text.trim().isEmpty) {
+              interludeContent = InterludeIndicator(
+                progress: provider.interludeProgress,
+                duration: provider.interludeDuration,
+              );
+            }
+
+            return ValueListenableBuilder<Iterable<ItemPosition>>(
+              valueListenable: itemPositionsListener.itemPositions,
+              builder: (context, positions, child) {
+                final inViewport = positions.any(
+                  (pos) => pos.index - index <= 2,
+                );
+
+                final lyricLine = LyricLine(
+                  lyric: lyric,
+                  isHighlighted: isHighlighted,
+                  distance: distance,
+                  isManualScrolling: isManualScrolling,
+                  blurEnabled: provider.blurEnabled.current,
+                  inViewport: inViewport,
+                );
+
+                Widget currentContent = interludeContent ?? lyricLine;
+
+                return GestureDetector(
+                  onDoubleTap: provider.controlAbility.canSeek
+                      ? () => provider.seek(lyric.startTime)
+                      : null,
+                  behavior: HitTestBehavior.translucent,
+                  child: currentContent,
+                );
+              },
             );
-          }
-
-          return ValueListenableBuilder<Iterable<ItemPosition>>(
-            valueListenable: itemPositionsListener.itemPositions,
-            builder: (context, positions, child) {
-              final inViewport = positions.any((pos) => pos.index - index <= 2);
-
-              final lyricLine = LyricLine(
-                lyric: lyric,
-                isHighlighted: isHighlighted,
-                distance: distance,
-                isManualScrolling: isManualScrolling,
-                blurEnabled: provider.blurEnabled.current,
-                inViewport: inViewport,
-              );
-
-              Widget currentContent = interludeContent ?? lyricLine;
-
-              return GestureDetector(
-                onDoubleTap: provider.controlAbility.canSeek
-                    ? () => provider.seek(lyric.startTime)
-                    : null,
-                behavior: HitTestBehavior.translucent,
-                child: currentContent,
-              );
-            },
-          );
-        },
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).size.height / 3,
+          },
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).orientation == Orientation.landscape
+                ? MediaQuery.of(context).size.height * 0.3
+                : 0.0,
+            bottom: MediaQuery.of(context).size.height / 3,
+          ),
         ),
       ),
     );

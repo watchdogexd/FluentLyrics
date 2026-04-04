@@ -43,12 +43,19 @@ class _LyricsScreenState extends State<LyricsScreen> {
   void _scrollToCurrentIndex(int index, int linesBefore) {
     if (_itemScrollController.isAttached) {
       final safeIndex = index < 0 ? 0 : index;
-      final targetIndex = (safeIndex - linesBefore).clamp(0, safeIndex);
+      final isLandscape =
+          MediaQuery.of(context).orientation == Orientation.landscape;
+
+      final targetIndex = isLandscape
+          ? safeIndex
+          : (safeIndex - linesBefore).clamp(0, safeIndex);
+      final alignment = isLandscape ? 0.3 : 0.0;
+
       _itemScrollController.scrollTo(
         index: targetIndex,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutQuart,
-        alignment: 0,
+        alignment: alignment,
       );
     }
   }
@@ -106,55 +113,55 @@ class _LyricsScreenState extends State<LyricsScreen> {
 
               // Content Layer
               SafeArea(
-                child: Column(
-                  children: [
-                    LyricsHeader(
-                      provider: provider,
-                      artProvider: fgArt,
-                      onRefresh: () async {
-                        setState(() {
-                          _isForceReloading = true;
-                          _lastArtUrl = null;
-                          _failedArtUrls.clear();
-                        });
-                        if (_foregroundArtProvider != null) {
-                          _foregroundArtProvider!.evict();
-                        }
-                        if (_backgroundArtProvider != null) {
-                          _backgroundArtProvider!.evict();
-                        }
-                        await provider.clearCurrentTrackCache();
+                child: OrientationBuilder(
+                  builder: (context, orientation) {
+                    final isLandscape = orientation == Orientation.landscape;
+
+                    Future<void> onRefresh() async {
+                      setState(() {
+                        _isForceReloading = true;
+                        _lastArtUrl = null;
+                        _failedArtUrls.clear();
+                      });
+                      if (_foregroundArtProvider != null) {
+                        _foregroundArtProvider!.evict();
+                      }
+                      if (_backgroundArtProvider != null) {
+                        _backgroundArtProvider!.evict();
+                      }
+                      await provider.clearCurrentTrackCache();
+                    }
+
+                    ;
+
+                    final lyricsListWidget = ShaderMask(
+                      shaderCallback: (Rect bounds) {
+                        return LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: const [
+                            Colors.transparent,
+                            Colors.black,
+                            Colors.black,
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.05, 0.95, 1.0],
+                        ).createShader(bounds);
                       },
-                    ),
-                    Expanded(
-                      child: ShaderMask(
-                        shaderCallback: (Rect bounds) {
-                          return LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: const [
-                              Colors.transparent,
-                              Colors.black,
-                              Colors.black,
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.05, 0.95, 1.0],
-                          ).createShader(bounds);
-                        },
-                        blendMode: BlendMode.dstIn,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 1),
-                          child: LyricsList(
-                            provider: provider,
-                            itemScrollController: _itemScrollController,
-                            itemPositionsListener: _itemPositionsListener,
-                            isManualScrolling: _isManualScrolling,
-                            onUserInteraction: _handleUserInteraction,
-                          ),
+                      blendMode: BlendMode.dstIn,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 1),
+                        child: LyricsList(
+                          provider: provider,
+                          itemScrollController: _itemScrollController,
+                          itemPositionsListener: _itemPositionsListener,
+                          isManualScrolling: _isManualScrolling,
+                          onUserInteraction: _handleUserInteraction,
                         ),
                       ),
-                    ),
-                    LyricsControlArea(
+                    );
+
+                    final controlAreaWidget = LyricsControlArea(
                       provider: provider,
                       isScrubbing: _isScrubbing,
                       scrubValue: _scrubValue,
@@ -174,8 +181,56 @@ class _LyricsScreenState extends State<LyricsScreen> {
                           _isScrubbing = false;
                         });
                       },
-                    ),
-                  ],
+                    );
+
+                    if (isLandscape) {
+                      return Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1200),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 48.0,
+                              horizontal: 16.0,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 1,
+                                  child: Column(
+                                    children: [
+                                      Expanded(
+                                        child: LyricsHeader(
+                                          provider: provider,
+                                          artProvider: fgArt,
+                                          isLandscape: true,
+                                          onRefresh: onRefresh,
+                                        ),
+                                      ),
+                                      controlAreaWidget,
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 24),
+                                Expanded(flex: 1, child: lyricsListWidget),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        LyricsHeader(
+                          provider: provider,
+                          artProvider: fgArt,
+                          onRefresh: onRefresh,
+                        ),
+                        Expanded(child: lyricsListWidget),
+                        controlAreaWidget,
+                      ],
+                    );
+                  },
                 ),
               ),
               // Permission Overlay
