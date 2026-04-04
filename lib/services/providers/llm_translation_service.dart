@@ -134,8 +134,21 @@ return new Response(
       }
 
       var jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
-      final content = jsonResponse['choices']?[0]?['message']?['content']
+      String? content = jsonResponse['choices']?[0]?['message']?['content']
           ?.trim();
+
+      // try strip out <thought></thought> block
+      if (content != null) {
+        final thoughtPattern = RegExp(
+          r'<thought>.*?</thought>(.*)',
+          multiLine: true,
+          dotAll: true,
+        );
+        final match = thoughtPattern.firstMatch(content);
+        if (match != null) {
+          content = match.group(1);
+        }
+      }
 
       if (content == null) {
         return LyricsResult.empty();
