@@ -60,8 +60,8 @@ Requirements:
 1. The output MUST be a raw JSON (see definition below).
 2. Preserve the poetic style, emotional tone, and rhythm.
 3. If a line is empty or instrumental, return an empty string.
-4. DO NOT use Markdown formatting (no codeblock like \\`\\`\\`json). Output raw JSON only.
-5. DO NOT add comments or notes.
+4. You MUST NOT use Markdown formatting (no codeblock like \\`\\`\\`json). Output raw JSON only.
+5. You MUST NOT add comments or notes.
 
 Target Language: ${targetLanguage.substring(4).trim()}
 Instructions:
@@ -69,6 +69,7 @@ Instructions:
 2. If translation is not needed (eg. the source language is the same as the target language), return "SKIP".
 3. If the source language is different from the target language, 
    translate the lyrics to the target language following the structure
+4. If the source language is as same as the target language, you MUST ONLY return "SKIP".
 
 Fake code of the instruction:
 ```typescript
