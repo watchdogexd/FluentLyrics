@@ -144,8 +144,6 @@ class _LyricsScreenState extends State<LyricsScreen> {
                       await provider.clearCurrentTrackCache();
                     }
 
-                    ;
-
                     final lyricsListWidget = ShaderMask(
                       shaderCallback: (Rect bounds) {
                         return _maskGradient.createShader(bounds);
