@@ -38,6 +38,9 @@ class LlmTranslationService {
         return LyricsResult.empty();
       }
 
+      final llmReasoningEffort =
+          (await _settingsService.getLlmReasoningEffort()).current;
+
       // 1. Parse original content to get lines
       final parsed = LrcParser.parse(data.content);
       final originalLyrics = parsed.lyrics;
@@ -102,26 +105,33 @@ return new Response(
 ''';
       // 3. Call LLM API
       final int start = FlutterTimeline.now;
+
+      final Map<String, dynamic> requestBody = {
+        'model': model.isNotEmpty ? model : 'openai/gpt-oss-120b',
+        'messages': [
+          {
+            'role': 'system',
+            'content':
+                'You are a professional translator specialized in song lyrics.',
+          },
+          {'role': 'user', 'content': prompt},
+        ],
+        'temperature': 0.35,
+        'stream': false,
+        'max_tokens': 1000000,
+      };
+
+      if (llmReasoningEffort != 'auto') {
+        requestBody['reasoning_effort'] = llmReasoningEffort;
+      }
+
       final response = await http.post(
         Uri.parse(endpoint),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $apiKey',
         },
-        body: jsonEncode({
-          'model': model.isNotEmpty ? model : 'openai/gpt-oss-120b',
-          'messages': [
-            {
-              'role': 'system',
-              'content':
-                  'You are a professional translator specialized in song lyrics.',
-            },
-            {'role': 'user', 'content': prompt},
-          ],
-          'temperature': 0.35,
-          'stream': false,
-          'max_tokens': 1000000,
-        }),
+        body: jsonEncode(requestBody),
       );
       final int end = FlutterTimeline.now;
       final int requestElapsed = (end - start) ~/ 1000;

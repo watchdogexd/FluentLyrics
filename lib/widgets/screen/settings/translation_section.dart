@@ -227,6 +227,48 @@ class LlmConfigurationCard extends StatelessWidget {
             ),
             onChanged: (value) => provider.setLlmModel(value),
           ),
+          const SizedBox(height: 16),
+          // Reasoning Effort Dropdown
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Reasoning Effort',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Set the model\'s reasoning effort level. Select "auto" to use default parameters without explicitly passing the reasoning field.',
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              DropdownButton<String>(
+                value: provider.llmReasoningEffort.current,
+                dropdownColor: Colors.black87,
+                style: const TextStyle(color: Colors.white),
+                underline: const SizedBox(),
+                items: const [
+                  DropdownMenuItem(value: 'none', child: Text('None')),
+                  DropdownMenuItem(value: 'low', child: Text('Low')),
+                  DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                  DropdownMenuItem(value: 'high', child: Text('High')),
+                  DropdownMenuItem(value: 'auto', child: Text('Auto')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    provider.setLlmReasoningEffort(value);
+                  }
+                },
+              ),
+            ],
+          ),
         ],
       ),
     );

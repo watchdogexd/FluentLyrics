@@ -116,6 +116,11 @@ class LyricsProvider with ChangeNotifier {
     defaultValue: AppDefaults.llmModel,
     changed: false,
   );
+  Setting<String> _llmReasoningEffort = const Setting(
+    current: AppDefaults.llmReasoningEffort,
+    defaultValue: AppDefaults.llmReasoningEffort,
+    changed: false,
+  );
   Setting<bool> _keepScreenOn = const Setting(
     current: AppDefaults.keepScreenOn,
     defaultValue: AppDefaults.keepScreenOn,
@@ -250,6 +255,7 @@ class LyricsProvider with ChangeNotifier {
   Setting<String> get llmApiEndpoint => _llmApiEndpoint;
   Setting<String> get llmApiKey => _llmApiKey;
   Setting<String> get llmModel => _llmModel;
+  Setting<String> get llmReasoningEffort => _llmReasoningEffort;
   Setting<bool> get keepScreenOn => _keepScreenOn;
   Setting<bool> get backgroundMotionEnabled => _backgroundMotionEnabled;
   Setting<List<LyricProviderType>> get useStandardLyricsForPairingProviders =>
@@ -347,6 +353,7 @@ class LyricsProvider with ChangeNotifier {
     _llmApiEndpoint = await _settingsService.getLlmApiEndpoint();
     _llmApiKey = await _settingsService.getLlmApiKey();
     _llmModel = await _settingsService.getLlmModel();
+    _llmReasoningEffort = await _settingsService.getLlmReasoningEffort();
     _keepScreenOn = await _settingsService.getKeepScreenOn();
     _backgroundMotionEnabled = await _settingsService
         .getBackgroundMotionEnabled();
@@ -556,6 +563,17 @@ class LyricsProvider with ChangeNotifier {
       changed: model != _llmModel.defaultValue,
     );
     _settingsService.setLlmModel(model);
+    notifyListeners();
+  }
+
+  void setLlmReasoningEffort(String effort) {
+    if (_llmReasoningEffort.current == effort) return;
+    _llmReasoningEffort = Setting(
+      current: effort,
+      defaultValue: _llmReasoningEffort.defaultValue,
+      changed: effort != _llmReasoningEffort.defaultValue,
+    );
+    _settingsService.setLlmReasoningEffort(effort);
     notifyListeners();
   }
 

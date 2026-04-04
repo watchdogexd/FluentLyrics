@@ -446,6 +446,26 @@ class SettingsService {
     await prefs.setString(_llmModelKey, model);
   }
 
+  static const String _llmReasoningEffortKey = 'llm_reasoning_effort';
+
+  Future<Setting<String>> getLlmReasoningEffort() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getString(_llmReasoningEffortKey) ??
+        AppDefaults.llmReasoningEffort;
+
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.llmReasoningEffort,
+      changed: current != AppDefaults.llmReasoningEffort,
+    );
+  }
+
+  Future<void> setLlmReasoningEffort(String effort) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_llmReasoningEffortKey, effort);
+  }
+
   Future<Setting<bool>> getKeepScreenOn() async {
     final prefs = await SharedPreferences.getInstance();
     final current = prefs.getBool(_keepScreenOnKey) ?? AppDefaults.keepScreenOn;
