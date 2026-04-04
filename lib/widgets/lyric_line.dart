@@ -386,6 +386,8 @@ class _KaraokeTextPainter extends CustomPainter {
 
     canvas.restore();
     canvas.restore();
+
+    textPainter.dispose();
   }
 
   @override

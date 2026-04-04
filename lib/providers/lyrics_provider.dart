@@ -172,6 +172,9 @@ class LyricsProvider with ChangeNotifier {
   LyricsResult? _lastTranslationResultForAlignment;
   bool? _lastRichSyncEnabledForAlignment;
 
+  List<Lyric>? _cachedStrippedLyrics;
+  LyricsResult? _lastLyricsResultForStripping;
+
   List<Lyric> _stripRichSync(List<Lyric> source) {
     return source.map((l) {
       if (l.inlineParts != null && l.inlineParts!.isNotEmpty) {
@@ -189,9 +192,19 @@ class LyricsProvider with ChangeNotifier {
 
   List<Lyric> get lyrics {
     final curRichSync = _richSyncEnabled.current;
-    final baseLyrics = curRichSync
-        ? _lyricsResult.lyrics
-        : _stripRichSync(_lyricsResult.lyrics);
+    
+    List<Lyric> baseLyrics;
+    if (curRichSync) {
+      baseLyrics = _lyricsResult.lyrics;
+    } else {
+      if (_cachedStrippedLyrics != null && _lastLyricsResultForStripping == _lyricsResult) {
+        baseLyrics = _cachedStrippedLyrics!;
+      } else {
+        baseLyrics = _stripRichSync(_lyricsResult.lyrics);
+        _cachedStrippedLyrics = baseLyrics;
+        _lastLyricsResultForStripping = _lyricsResult;
+      }
+    }
 
     if (_translationResult?.rawTranslation != null) {
       if (_cachedAlignedLyrics != null &&

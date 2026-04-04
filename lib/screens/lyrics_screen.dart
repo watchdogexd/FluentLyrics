@@ -27,6 +27,18 @@ class _LyricsScreenState extends State<LyricsScreen> {
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
 
+  static const _maskGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Colors.transparent,
+      Colors.black,
+      Colors.black,
+      Colors.transparent,
+    ],
+    stops: [0.0, 0.05, 0.95, 1.0],
+  );
+
   final Set<String> _failedArtUrls = {};
   int _previousIndex = 0;
   String? _lastArtUrl;
@@ -136,17 +148,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
 
                     final lyricsListWidget = ShaderMask(
                       shaderCallback: (Rect bounds) {
-                        return LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: const [
-                            Colors.transparent,
-                            Colors.black,
-                            Colors.black,
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.05, 0.95, 1.0],
-                        ).createShader(bounds);
+                        return _maskGradient.createShader(bounds);
                       },
                       blendMode: BlendMode.dstIn,
                       child: Padding(
@@ -275,6 +277,9 @@ class _LyricsScreenState extends State<LyricsScreen> {
     if (hasValidArt && metadata != null) {
       if (artUrl != _lastArtUrl || forceReload) {
         _lastArtUrl = artUrl;
+        if (!forceReload && _foregroundArtProvider != null) {
+          _foregroundArtProvider!.evict();
+        }
         _foregroundArtProvider = _getArtProvider(artUrl, mediaService);
         _precacheAndSwap(_foregroundArtProvider!, artUrl);
       }

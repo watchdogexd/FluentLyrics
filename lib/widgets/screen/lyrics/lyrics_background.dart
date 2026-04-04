@@ -106,6 +106,8 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
     }
   }
 
+  static final _blurFilter = ImageFilter.blur(sigmaX: 50, sigmaY: 50);
+
   @override
   void dispose() {
     _controller.dispose();
@@ -114,29 +116,34 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        return ClipRect(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Base dark layer
-              Container(color: Colors.black),
+    return ClipRect(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Base dark layer
+          Container(color: Colors.black),
 
-              // Fragmented image layers
-              for (final frag in _fragments)
-                _buildFragment(frag, _controller.value),
-
-              // Blur + dark scrim on top
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-                child: Container(color: Colors.black.withAlpha(136)),
-              ),
-            ],
+          // Fragmented image layers
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  for (final frag in _fragments)
+                    _buildFragment(frag, _controller.value),
+                ],
+              );
+            },
           ),
-        );
-      },
+
+          // Blur + dark scrim on top
+          BackdropFilter(
+            filter: _blurFilter,
+            child: Container(color: Colors.black.withAlpha(136)),
+          ),
+        ],
+      ),
     );
   }
 
