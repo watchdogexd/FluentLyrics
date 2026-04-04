@@ -166,7 +166,7 @@ class LyricLine extends StatelessWidget {
               startTime: part.startTime,
               endTime: part.endTime,
               style: DefaultTextStyle.of(context).style.copyWith(
-                fontSize: DefaultTextStyle.of(context).style.fontSize! / 0.9,
+                fontSize: DefaultTextStyle.of(context).style.fontSize!,
               ),
             ),
           );
