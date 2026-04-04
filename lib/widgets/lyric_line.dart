@@ -294,9 +294,9 @@ class _RichPartState extends State<_RichPart>
                 widget.text,
                 textAlign: TextAlign.left,
                 style: widget.style.copyWith(
-                  color: isShort && isLifting
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.55),
+                  color: Colors.white.withValues(
+                    alpha: (isShort && isLifting) ? 1 : 0.4,
+                  ),
                 ),
               ),
               if (isLifting && !isShort)
