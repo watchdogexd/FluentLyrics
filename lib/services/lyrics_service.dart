@@ -132,7 +132,7 @@ class LyricsService {
           newBetter = true;
         } else if (result.isPureMusic && !bestResult.isPureMusic) {
           // new is pure music, old is not
-          newBetter = true;
+          newBetter = false;
         } else if (result.lyrics.isNotEmpty && bestResult.lyrics.isEmpty) {
           // new has lyrics, old does not
           newBetter = true;
