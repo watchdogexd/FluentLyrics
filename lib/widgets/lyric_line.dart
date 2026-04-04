@@ -157,7 +157,13 @@ class LyricLine extends StatelessWidget {
     return Text.rich(
       TextSpan(
         style: DefaultTextStyle.of(context).style,
-        children: lyric.inlineParts!.map((part) {
+        children: lyric.inlineParts!.map<InlineSpan>((part) {
+          if (part.text.trim().isEmpty) {
+            return TextSpan(
+              text: part.text,
+              style: DefaultTextStyle.of(context).style,
+            );
+          }
           return WidgetSpan(
             alignment: PlaceholderAlignment.baseline,
             baseline: TextBaseline.alphabetic,
