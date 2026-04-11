@@ -1,5 +1,5 @@
 import 'dart:ui';
-import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/lyric_model.dart';
@@ -157,7 +157,7 @@ class LyricLine extends StatelessWidget {
       fontSize: lyricsProvider.experimentalRichInlineFontSizeGlitching.current
           ? DefaultTextStyle.of(context).style.fontSize! / 0.9
           : DefaultTextStyle.of(context).style.fontSize!,
-      height: 1.0,
+      height: 1.2,
     );
 
     return Text.rich(
@@ -276,6 +276,12 @@ class _RichPartState extends State<_RichPart>
       }
     }
 
+    final baseText = Text(
+      widget.text,
+      textAlign: TextAlign.left,
+      style: widget.style,
+    );
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -291,110 +297,47 @@ class _RichPartState extends State<_RichPart>
         return AnimatedContainer(
           duration: isShort
               ? _defaultProgressAnimationDuration
-              : duration + Duration(milliseconds: 150),
+              : duration + const Duration(milliseconds: 150),
           curve: Curves.easeOutQuint,
           transform: Matrix4.translationValues(0, isLifting ? -2 : 0, 0),
           child: Stack(
             children: [
-              Text(
-                widget.text,
-                textAlign: TextAlign.left,
-                style: widget.style.copyWith(
-                  color: Colors.white.withValues(
-                    alpha: (isShort && isLifting) ? 1 : 0.4,
-                  ),
-                ),
+              Opacity(
+                opacity: (isShort && isLifting) ? 1.0 : 0.4,
+                child: child!,
               ),
               if (isLifting && !isShort)
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: _KaraokeTextPainter(
-                      text: widget.text,
-                      style: widget.style,
-                      progress: progress,
-                      textScaler: MediaQuery.textScalerOf(context),
-                    ),
+                  child: ShaderMask(
+                    blendMode: BlendMode.srcIn,
+                    shaderCallback: (Rect bounds) {
+                      if (bounds.width <= 0) {
+                        return const LinearGradient(
+                          colors: [Colors.transparent, Colors.transparent],
+                        ).createShader(bounds);
+                      }
+                      final totalWidth = bounds.width;
+                      final fadeWidth = totalWidth * 0.15;
+                      final pRight = totalWidth * progress * 1.15;
+                      final pLeft = pRight - fadeWidth;
+
+                      final alignLeft = (pLeft / totalWidth) * 2 - 1;
+                      final alignRight = (pRight / totalWidth) * 2 - 1;
+
+                      return LinearGradient(
+                        begin: Alignment(alignLeft, 0),
+                        end: Alignment(alignRight, 0),
+                        colors: const [Colors.white, Colors.transparent],
+                      ).createShader(bounds);
+                    },
+                    child: child, // Uses the exact same cached Text layout
                   ),
                 ),
             ],
           ),
         );
       },
+      child: baseText,
     );
-  }
-}
-
-class _KaraokeTextPainter extends CustomPainter {
-  final String text;
-  final TextStyle style;
-  final double progress;
-  final TextScaler textScaler;
-
-  _KaraokeTextPainter({
-    required this.text,
-    required this.style,
-    required this.progress,
-    required this.textScaler,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final textPainter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-      textScaler: textScaler,
-    );
-
-    textPainter.layout(maxWidth: size.width);
-
-    final lines = textPainter.computeLineMetrics();
-    final totalWidth = lines.fold(0.0, (sum, line) => sum + line.width);
-
-    final double fadeWidth = totalWidth * 0.15;
-    final double pRight = totalWidth * progress * (1 + 0.15);
-    final double pLeft = pRight - fadeWidth;
-
-    canvas.saveLayer(Offset.zero & size, Paint());
-    textPainter.paint(canvas, Offset.zero);
-
-    final maskPaint = Paint()..blendMode = BlendMode.dstIn;
-    canvas.saveLayer(Offset.zero & size, maskPaint);
-
-    double lineStart = 0.0;
-    double y = 0.0;
-
-    for (final line in lines) {
-      final double localLeft = pLeft - lineStart;
-      final double localRight = pRight - lineStart;
-
-      final gradientPaint = Paint()
-        ..shader = ui.Gradient.linear(
-          Offset(localLeft, 0),
-          Offset(localRight, 0),
-          [Colors.white, Colors.white.withValues(alpha: 0.0)],
-          [0.0, 1.0],
-        );
-
-      canvas.drawRect(
-        Rect.fromLTWH(0, y, size.width, line.height),
-        gradientPaint,
-      );
-
-      lineStart += line.width;
-      y += line.height;
-    }
-
-    canvas.restore();
-    canvas.restore();
-
-    textPainter.dispose();
-  }
-
-  @override
-  bool shouldRepaint(_KaraokeTextPainter oldDelegate) {
-    return oldDelegate.text != text ||
-        oldDelegate.style != style ||
-        oldDelegate.progress != progress ||
-        oldDelegate.textScaler != textScaler;
   }
 }
