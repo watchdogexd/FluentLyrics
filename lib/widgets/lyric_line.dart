@@ -62,7 +62,7 @@ class LyricLine extends StatelessWidget {
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeOutQuart,
       padding: EdgeInsets.symmetric(
-        vertical: isHighlighted ? 18 : 12,
+        vertical: isHighlighted ? 20 : 12,
         horizontal: 24,
       ),
       child: AnimatedOpacity(
