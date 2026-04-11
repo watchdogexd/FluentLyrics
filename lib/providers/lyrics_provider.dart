@@ -137,6 +137,11 @@ class LyricsProvider with ChangeNotifier {
         defaultValue: AppDefaults.useStandardLyricsForPairingProviders,
         changed: false,
       );
+  Setting<bool> _experimentalRichInlineFontSizeGlitching = const Setting(
+    current: AppDefaults.experimentalRichInlineFontSizeGlitching,
+    defaultValue: AppDefaults.experimentalRichInlineFontSizeGlitching,
+    changed: false,
+  );
 
   Duration _trackOffset = Duration.zero;
   int _currentIndex = -1;
@@ -273,6 +278,8 @@ class LyricsProvider with ChangeNotifier {
   Setting<bool> get backgroundMotionEnabled => _backgroundMotionEnabled;
   Setting<List<LyricProviderType>> get useStandardLyricsForPairingProviders =>
       _useStandardLyricsForPairingProviders;
+  Setting<bool> get experimentalRichInlineFontSizeGlitching =>
+      _experimentalRichInlineFontSizeGlitching;
 
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
@@ -372,6 +379,8 @@ class LyricsProvider with ChangeNotifier {
         .getBackgroundMotionEnabled();
     _useStandardLyricsForPairingProviders = await _settingsService
         .getUseStandardLyricsForPairingProviders();
+    _experimentalRichInlineFontSizeGlitching = await _settingsService
+        .getExperimentalRichInlineFontSizeGlitching();
 
     notifyListeners();
   }
@@ -627,6 +636,17 @@ class LyricsProvider with ChangeNotifier {
       ),
     );
     _settingsService.setUseStandardLyricsForPairingProviders(providers);
+    notifyListeners();
+  }
+
+  void setExperimentalRichInlineFontSizeGlitching(bool enabled) {
+    if (_experimentalRichInlineFontSizeGlitching.current == enabled) return;
+    _experimentalRichInlineFontSizeGlitching = Setting(
+      current: enabled,
+      defaultValue: _experimentalRichInlineFontSizeGlitching.defaultValue,
+      changed: enabled != _experimentalRichInlineFontSizeGlitching.defaultValue,
+    );
+    _settingsService.setExperimentalRichInlineFontSizeGlitching(enabled);
     notifyListeners();
   }
 

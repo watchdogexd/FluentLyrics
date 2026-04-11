@@ -39,4 +39,5 @@ class AppDefaults {
     LyricProviderType.netease,
     LyricProviderType.qqmusic,
   ];
+  static const bool experimentalRichInlineFontSizeGlitching = false;
 }

@@ -12,6 +12,7 @@ import '../widgets/screen/settings/display_section.dart';
 import '../widgets/screen/settings/translation_section.dart';
 import '../widgets/screen/settings/lyric_configuration_section.dart';
 import '../widgets/screen/settings/cache_section.dart';
+import '../widgets/screen/settings/experimental_section.dart';
 import '../widgets/screen/settings/version_section.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -193,6 +194,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       onRefresh: () => setState(() {}),
                                       showSnackBar: _showSnackBar,
                                     ),
+                                    const SizedBox(height: 48),
+                                    const ExperimentalSection(),
                                     const SizedBox(height: 48),
                                     VersionSection(version: _version),
                                   ],

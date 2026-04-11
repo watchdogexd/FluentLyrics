@@ -153,16 +153,18 @@ class LyricLine extends StatelessWidget {
         style: DefaultTextStyle.of(context).style,
       );
     }
+    final richTextStyle = DefaultTextStyle.of(context).style.copyWith(
+      fontSize: lyricsProvider.experimentalRichInlineFontSizeGlitching.current
+          ? DefaultTextStyle.of(context).style.fontSize! / 0.9
+          : DefaultTextStyle.of(context).style.fontSize!,
+      height: 1.0,
+    );
 
     return Text.rich(
       TextSpan(
-        style: DefaultTextStyle.of(context).style,
         children: lyric.inlineParts!.map<InlineSpan>((part) {
           if (part.text.trim().isEmpty) {
-            return TextSpan(
-              text: part.text,
-              style: DefaultTextStyle.of(context).style,
-            );
+            return TextSpan(text: part.text, style: richTextStyle);
           }
           return WidgetSpan(
             alignment: PlaceholderAlignment.baseline,
@@ -171,9 +173,7 @@ class LyricLine extends StatelessWidget {
               text: part.text,
               startTime: part.startTime,
               endTime: part.endTime,
-              style: DefaultTextStyle.of(context).style.copyWith(
-                fontSize: DefaultTextStyle.of(context).style.fontSize!,
-              ),
+              style: richTextStyle,
             ),
           );
         }).toList(),

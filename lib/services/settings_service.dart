@@ -24,6 +24,8 @@ class SettingsService {
   static const String _useStandardLyricsForPairingProvidersKey =
       'use_standard_lyrics_for_pairing_providers';
   static const String _backgroundMotionEnabledKey = 'background_motion_enabled';
+  static const String _experimentalRichInlineFontSizeGlitchingKey =
+      'experimental_rich_inline_font_size_glitching';
 
   Future<Setting<List<LyricProviderType>>> getAllProvidersOrdered() async {
     final prefs = await SharedPreferences.getInstance();
@@ -536,5 +538,22 @@ class SettingsService {
       _useStandardLyricsForPairingProvidersKey,
       providers.map((e) => e.name).toList(),
     );
+  }
+  
+  Future<Setting<bool>> getExperimentalRichInlineFontSizeGlitching() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getBool(_experimentalRichInlineFontSizeGlitchingKey) ??
+        AppDefaults.experimentalRichInlineFontSizeGlitching;
+    return Setting(
+      current: current,
+      defaultValue: AppDefaults.experimentalRichInlineFontSizeGlitching,
+      changed: current != AppDefaults.experimentalRichInlineFontSizeGlitching,
+    );
+  }
+
+  Future<void> setExperimentalRichInlineFontSizeGlitching(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_experimentalRichInlineFontSizeGlitchingKey, enabled);
   }
 }
