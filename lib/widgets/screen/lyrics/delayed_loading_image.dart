@@ -5,12 +5,16 @@ class DelayedLoadingImage extends StatefulWidget {
   final ImageProvider image;
   final BoxFit fit;
   final Widget Function(BuildContext, Object, StackTrace?)? errorBuilder;
+  final int? cacheWidth;
+  final int? cacheHeight;
 
   const DelayedLoadingImage({
     super.key,
     required this.image,
     required this.fit,
     this.errorBuilder,
+    this.cacheWidth,
+    this.cacheHeight,
   });
 
   @override
@@ -56,7 +60,10 @@ class _DelayedLoadingImageState extends State<DelayedLoadingImage> {
   @override
   Widget build(BuildContext context) {
     return Image(
-      image: widget.image,
+      image: (widget.cacheWidth != null || widget.cacheHeight != null)
+          ? ResizeImage(widget.image,
+              width: widget.cacheWidth, height: widget.cacheHeight)
+          : widget.image,
       fit: widget.fit,
       errorBuilder: widget.errorBuilder,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {

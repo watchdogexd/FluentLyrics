@@ -168,12 +168,26 @@ class LyricsHeader extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(large ? 24 : 12),
-        child: DelayedLoadingImage(
-          image: artImage,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            debugPrint('Error loading album art: $error');
-            return Image.asset('assets/album_art.png', fit: BoxFit.cover);
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double dpr = MediaQuery.of(context).devicePixelRatio;
+            final int? cacheWidth = constraints.maxWidth.isFinite
+                ? (constraints.maxWidth * dpr).round()
+                : null;
+            final int? cacheHeight = constraints.maxHeight.isFinite
+                ? (constraints.maxHeight * dpr).round()
+                : null;
+
+            return DelayedLoadingImage(
+              image: artImage,
+              fit: BoxFit.cover,
+              cacheWidth: cacheWidth,
+              cacheHeight: cacheHeight,
+              errorBuilder: (context, error, stackTrace) {
+                debugPrint('Error loading album art: $error');
+                return Image.asset('assets/album_art.png', fit: BoxFit.cover);
+              },
+            );
           },
         ),
       ),

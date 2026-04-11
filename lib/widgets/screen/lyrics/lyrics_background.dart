@@ -42,7 +42,10 @@ class _StaticBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        image: DecorationImage(image: artProvider, fit: BoxFit.cover),
+        image: DecorationImage(
+          image: ResizeImage(artProvider, width: 128, height: 128),
+          fit: BoxFit.cover,
+        ),
       ),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
@@ -165,7 +168,7 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
           child: Opacity(
             opacity: 0.7,
             child: Image(
-              image: widget.artProvider,
+              image: ResizeImage(widget.artProvider, width: 128, height: 128),
               fit: BoxFit.cover,
               filterQuality: FilterQuality.medium,
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
