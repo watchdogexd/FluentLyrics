@@ -253,6 +253,8 @@ class _TabBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           color: Colors.white.withValues(alpha: 0.12),
         ),
+        indicatorPadding: const EdgeInsets.symmetric(horizontal: 4),
+        splashBorderRadius: BorderRadius.circular(10),
         indicatorSize: TabBarIndicatorSize.tab,
         labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(
@@ -425,7 +427,9 @@ class _TranslationTab extends StatelessWidget {
       originalLyrics: contentfulLines,
       rawTranslation: trans.rawTranslation!,
     );
-    final matched = aligned.where((l) => l.translation != null && l.translation!.isNotEmpty).length;
+    final matched = aligned
+        .where((l) => l.translation != null && l.translation!.isNotEmpty)
+        .length;
     return (matched, totalLines);
   }
 
