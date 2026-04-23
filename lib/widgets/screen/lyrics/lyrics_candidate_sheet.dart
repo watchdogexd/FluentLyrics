@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../models/lyric_model.dart';
 import '../../../models/lyric_provider_type.dart';
 import '../../../providers/lyrics_provider.dart';
+import '../../../utils/translation_helper.dart';
 
-/// Shows a modal bottom sheet that lists all lyric candidates collected during
-/// the current auto-search. Lets the user choose one, which is then saved to
-/// the Isar cache and applied immediately.
+/// Shows a modal bottom sheet that lists all lyric candidates and translation
+/// candidates collected during the current auto-search.
 Future<void> showLyricsCandidateSheet(
   BuildContext context,
   LyricsProvider provider,
@@ -23,6 +23,10 @@ Future<void> showLyricsCandidateSheet(
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Sheet widget
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _LyricsCandidateSheet extends StatefulWidget {
   final LyricsProvider provider;
   const _LyricsCandidateSheet({required this.provider});
@@ -31,28 +35,48 @@ class _LyricsCandidateSheet extends StatefulWidget {
   State<_LyricsCandidateSheet> createState() => _LyricsCandidateSheetState();
 }
 
-class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet> {
+class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  late bool _showTranslationTab;
+
   @override
   void initState() {
     super.initState();
+    _showTranslationTab = widget.provider.translationEnabled.current;
+    _tabController = TabController(
+      length: _showTranslationTab ? 2 : 1,
+      vsync: this,
+    );
     widget.provider.addListener(_onProviderChanged);
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     widget.provider.removeListener(_onProviderChanged);
     super.dispose();
   }
 
   void _onProviderChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final newShow = widget.provider.translationEnabled.current;
+    if (newShow != _showTranslationTab) {
+      // Rebuild the TabController with the new length.
+      final old = _tabController;
+      _tabController = TabController(
+        length: newShow ? 2 : 1,
+        vsync: this,
+      );
+      old.dispose();
+      _showTranslationTab = newShow;
+    }
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = widget.provider;
-    final candidates = provider.candidates;
-    final current = provider.lyricsResult;
 
     return Listener(
       // Close on mouse back button.
@@ -70,11 +94,11 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet> {
             child: const SizedBox.expand(),
           ),
           DraggableScrollableSheet(
-            initialChildSize: 0.55,
+            initialChildSize: 0.60,
             minChildSize: 0.35,
             maxChildSize: 0.92,
             snap: true,
-            snapSizes: const [0.55, 0.92],
+            snapSizes: const [0.60, 0.92],
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
@@ -90,7 +114,7 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet> {
                 ),
                 child: Column(
                   children: [
-                    // Drag handle
+                    // ── Drag handle ──────────────────────────────────────
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Container(
@@ -103,12 +127,9 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet> {
                       ),
                     ),
 
-                    // Header
+                    // ── Header row ───────────────────────────────────────
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                       child: Row(
                         children: [
                           const Icon(
@@ -118,7 +139,7 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet> {
                           ),
                           const SizedBox(width: 10),
                           const Text(
-                            'Choose Lyrics',
+                            'Lyrics Picker',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 17,
@@ -139,10 +160,20 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet> {
                       ),
                     ),
 
-                    const Divider(color: Colors.white12, height: 16),
+                    const SizedBox(height: 10),
 
-                    // Status bar — shows live onStatusUpdate messages while fetching
-                    // after the candidate sheet opens and the stream resumes.
+                    // ── Tab bar — hidden when translation is off ──────────
+                    if (_showTranslationTab) ...[
+                      _TabBar(
+                        controller: _tabController,
+                        lyricsCount: provider.candidates.length,
+                        translationCount:
+                            provider.translationCandidates.length,
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                    ],
+
+                    // ── Status bar ───────────────────────────────────────
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 250),
                       child:
@@ -151,7 +182,7 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet> {
                           ? Container(
                               key: const ValueKey('status'),
                               width: double.infinity,
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                               child: Text(
                                 provider.loadingStatus,
                                 style: TextStyle(
@@ -166,50 +197,24 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet> {
                           : const SizedBox.shrink(key: ValueKey('empty')),
                     ),
 
-                    // Candidate list
+                    // ── Tab views ────────────────────────────────────────
                     Expanded(
-                      child: candidates.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.search_off_rounded,
-                                    color: Colors.white.withValues(alpha: 0.3),
-                                    size: 40,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    provider.isLoading
-                                        ? 'Searching providers…'
-                                        : 'No candidates found',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.4,
-                                      ),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
-                              controller: scrollController,
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                              itemCount: candidates.length,
-                              itemBuilder: (context, index) {
-                                final candidate = candidates[index];
-                                final isActive = _isActive(candidate, current);
-                                return _CandidateTile(
-                                  candidate: candidate,
-                                  isActive: isActive,
-                                  onSelect: () {
-                                    provider.selectCandidate(candidate);
-                                    Navigator.of(context).pop();
-                                  },
-                                );
-                              },
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          // ── Lyrics tab (always present) ───────────────
+                          _LyricsTab(
+                            provider: provider,
+                            scrollController: scrollController,
+                          ),
+                          // ── Translation tab (only when enabled) ───────
+                          if (_showTranslationTab)
+                            _TranslationTab(
+                              provider: provider,
+                              scrollController: scrollController,
                             ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -220,16 +225,270 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet> {
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom segmented tab bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TabBar extends StatelessWidget {
+  final TabController controller;
+  final int lyricsCount;
+  final int translationCount;
+
+  const _TabBar({
+    required this.controller,
+    required this.lyricsCount,
+    required this.translationCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: TabBar(
+        controller: controller,
+        dividerColor: Colors.transparent,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: Colors.white.withValues(alpha: 0.12),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+        ),
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white54,
+        tabs: [
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.music_note_rounded, size: 14),
+                const SizedBox(width: 6),
+                const Text('Lyrics'),
+                if (lyricsCount > 0) ...[
+                  const SizedBox(width: 5),
+                  _CountBadge(lyricsCount),
+                ],
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.translate_rounded, size: 14),
+                const SizedBox(width: 6),
+                const Text('Translation'),
+                if (translationCount > 0) ...[
+                  const SizedBox(width: 5),
+                  _CountBadge(translationCount),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  final int count;
+  const _CountBadge(this.count);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lyrics tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _LyricsTab extends StatelessWidget {
+  final LyricsProvider provider;
+  final ScrollController scrollController;
+
+  const _LyricsTab({required this.provider, required this.scrollController});
 
   bool _isActive(LyricsResult candidate, LyricsResult current) {
-    // Match by source string (strip " (cached)" suffix for comparison).
     final candidateSrc = candidate.source.replaceAll(' (cached)', '');
     final currentSrc = current.source.replaceAll(' (cached)', '');
     return candidateSrc == currentSrc &&
         candidate.isSynced == current.isSynced &&
         candidate.isRichSync == current.isRichSync;
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final candidates = provider.candidates;
+    final current = provider.lyricsResult;
+
+    if (candidates.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              color: Colors.white.withValues(alpha: 0.3),
+              size: 40,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              provider.isLoading
+                  ? 'Searching providers…'
+                  : 'No candidates found',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+      itemCount: candidates.length,
+      itemBuilder: (context, index) {
+        final candidate = candidates[index];
+        final isActive = _isActive(candidate, current);
+        return _CandidateTile(
+          candidate: candidate,
+          isActive: isActive,
+          onSelect: () {
+            provider.selectCandidate(candidate);
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
+  }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Translation tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TranslationTab extends StatelessWidget {
+  final LyricsProvider provider;
+  final ScrollController scrollController;
+
+  const _TranslationTab({
+    required this.provider,
+    required this.scrollController,
+  });
+
+  bool _isActive(LyricsResult candidate, LyricsResult? current) {
+    if (current == null) return false;
+    final cProv = (candidate.translationProvider ?? '').replaceAll(
+      ' (cached)',
+      '',
+    );
+    final aProv = (current.translationProvider ?? '').replaceAll(
+      ' (cached)',
+      '',
+    );
+    return cProv == aProv && candidate.language == current.language;
+  }
+
+  /// Count how many non-empty original lines have a matching translation.
+  /// Returns (matched, total).
+  (int, int) _coverage(LyricsResult trans, List<Lyric> displayLyrics) {
+    final contentfulLines = displayLyrics
+        .where((l) => l.text.trim().isNotEmpty)
+        .toList();
+    final totalLines = contentfulLines.length;
+    if (trans.rawTranslation == null || totalLines == 0) return (0, totalLines);
+
+    // Use the same align() algorithm to count how many original lines got
+    // a translation — mirrors what the display does.
+    final aligned = TranslationHelper.align(
+      originalLyrics: contentfulLines,
+      rawTranslation: trans.rawTranslation!,
+    );
+    final matched = aligned.where((l) => l.translation != null && l.translation!.isNotEmpty).length;
+    return (matched, totalLines);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final candidates = provider.translationCandidates;
+    final current = provider.translationResult;
+    // Use provider.lyrics — the actual displayed list (rich sync stripped
+    // when disabled) — so coverage reflects exactly what the user sees.
+    final displayLyrics = provider.lyrics;
+
+    if (candidates.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.translate_rounded,
+              color: Colors.white.withValues(alpha: 0.3),
+              size: 40,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              provider.isFetching
+                  ? 'Searching translations...'
+                  : 'No alternatives found',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+      itemCount: candidates.length,
+      itemBuilder: (context, index) {
+        final candidate = candidates[index];
+        final isActive = _isActive(candidate, current);
+        final (matched, total) = _coverage(candidate, displayLyrics);
+        return _TranslationTile(
+          candidate: candidate,
+          isActive: isActive,
+          matchedLines: matched,
+          totalLines: total,
+          onSelect: () {
+            provider.selectTranslationCandidate(candidate);
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lyrics candidate tile
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _CandidateTile extends StatelessWidget {
   final LyricsResult candidate;
@@ -242,7 +501,6 @@ class _CandidateTile extends StatelessWidget {
     required this.onSelect,
   });
 
-  /// Try to map source string to provider type for badge colour.
   LyricProviderType? _providerType() {
     final src = candidate.source.toLowerCase();
     if (src.contains('lrclib')) return LyricProviderType.lrclib;
@@ -313,13 +571,10 @@ class _CandidateTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row: badges + active checkmark
               Row(
                 children: [
-                  // Provider badge
                   _Badge(label: providerName, color: providerColor),
                   const SizedBox(width: 6),
-                  // Sync-type badge
                   _Badge(
                     label: _syncLabel(),
                     icon: _syncIcon(),
@@ -335,7 +590,6 @@ class _CandidateTile extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              // Lyric preview
               Text(
                 _preview(),
                 style: TextStyle(
@@ -346,7 +600,6 @@ class _CandidateTile extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              // Optional: line count
               const SizedBox(height: 6),
               Text(
                 candidate.isPureMusic
@@ -364,6 +617,216 @@ class _CandidateTile extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Translation candidate tile
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TranslationTile extends StatelessWidget {
+  final LyricsResult candidate;
+  final bool isActive;
+  final int matchedLines;
+  final int totalLines;
+  final VoidCallback onSelect;
+
+  const _TranslationTile({
+    required this.candidate,
+    required this.isActive,
+    required this.matchedLines,
+    required this.totalLines,
+    required this.onSelect,
+  });
+
+  LyricProviderType? _providerType() {
+    final src = (candidate.translationProvider ?? '').toLowerCase();
+    if (src.contains('netease')) return LyricProviderType.netease;
+    if (src.contains('qqmusic') || src.contains('qq')) {
+      return LyricProviderType.qqmusic;
+    }
+    if (src.contains('musixmatch')) return LyricProviderType.musixmatch;
+    if (src.contains('llm')) return LyricProviderType.llm;
+    if (src.contains('cache')) return LyricProviderType.cache;
+    return null;
+  }
+
+  /// Return the first non-empty translated line as a preview.
+  String _preview() {
+    if (candidate.rawTranslation == null) return '(no preview)';
+    final first = candidate.rawTranslation!
+        .where((m) => (m['translated'] ?? '').trim().isNotEmpty)
+        .take(2)
+        .map((m) => m['translated']!.trim())
+        .join('  /  ');
+    return first.isEmpty ? '(no preview)' : first;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final providerType = _providerType();
+    final providerColor = providerType != null
+        ? (providerType.metadata['color'] as Color)
+        : Colors.teal;
+
+    final providerLabel = (candidate.translationProvider ?? 'Unknown')
+        .replaceAll(' (cached)', '');
+    final langLabel = candidate.language?.toUpperCase() ?? '?';
+
+    final coverage = totalLines == 0 ? 0.0 : matchedLines / totalLines;
+
+    return GestureDetector(
+      onTap: isActive ? null : onSelect,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        decoration: BoxDecoration(
+          color: isActive
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isActive
+                ? Colors.white.withValues(alpha: 0.35)
+                : Colors.white.withValues(alpha: 0.06),
+            width: isActive ? 1.5 : 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Top row: provider + language badge + checkmark ──────
+              Row(
+                children: [
+                  _Badge(label: providerLabel, color: providerColor),
+                  const SizedBox(width: 6),
+                  _Badge(
+                    label: langLabel,
+                    icon: Icons.translate_rounded,
+                    color: Colors.teal,
+                  ),
+                  if (candidate.translationContributor != null) ...[
+                    const SizedBox(width: 6),
+                    _Badge(
+                      label: candidate.translationContributor!,
+                      color: Colors.blueGrey,
+                    ),
+                  ],
+                  const Spacer(),
+                  if (isActive)
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      size: 18,
+                    ),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              // ── Coverage bar ────────────────────────────────────────
+              _CoverageBar(
+                matched: matchedLines,
+                total: totalLines,
+                fraction: coverage,
+              ),
+
+              const SizedBox(height: 10),
+
+              // ── Translation preview ─────────────────────────────────
+              Text(
+                _preview(),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: isActive ? 0.85 : 0.50),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Coverage bar widget
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CoverageBar extends StatelessWidget {
+  final int matched;
+  final int total;
+  final double fraction; // 0.0 – 1.0
+
+  const _CoverageBar({
+    required this.matched,
+    required this.total,
+    required this.fraction,
+  });
+
+  Color _barColor() {
+    if (fraction >= 0.9) return Colors.greenAccent;
+    if (fraction >= 0.6) return Colors.lightGreenAccent;
+    if (fraction >= 0.35) return Colors.amber;
+    return Colors.redAccent;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _barColor();
+    final pct = (fraction * 100).round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.align_vertical_bottom_rounded,
+              size: 11,
+              color: Colors.white.withValues(alpha: 0.4),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '$matched / $total lines matched',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 11,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '$pct%',
+              style: TextStyle(
+                color: color.withValues(alpha: 0.9),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: fraction.clamp(0.0, 1.0),
+            minHeight: 4,
+            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              color.withValues(alpha: 0.75),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared badge
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _Badge extends StatelessWidget {
   final String label;

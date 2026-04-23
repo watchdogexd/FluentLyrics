@@ -160,6 +160,9 @@ class LyricsProvider with ChangeNotifier {
   /// point, so the pause skips waiting and continues immediately.
   bool _candidateSheetOpenedEarly = false;
 
+  // Translation candidates
+  List<LyricsResult> _translationCandidates = [];
+
   MediaControlAbility _controlAbility = MediaControlAbility.none();
   DateTime? _playbackToggleLockedUntil;
 
@@ -303,6 +306,7 @@ class LyricsProvider with ChangeNotifier {
   // Candidates getters
   List<LyricsResult> get candidates => _candidates;
   bool get isPausedForCandidates => _isPausedForCandidates;
+  List<LyricsResult> get translationCandidates => _translationCandidates;
 
   final Duration _interludeOffset = Duration(
     milliseconds: 500, // auto scroll takes 500ms
@@ -819,6 +823,7 @@ class LyricsProvider with ChangeNotifier {
       _isPausedForCandidates = false;
       _candidateSheetOpenedEarly = false;
       _candidates = [];
+      _translationCandidates = [];
 
       if (_currentMetadata != null) {
         if (_currentMetadata!.duration.inSeconds > 0) {
@@ -878,6 +883,7 @@ class LyricsProvider with ChangeNotifier {
     _candidateSheetOpenedEarly = false;
     _candidatePauseCompleter?.complete(false);
     _candidatePauseCompleter = null;
+    _translationCandidates = [];
     artworkUrlsNotifier.value = [];
     notifyListeners();
 
@@ -899,33 +905,50 @@ class LyricsProvider with ChangeNotifier {
         trimMetadataProviders: _trimMetadataProviders.current,
         richSyncEnabled: _richSyncEnabled.current,
         onTranslation: (trans) {
-          if (_translationEnabled.current &&
-              _translationResult == null &&
-              trans.language != null) {
-            String lowercaseTransLang = trans.language!.toLowerCase();
-            bool match = false;
-            for (var target in _translationTargetLanguages.current) {
-              if (target.toLowerCase() == lowercaseTransLang) {
-                match = true;
-                break;
-              }
+          if (!_translationEnabled.current ||
+              trans.rawTranslation!.isEmpty ||
+              trans.language == null) {
+            return;
+          }
+
+          String lowercaseTransLang = trans.language!.toLowerCase();
+          bool match = false;
+          for (var target in _translationTargetLanguages.current) {
+            if (target.toLowerCase() == lowercaseTransLang) {
+              match = true;
+              break;
             }
-            if (match || _translationTargetLanguages.current.isEmpty) {
-              _translationResult = trans;
-              notifyListeners();
-              if (_cacheEnabled.current &&
-                  (trans.translation || trans.source == 'SKIPPED')) {
-                final cacheId = _cacheService.generateTranslationCacheId(
-                  metadata.title,
-                  metadata.artist,
-                  trans.language!,
+          }
+          if (!match) return;
+
+          // save to translation candidates
+          final isDuplicate = _translationCandidates.any(
+            (c) =>
+                c.translationProvider == trans.translationProvider &&
+                c.language == trans.language,
+          );
+          if (!isDuplicate) {
+            _translationCandidates = List.unmodifiable([
+              ..._translationCandidates,
+              trans,
+            ]);
+          }
+
+          if (_translationResult == null) {
+            _translationResult = trans;
+            notifyListeners();
+            if (_cacheEnabled.current &&
+                (trans.translation || trans.source == 'SKIPPED')) {
+              final cacheId = _cacheService.generateTranslationCacheId(
+                metadata.title,
+                metadata.artist,
+                trans.language!,
+              );
+              _cacheService.cacheTranslation(cacheId, trans).then((_) {
+                debugPrint(
+                  'Cached translation from ${trans.source} for ${metadata.title} - ${metadata.artist.join(', ')}',
                 );
-                _cacheService.cacheTranslation(cacheId, trans).then((_) {
-                  debugPrint(
-                    'Cached translation from ${trans.source} for ${metadata.title} - ${metadata.artist.join(', ')}',
-                  );
-                });
-              }
+              });
             }
           }
         },
@@ -1007,6 +1030,21 @@ class LyricsProvider with ChangeNotifier {
           album: metadata.album,
           durationSeconds: metadata.duration.inSeconds,
           isCancelled: () => !metadata.isSameTrack(_currentMetadata),
+          onTranslationCandidate: (trans) {
+            if (!metadata.isSameTrack(_currentMetadata)) return;
+            final isDuplicate = _translationCandidates.any(
+              (c) =>
+                  c.translationProvider == trans.translationProvider &&
+                  c.language == trans.language,
+            );
+            if (!isDuplicate) {
+              _translationCandidates = List.unmodifiable([
+                ..._translationCandidates,
+                trans,
+              ]);
+              notifyListeners();
+            }
+          },
         );
 
         await for (var transResult in transStream) {
@@ -1087,6 +1125,29 @@ class LyricsProvider with ChangeNotifier {
       );
       debugPrint(
         '[LyricsProvider] Candidate from ${candidate.source} saved to cache.',
+      );
+    }
+  }
+
+  /// Replaces the current translation with [candidate] and persists it to the
+  /// Isar cache so subsequent loads use this selection.
+  Future<void> selectTranslationCandidate(LyricsResult candidate) async {
+    if (_currentMetadata == null) return;
+    _translationResult = candidate;
+    _cachedAlignedLyrics = null; // Invalidate alignment cache.
+    _updateCurrentIndex();
+    notifyListeners();
+
+    if (_cacheEnabled.current && candidate.language != null) {
+      final targetLanguage = candidate.language!;
+      final cacheId = _cacheService.generateTranslationCacheId(
+        _currentMetadata!.title,
+        _currentMetadata!.artist,
+        targetLanguage,
+      );
+      await _cacheService.cacheTranslation(cacheId, candidate);
+      debugPrint(
+        '[LyricsProvider] Translation candidate from ${candidate.translationProvider} saved to cache.',
       );
     }
   }

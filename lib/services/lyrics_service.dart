@@ -245,6 +245,9 @@ class LyricsService {
     required String album,
     required int durationSeconds,
     bool Function()? isCancelled,
+    /// Called for every provider that returns a valid translation (not just the
+    /// first winner). Used to populate the translation candidate list.
+    void Function(LyricsResult)? onTranslationCandidate,
   }) async* {
     debugPrint(
       '[LyricsService.fetchTranslation] Fetching translation for $title - ${artist.join(', ')}',
@@ -262,7 +265,6 @@ class LyricsService {
         (await _settingsService.getUseStandardLyricsForPairingProviders())
             .current;
     final priority = await _settingsService.getPriority();
-    // debugPrint('Priority: $priority');
 
     if (targetLanguages.isEmpty ||
         bestResult.lyrics.isEmpty ||
@@ -302,6 +304,9 @@ class LyricsService {
       );
       return;
     }
+
+    LyricsResult? firstYielded;
+
     // Iterate translation providers
     for (var targetLanguage in targetLanguages) {
       LyricsResult? transResult;
@@ -388,7 +393,14 @@ class LyricsService {
           debugPrint('[LyricsService.fetchTranslation]       ==> [!] Failed');
           transResult = null;
           continue;
-        } else if (!cachedResult) {
+        }
+
+        // Report as a candidate regardless of cache/first status.
+        if (transResult.translation) {
+          onTranslationCandidate?.call(transResult);
+        }
+
+        if (!cachedResult) {
           // New translation found, cache it if enabled
           debugPrint(
             '[LyricsService.fetchTranslation]       ==> New translation received',
@@ -406,19 +418,22 @@ class LyricsService {
             );
             await _cacheService.cacheTranslation(cacheId, transResult);
           }
-          break;
+          // Continue to next provider to collect more candidates; only yield
+          // the first successful result for the actual display (auto-pick).
         } else if (cachedResult) {
           debugPrint(
             '[LyricsService.fetchTranslation]       ==> Found cached translation, breaking',
           );
+          // Cached result: treat as first winner and stop the inner loop.
           break;
-        } else {
-          // wut
         }
       }
       if (transResult != null && transResult.translation) {
-        yield transResult;
-        break;
+        // Yield the first result for display (first-wins for auto mode).
+        if (firstYielded == null) {
+          firstYielded = transResult;
+          yield transResult;
+        }
       } else if (transResult != null && transResult.source == 'SKIPPED') {
         debugPrint(
           '[LyricsService.fetchTranslation]       ==> Translation skipped by provider',
@@ -428,3 +443,4 @@ class LyricsService {
     }
   }
 }
+
