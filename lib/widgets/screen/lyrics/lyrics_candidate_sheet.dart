@@ -64,10 +64,7 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet>
     if (newShow != _showTranslationTab) {
       // Rebuild the TabController with the new length.
       final old = _tabController;
-      _tabController = TabController(
-        length: newShow ? 2 : 1,
-        vsync: this,
-      );
+      _tabController = TabController(length: newShow ? 2 : 1, vsync: this);
       old.dispose();
       _showTranslationTab = newShow;
     }
@@ -167,8 +164,7 @@ class _LyricsCandidateSheetState extends State<_LyricsCandidateSheet>
                       _TabBar(
                         controller: _tabController,
                         lyricsCount: provider.candidates.length,
-                        translationCount:
-                            provider.translationCandidates.length,
+                        translationCount: provider.translationCandidates.length,
                       ),
                       const Divider(color: Colors.white12, height: 1),
                     ],
