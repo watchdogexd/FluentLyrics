@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../providers/lyrics_provider.dart';
 import '../../../screens/settings_screen.dart';
 import 'delayed_loading_image.dart';
+import 'lyrics_candidate_sheet.dart';
 
 class LyricsHeader extends StatelessWidget {
   final LyricsProvider provider;
@@ -65,6 +66,7 @@ class LyricsHeader extends StatelessWidget {
             onPressed: onRefresh,
             tooltip: 'Clear cache & reload',
           ),
+          _CandidatesButton(provider: provider),
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () {
@@ -132,6 +134,7 @@ class LyricsHeader extends StatelessWidget {
                 onPressed: onRefresh,
                 tooltip: 'Clear cache & reload',
               ),
+              _CandidatesButton(provider: provider, iconSize: 28),
               IconButton(
                 icon: const Icon(Icons.settings, color: Colors.white),
                 iconSize: 28,
@@ -189,6 +192,90 @@ class LyricsHeader extends StatelessWidget {
               },
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// Icon button that opens the lyrics candidate picker sheet.
+/// Shows an animated pulsing dot when the stream is paused awaiting user input.
+class _CandidatesButton extends StatelessWidget {
+  final LyricsProvider provider;
+  final double? iconSize;
+
+  const _CandidatesButton({required this.provider, this.iconSize});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCandidates = provider.candidates.isNotEmpty;
+    final isPaused = provider.isPausedForCandidates;
+
+    return Stack(
+      alignment: Alignment.topRight,
+      children: [
+        IconButton(
+          icon: Icon(
+            Icons.library_music_rounded,
+            color: hasCandidates
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.35),
+          ),
+          iconSize: iconSize ?? 24,
+          tooltip: 'Choose lyrics',
+          onPressed: hasCandidates || isPaused
+              ? () => showLyricsCandidateSheet(context, provider)
+              : null,
+        ),
+        if (isPaused)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: _PulseDot(),
+          ),
+      ],
+    );
+  }
+}
+
+class _PulseDot extends StatefulWidget {
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _anim,
+      child: Container(
+        width: 7,
+        height: 7,
+        decoration: const BoxDecoration(
+          color: Colors.amber,
+          shape: BoxShape.circle,
         ),
       ),
     );

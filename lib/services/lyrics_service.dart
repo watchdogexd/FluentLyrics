@@ -28,10 +28,18 @@ class LyricsService {
     required String album,
     required int durationSeconds,
     Function(String)? onStatusUpdate,
+    Function(bool)? onFetchStatusUpdate,
     bool Function()? isCancelled,
     required List<LyricProviderType> trimMetadataProviders,
     required bool richSyncEnabled,
     Function(LyricsResult)? onTranslation,
+
+    /// Called for every provider result that has lyrics (not only the current best).
+    void Function(LyricsResult)? onCandidate,
+
+    /// Called once when we would normally break early (good-enough result found).
+    /// Awaited: return true to continue fetching remaining providers, false to stop.
+    Future<bool> Function()? onPauseForCandidates,
   }) async* {
     debugPrint(
       '[LyricsService.fetchLyrics] Fetching lyrics for $title - ${artist.join(', ')}',
@@ -126,6 +134,9 @@ class LyricsService {
       }
 
       if (result.lyrics.isNotEmpty || result.isPureMusic) {
+        // Report every provider result as a candidate (not just the best).
+        onCandidate?.call(result);
+
         bool newBetter = false;
         if (bestResult == null) {
           // this is the first valid result
@@ -193,14 +204,38 @@ class LyricsService {
         }
       }
 
-      if (bestResult != null &&
+      // Early-exit when we already have a high-quality result.
+      // If onPauseForCandidates is provided, pause here (once) so the user can
+      // open the candidates panel; resolving true continues remaining providers.
+      final bool isGoodEnough =
+          bestResult != null &&
           (bestResult.isPureMusic ||
               (bestResult.lyrics.isNotEmpty &&
                   ((bestResult.isRichSync && richSyncEnabled) ||
-                      (!richSyncEnabled && bestResult.isSynced))))) {
-        break;
+                      (!richSyncEnabled && bestResult.isSynced))));
+
+      if (isGoodEnough) {
+        if (onPauseForCandidates != null) {
+          debugPrint(
+            '[LyricsService.fetchLyrics]     ==> Good result found; pausing for candidate selection',
+          );
+          onFetchStatusUpdate?.call(false);
+          final shouldContinue = await onPauseForCandidates();
+          // Only pause once; clear callback effect by treating this as done.
+          onPauseForCandidates = null;
+          onFetchStatusUpdate?.call(true);
+          if (!shouldContinue) {
+            break;
+          }
+          debugPrint(
+            '[LyricsService.fetchLyrics]     ==> Resuming fetch for remaining providers',
+          );
+        } else {
+          break;
+        }
       }
     }
+    onFetchStatusUpdate?.call(false);
   }
 
   Stream<LyricsResult> fetchTranslation({

@@ -147,8 +147,18 @@ class LyricsProvider with ChangeNotifier {
   int _currentIndex = -1;
   bool _isPlaying = false;
   bool _isLoading = false;
+  bool _isFetching = false;
   bool _androidPermissionGranted = !Platform.isAndroid;
   String _loadingStatus = '';
+
+  // Candidates
+  List<LyricsResult> _candidates = [];
+  bool _isPausedForCandidates = false;
+  Completer<bool>? _candidatePauseCompleter;
+
+  /// Set to true when the sheet is opened before the stream reaches the pause
+  /// point, so the pause skips waiting and continues immediately.
+  bool _candidateSheetOpenedEarly = false;
 
   MediaControlAbility _controlAbility = MediaControlAbility.none();
   DateTime? _playbackToggleLockedUntil;
@@ -197,12 +207,13 @@ class LyricsProvider with ChangeNotifier {
 
   List<Lyric> get lyrics {
     final curRichSync = _richSyncEnabled.current;
-    
+
     List<Lyric> baseLyrics;
     if (curRichSync) {
       baseLyrics = _lyricsResult.lyrics;
     } else {
-      if (_cachedStrippedLyrics != null && _lastLyricsResultForStripping == _lyricsResult) {
+      if (_cachedStrippedLyrics != null &&
+          _lastLyricsResultForStripping == _lyricsResult) {
         baseLyrics = _cachedStrippedLyrics!;
       } else {
         baseLyrics = _stripRichSync(_lyricsResult.lyrics);
@@ -283,10 +294,15 @@ class LyricsProvider with ChangeNotifier {
 
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
+  bool get isFetching => _isFetching;
   bool get androidPermissionGranted => _androidPermissionGranted;
   String get loadingStatus => _loadingStatus;
   MediaControlAbility get controlAbility => _controlAbility;
   final ValueNotifier<List<String>> artworkUrlsNotifier = ValueNotifier([]);
+
+  // Candidates getters
+  List<LyricsResult> get candidates => _candidates;
+  bool get isPausedForCandidates => _isPausedForCandidates;
 
   final Duration _interludeOffset = Duration(
     milliseconds: 500, // auto scroll takes 500ms
@@ -797,6 +813,13 @@ class LyricsProvider with ChangeNotifier {
       metadataChanged = true;
       _trackOffset = Duration.zero;
 
+      // Cancel any pending candidate pause for the old track.
+      _candidatePauseCompleter?.complete(false);
+      _candidatePauseCompleter = null;
+      _isPausedForCandidates = false;
+      _candidateSheetOpenedEarly = false;
+      _candidates = [];
+
       if (_currentMetadata != null) {
         if (_currentMetadata!.duration.inSeconds > 0) {
           _fetchLyrics(_currentMetadata!);
@@ -845,10 +868,16 @@ class LyricsProvider with ChangeNotifier {
   }
 
   Future<void> _fetchLyrics(MediaMetadata metadata) async {
+    _isFetching = true;
     _isLoading = true;
     _loadingStatus = 'Starting search...';
     _lyricsResult = LyricsResult.empty();
     _translationResult = null;
+    _candidates = [];
+    _isPausedForCandidates = false;
+    _candidateSheetOpenedEarly = false;
+    _candidatePauseCompleter?.complete(false);
+    _candidatePauseCompleter = null;
     artworkUrlsNotifier.value = [];
     notifyListeners();
 
@@ -860,6 +889,10 @@ class LyricsProvider with ChangeNotifier {
         durationSeconds: metadata.duration.inSeconds,
         onStatusUpdate: (status) {
           _loadingStatus = status;
+          notifyListeners();
+        },
+        onFetchStatusUpdate: (status) {
+          _isFetching = status;
           notifyListeners();
         },
         isCancelled: () => !metadata.isSameTrack(_currentMetadata),
@@ -895,6 +928,32 @@ class LyricsProvider with ChangeNotifier {
               }
             }
           }
+        },
+        onCandidate: (candidate) {
+          if (!metadata.isSameTrack(_currentMetadata)) return;
+          // Avoid duplicates: same source + sync type.
+          final isDuplicate = _candidates.any(
+            (c) =>
+                c.source == candidate.source &&
+                c.isSynced == candidate.isSynced &&
+                c.isRichSync == candidate.isRichSync,
+          );
+          if (!isDuplicate) {
+            _candidates = List.unmodifiable([..._candidates, candidate]);
+            notifyListeners();
+          }
+        },
+        onPauseForCandidates: () async {
+          if (!metadata.isSameTrack(_currentMetadata)) return false;
+          // If the sheet was opened before we reached this point, skip waiting.
+          if (_candidateSheetOpenedEarly) {
+            _candidateSheetOpenedEarly = false;
+            return true;
+          }
+          _candidatePauseCompleter = Completer<bool>();
+          _isPausedForCandidates = true;
+          notifyListeners();
+          return _candidatePauseCompleter!.future;
         },
       );
 
@@ -962,9 +1021,73 @@ class LyricsProvider with ChangeNotifier {
       _loadingStatus = 'Error: $e';
     } finally {
       if (metadata.isSameTrack(_currentMetadata)) {
+        _isPausedForCandidates = false;
+        _candidatePauseCompleter?.complete(false);
+        _candidatePauseCompleter = null;
         _isLoading = false;
         notifyListeners();
       }
+    }
+  }
+
+  /// Called when the user opens the candidates sheet.
+  /// If the stream is already paused, completes the Completer to resume.
+  /// If the stream hasn't reached the pause point yet, sets a flag so it
+  /// skips the wait when it eventually does.
+  void resumeCandidateFetch() {
+    if (_isPausedForCandidates && _candidatePauseCompleter != null) {
+      // Already paused — wake it up.
+      _isPausedForCandidates = false;
+      _candidatePauseCompleter!.complete(true);
+      _candidatePauseCompleter = null;
+      notifyListeners();
+    } else if (!_isPausedForCandidates && _candidatePauseCompleter == null) {
+      // Sheet opened before the stream reached the pause point.
+      _candidateSheetOpenedEarly = true;
+    }
+  }
+
+  /// Replaces the current lyrics display with [candidate] and persists it to
+  /// the Isar cache so subsequent loads use this selection.
+  Future<void> selectCandidate(LyricsResult candidate) async {
+    if (_currentMetadata == null) return;
+
+    // Cancel any ongoing candidate fetch for this track.
+    _candidatePauseCompleter?.complete(false);
+    _candidatePauseCompleter = null;
+    _isPausedForCandidates = false;
+
+    // Trim and prepend silence if needed (mirrors _fetchLyrics behaviour).
+    LyricsResult result = candidate.trim();
+    if (result.lyrics.isNotEmpty &&
+        result.lyrics[0].startTime > const Duration(seconds: 3)) {
+      final newLyrics = List<Lyric>.from(result.lyrics);
+      newLyrics.insert(
+        0,
+        Lyric(
+          text: '',
+          startTime: Duration.zero,
+          endTime: result.lyrics[0].startTime,
+        ),
+      );
+      result = result.copyWith(lyrics: newLyrics);
+    }
+
+    _lyricsResult = result;
+    _updateCurrentIndex();
+    notifyListeners();
+
+    if (_cacheEnabled.current) {
+      await _cacheService.cacheLyrics(
+        _currentMetadata!.title,
+        _currentMetadata!.artist,
+        _currentMetadata!.album,
+        _currentMetadata!.duration.inSeconds,
+        candidate, // store the raw (un-trimmed) result so re-loads are consistent
+      );
+      debugPrint(
+        '[LyricsProvider] Candidate from ${candidate.source} saved to cache.',
+      );
     }
   }
 
