@@ -164,7 +164,7 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
           alignment: Alignment.center,
           transform: Matrix4.identity()
             ..rotateZ(rot)
-            ..scale(frag.scale),
+            ..scaleByDouble(frag.scale, frag.scale, frag.scale, frag.scale),
           child: Opacity(
             opacity: 0.7,
             child: Image(
