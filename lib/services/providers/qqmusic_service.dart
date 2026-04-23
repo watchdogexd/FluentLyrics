@@ -39,9 +39,9 @@ class QQMusicService {
 
       for (int i = 0; i < lyricEmptyRetryCount; i++) {
         // 3. Fetch Lyrics
-        final songMid = bestMatch[0].data['mid'] as String;
+        final songMid = bestMatch[i].data['mid'] as String;
         // Extract album mid for artwork if available
-        final albumMid = bestMatch[0].data['album']?['mid'] as String?;
+        final albumMid = bestMatch[i].data['album']?['mid'] as String?;
         if (albumMid != null && albumMid.isNotEmpty) {
           onArtworkUrl?.call(
             'https://y.gtimg.cn/music/photo_new/T002R300x300M000$albumMid.jpg',
