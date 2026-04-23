@@ -39,7 +39,9 @@ class NeteaseService {
         return LyricsResult.empty();
       }
 
-      for (int i = 0; i < lyricEmptyRetryCount; i++) {
+      final maxRetryCount = max(lyricEmptyRetryCount, matchingSongs.length);
+
+      for (int i = 0; i < maxRetryCount; i++) {
         final songId = matchingSongs[i].data['id'].toString();
         final artworkUrl =
             matchingSongs[i].data['al']?['picUrl'] ??

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../models/lyric_model.dart';
@@ -37,7 +38,9 @@ class QQMusicService {
         return LyricsResult.empty();
       }
 
-      for (int i = 0; i < lyricEmptyRetryCount; i++) {
+      final maxRetryCount = max(lyricEmptyRetryCount, bestMatch.length);
+
+      for (int i = 0; i < maxRetryCount; i++) {
         // 3. Fetch Lyrics
         final songMid = bestMatch[i].data['mid'] as String;
         // Extract album mid for artwork if available
