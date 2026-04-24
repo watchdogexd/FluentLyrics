@@ -39,7 +39,7 @@ class NeteaseService {
         return LyricsResult.empty();
       }
 
-      final maxRetryCount = max(lyricEmptyRetryCount, matchingSongs.length);
+      final maxRetryCount = min(lyricEmptyRetryCount, matchingSongs.length);
 
       for (int i = 0; i < maxRetryCount; i++) {
         final songId = matchingSongs[i].data['id'].toString();
@@ -62,10 +62,10 @@ class NeteaseService {
 
         if (lyricData == null) {
           onStatusUpdate?.call(
-            '[NeteaseMusic] No lyrics found for songId $songId, trying next song (${i + 1}/$lyricEmptyRetryCount)...',
+            '[NeteaseMusic] No lyrics found for songId $songId, trying next song (${i + 1}/$maxRetryCount)...',
           );
           debugPrint(
-            '[NeteaseMusic] No lyrics found for songId $songId, trying next song (${i + 1}/$lyricEmptyRetryCount)...',
+            '[NeteaseMusic] No lyrics found for songId $songId, trying next song (${i + 1}/$maxRetryCount)...',
           );
           continue;
         }

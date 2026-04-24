@@ -38,7 +38,7 @@ class QQMusicService {
         return LyricsResult.empty();
       }
 
-      final maxRetryCount = max(lyricEmptyRetryCount, bestMatch.length);
+      final maxRetryCount = min(lyricEmptyRetryCount, bestMatch.length);
 
       for (int i = 0; i < maxRetryCount; i++) {
         // 3. Fetch Lyrics
@@ -121,10 +121,10 @@ class QQMusicService {
         }
 
         onStatusUpdate?.call(
-          '[QQMusic] No lyrics found for songMid $songMid, trying next song (${i + 1}/$lyricEmptyRetryCount)...',
+          '[QQMusic] No lyrics found for songMid $songMid, trying next song (${i + 1}/$maxRetryCount)...',
         );
         debugPrint(
-          '[QQMusic] No lyrics found for songMid $songMid, trying next song (${i + 1}/$lyricEmptyRetryCount)...',
+          '[QQMusic] No lyrics found for songMid $songMid, trying next song (${i + 1}/$maxRetryCount)...',
         );
       }
 
