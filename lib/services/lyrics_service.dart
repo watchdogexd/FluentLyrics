@@ -45,8 +45,9 @@ class LyricsService {
       '[LyricsService.fetchLyrics] Fetching lyrics for $title - ${artist.join(', ')}',
     );
     final priority = await _settingsService.getPriority();
-    final cacheEnabledSetting = await _settingsService.getCacheEnabled();
-    final cacheEnabled = cacheEnabledSetting.current;
+    final cacheEnabled = (await _settingsService.getCacheEnabled()).current;
+    final translationEnabled =
+        (await _settingsService.getTranslationEnabled()).current;
 
     final translationBias =
         (await _settingsService.getTranslationBias()).current;
@@ -252,8 +253,7 @@ class LyricsService {
     debugPrint(
       '[LyricsService.fetchTranslation] Fetching translation for $title - ${artist.join(', ')}',
     );
-    final cacheEnabledSetting = await _settingsService.getCacheEnabled();
-    final cacheEnabled = cacheEnabledSetting.current;
+    final cacheEnabled = (await _settingsService.getCacheEnabled()).current;
 
     final targetLanguages =
         (await _settingsService.getTranslationTargetLanguages()).current;
