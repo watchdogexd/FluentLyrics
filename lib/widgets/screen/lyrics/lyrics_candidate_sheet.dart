@@ -337,6 +337,11 @@ class _LyricsTab extends StatelessWidget {
     final candidates = provider.candidates;
     final current = provider.lyricsResult;
 
+    // All rich-sync candidates that could be used as Richify sources.
+    final richSources = candidates
+        .where((c) => c.isRichSync)
+        .toList(growable: false);
+
     if (candidates.isEmpty) {
       return Center(
         child: Column(
@@ -369,13 +374,30 @@ class _LyricsTab extends StatelessWidget {
       itemBuilder: (context, index) {
         final candidate = candidates[index];
         final isActive = _isActive(candidate, current);
+
+        // Only synced (non-rich) tiles can be Richified.
+        final canRichify =
+            candidate.isSynced &&
+            !candidate.isRichSync &&
+            richSources.isNotEmpty;
+
         return _CandidateTile(
           candidate: candidate,
           isActive: isActive,
+          richSources: canRichify ? richSources : const [],
           onSelect: () {
             provider.selectCandidate(candidate);
             Navigator.of(context).pop();
           },
+          onRichify: canRichify
+              ? (richSource) async {
+                  await provider.richifyCandidate(
+                    syncedTarget: candidate,
+                    richSource: richSource,
+                  );
+                  if (context.mounted) Navigator.of(context).pop();
+                }
+              : null,
         );
       },
     );
@@ -495,10 +517,18 @@ class _CandidateTile extends StatelessWidget {
   final bool isActive;
   final VoidCallback onSelect;
 
+  /// Rich-sync candidates available as Richify sources. Empty = Richify hidden.
+  final List<LyricsResult> richSources;
+
+  /// Called with the chosen rich source when the user taps Richify.
+  final void Function(LyricsResult richSource)? onRichify;
+
   const _CandidateTile({
     required this.candidate,
     required this.isActive,
     required this.onSelect,
+    this.richSources = const [],
+    this.onRichify,
   });
 
   LyricProviderType? _providerType() {
@@ -541,6 +571,63 @@ class _CandidateTile extends StatelessWidget {
     return lines.isEmpty ? '(no lyrics)' : lines;
   }
 
+  /// Shows a source-picker dialog when multiple rich-sync candidates exist,
+  /// otherwise applies the only available source directly.
+  Future<void> _handleRichify(BuildContext context) async {
+    if (richSources.isEmpty || onRichify == null) return;
+    if (richSources.length == 1) {
+      onRichify!(richSources.first);
+      return;
+    }
+    // Multiple rich sources — let the user choose.
+    final chosen = await showDialog<LyricsResult>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Choose Rich Sync Source',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: richSources.map((src) {
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                src.source.replaceAll(' (cached)', ''),
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+              subtitle: Text(
+                '${src.lyrics.where((l) => l.inlineParts != null && l.inlineParts!.isNotEmpty).length} rich lines',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.45),
+                  fontSize: 11,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white38,
+              ),
+              onTap: () => Navigator.of(ctx).pop(src),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+    if (chosen != null) onRichify!(chosen);
+  }
+
   @override
   Widget build(BuildContext context) {
     final providerType = _providerType();
@@ -581,6 +668,11 @@ class _CandidateTile extends StatelessWidget {
                     color: _syncColor(),
                   ),
                   const Spacer(),
+                  // Richify button — only on synced, non-rich tiles
+                  if (richSources.isNotEmpty && onRichify != null) ...[
+                    _RichifyButton(onTap: () => _handleRichify(context)),
+                    const SizedBox(width: 8),
+                  ],
                   if (isActive)
                     Icon(
                       Icons.check_circle_rounded,
@@ -820,6 +912,55 @@ class _CoverageBar extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Richify button
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _RichifyButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _RichifyButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.amber.withValues(alpha: 0.25),
+              Colors.orange.withValues(alpha: 0.18),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.amber.withValues(alpha: 0.45)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_awesome_rounded,
+              size: 11,
+              color: Colors.amber.withValues(alpha: 0.9),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Richify',
+              style: TextStyle(
+                color: Colors.amber.withValues(alpha: 0.9),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

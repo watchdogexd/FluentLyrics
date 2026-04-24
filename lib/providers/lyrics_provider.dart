@@ -10,6 +10,7 @@ import '../services/lyrics_service.dart';
 import '../services/settings_service.dart';
 import '../services/providers/lyrics_cache_service.dart';
 import '../utils/translation_helper.dart';
+import '../utils/richify_helper.dart';
 
 class LyricsProvider with ChangeNotifier {
   final MediaService mediaService = MediaService.create();
@@ -1127,6 +1128,27 @@ class LyricsProvider with ChangeNotifier {
         '[LyricsProvider] Candidate from ${candidate.source} saved to cache.',
       );
     }
+  }
+
+  /// Merges word-level timing from [richSource] into [syncedTarget], producing
+  /// a new rich-synced result that is applied and cached immediately.
+  Future<void> richifyCandidate({
+    required LyricsResult syncedTarget,
+    required LyricsResult richSource,
+  }) async {
+    if (_currentMetadata == null) return;
+
+    final richified = RichifyHelper.apply(
+      syncedTarget: syncedTarget,
+      richSource: richSource,
+    );
+
+    // Add to the candidate list so it shows up (and is marked active) in the
+    // sheet after the user returns to it.
+    _candidates = List.unmodifiable([..._candidates, richified]);
+
+    // Reuse selectCandidate so trimming + silence prepending is consistent.
+    await selectCandidate(richified);
   }
 
   /// Replaces the current translation with [candidate] and persists it to the
