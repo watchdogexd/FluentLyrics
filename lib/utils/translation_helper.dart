@@ -3,6 +3,8 @@ import 'package:string_similarity/string_similarity.dart';
 import '../models/lyric_model.dart';
 
 class TranslationHelper {
+  static const int maxIndexMove = 3;
+
   static List<Map<String, String>> pair({
     required List<Lyric> originalLyrics,
     required List<Lyric> translatedLyrics,
@@ -84,6 +86,7 @@ class TranslationHelper {
           // );
 
           if (similarity > similarityThreshold) {
+            // debugPrint('Match found, transLine: "$translatedText"');
             newLyrics.add(
               Lyric(
                 startTime: line.startTime,
@@ -93,7 +96,9 @@ class TranslationHelper {
                 translation: translatedText,
               ),
             );
-            nextSearchStartIndex = i + 1;
+            if ((i + 1 - nextSearchStartIndex) < maxIndexMove) {
+              nextSearchStartIndex = i + 1;
+            }
             matched = true;
             break;
           }
