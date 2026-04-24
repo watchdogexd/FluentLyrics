@@ -171,7 +171,7 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
               image: ResizeImage(widget.artProvider, width: 128, height: 128),
               fit: BoxFit.cover,
               filterQuality: FilterQuality.medium,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
           ),
         ),
