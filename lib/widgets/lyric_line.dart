@@ -50,6 +50,11 @@ class LyricLine extends StatelessWidget {
         ? 0.0
         : (distance.abs() * 1.5).clamp(0.0, 4.0);
 
+    final bool shouldDisplayTranslation =
+        (isHighlighted || !lyricsProvider.translationHighlightOnly.current) &&
+        lyric.translation != null &&
+        lyric.translation!.isNotEmpty;
+
     TextStyle lineStyle = TextStyle(
       fontFamily: 'Outfit',
       fontSize: fontSize,
@@ -83,9 +88,7 @@ class LyricLine extends StatelessWidget {
               child: Builder(
                 builder: (context) {
                   final mainText = _buildText(context, lyricsProvider);
-                  if (lyric.translation == null ||
-                      (lyricsProvider.translationHighlightOnly.current &&
-                          !isHighlighted)) {
+                  if (!shouldDisplayTranslation) {
                     return mainText;
                   }
 
@@ -94,12 +97,10 @@ class LyricLine extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       mainText,
-                      isHighlighted ||
-                              !lyricsProvider.translationHighlightOnly.current
+                      shouldDisplayTranslation
                           ? const SizedBox(width: double.infinity, height: 8)
                           : const SizedBox(width: double.infinity, height: 0),
-                      isHighlighted ||
-                              !lyricsProvider.translationHighlightOnly.current
+                      shouldDisplayTranslation
                           ? AnimatedOpacity(
                               duration: const Duration(milliseconds: 500),
                               curve: Curves.easeOutQuart,
