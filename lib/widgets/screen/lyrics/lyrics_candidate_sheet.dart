@@ -444,6 +444,7 @@ class _TranslationTab extends StatelessWidget {
     final aligned = TranslationHelper.align(
       originalLyrics: contentfulLines,
       rawTranslation: trans.rawTranslation!,
+      similarityThreshold: provider.translationAlignmentThreshold.current,
     );
     final matched = aligned.where((l) => l.translation != null).length;
     return (matched, totalLines);
