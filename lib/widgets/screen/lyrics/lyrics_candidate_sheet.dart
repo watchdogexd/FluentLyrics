@@ -445,9 +445,7 @@ class _TranslationTab extends StatelessWidget {
       originalLyrics: contentfulLines,
       rawTranslation: trans.rawTranslation!,
     );
-    final matched = aligned
-        .where((l) => l.translation != null && l.translation!.isNotEmpty)
-        .length;
+    final matched = aligned.where((l) => l.translation != null).length;
     return (matched, totalLines);
   }
 
