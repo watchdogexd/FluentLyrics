@@ -55,8 +55,19 @@ class LyricsService {
         (await _settingsService.getUseStandardLyricsForPairingProviders())
             .current;
 
-    LyricsResult? bestResult;
+    // create a on translation wrapper that change translationReceived if called
+    bool translationReceived = false;
+    LyricsResult onTranslationWrapper(LyricsResult result) {
+      if (translationEnabled &&
+          result.translation &&
+          result.rawTranslation!.isNotEmpty) {
+        translationReceived = true;
+        onTranslation?.call(result);
+      }
+      return result;
+    }
 
+    LyricsResult? bestResult;
     for (var provider in priority) {
       debugPrint('[LyricsService.fetchLyrics]   ==> Fetching from $provider');
       if (isCancelled?.call() == true) {
@@ -112,7 +123,7 @@ class LyricsService {
           useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
             LyricProviderType.netease,
           ),
-          onTranslation: onTranslation,
+          onTranslation: onTranslationWrapper,
         );
       } else if (provider == LyricProviderType.qqmusic) {
         result = await _qqMusicService.fetchLyrics(
@@ -126,7 +137,7 @@ class LyricsService {
           useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
             LyricProviderType.qqmusic,
           ),
-          onTranslation: onTranslation,
+          onTranslation: onTranslationWrapper,
         );
       }
 
@@ -213,7 +224,8 @@ class LyricsService {
           (bestResult.isPureMusic ||
               (bestResult.lyrics.isNotEmpty &&
                   ((bestResult.isRichSync && richSyncEnabled) ||
-                      (!richSyncEnabled && bestResult.isSynced))));
+                      (!richSyncEnabled && bestResult.isSynced)))) &&
+          ((translationEnabled && translationReceived) || !translationEnabled);
 
       if (isGoodEnough) {
         if (onPauseForCandidates != null) {
@@ -246,6 +258,7 @@ class LyricsService {
     required String album,
     required int durationSeconds,
     bool Function()? isCancelled,
+
     /// Called for every provider that returns a valid translation (not just the
     /// first winner). Used to populate the translation candidate list.
     void Function(LyricsResult)? onTranslationCandidate,
@@ -443,4 +456,3 @@ class LyricsService {
     }
   }
 }
-
