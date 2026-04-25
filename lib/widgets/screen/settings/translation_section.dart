@@ -189,9 +189,9 @@ class LlmConfigurationCard extends StatelessWidget {
             initialValue: provider.llmApiEndpoint.current,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
-              labelText: 'API Endpoint',
+              labelText: 'OpenAI Compatible API Base URL',
               labelStyle: TextStyle(color: Colors.white54),
-              hintText: 'https://api.openai.com/v1/chat/completions',
+              hintText: 'https://api.openai.com/v1',
               hintStyle: TextStyle(color: Colors.white24),
               filled: true,
               fillColor: Colors.black26,

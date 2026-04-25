@@ -28,8 +28,7 @@ class AppDefaults {
   static const int translationBias = 50;
   static const int translationAlignmentThreshold = 80;
   static const String? musixmatchToken = null;
-  static const String llmApiEndpoint =
-      'https://dummy.endpoint.example/v1/chat/completions';
+  static const String llmApiEndpoint = 'https://dummy.endpoint.example/v1';
   static const String llmApiKey = 'sk-dummy';
   static const String llmModel = 'gpt-oss-120b';
   static const String llmReasoningEffort = 'auto';

@@ -23,17 +23,17 @@ class LlmTranslationService {
     String targetLanguage,
   ) async {
     try {
-      final endpoint = (await _settingsService.getLlmApiEndpoint()).current;
+      final baseURI = (await _settingsService.getLlmApiEndpoint()).current;
+      final baseURIParsed = Uri.parse(baseURI);
       final apiKey = (await _settingsService.getLlmApiKey()).current;
       final model = (await _settingsService.getLlmModel()).current;
 
-      if (endpoint.isEmpty || apiKey.isEmpty) {
+      if (baseURI.isEmpty || apiKey.isEmpty) {
         debugPrint('[LLM Translation] Endpoint or API Key is empty.');
         return LyricsResult.empty();
       }
       // check for dummy endpoint
-      final host = Uri.parse(endpoint).host;
-      if (host.contains('dummy.endpoint.example')) {
+      if (baseURIParsed.host.contains('dummy.endpoint.example')) {
         debugPrint('[LLM Translation] Endpoint is dummy, skipping.');
         return LyricsResult.empty();
       }
@@ -125,8 +125,12 @@ return new Response(
         requestBody['reasoning_effort'] = llmReasoningEffort;
       }
 
+      final requestURL = baseURIParsed.replace(
+        pathSegments: [...baseURIParsed.pathSegments, 'chat', 'completions'],
+      );
+
       final response = await http.post(
-        Uri.parse(endpoint),
+        requestURL,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $apiKey',
