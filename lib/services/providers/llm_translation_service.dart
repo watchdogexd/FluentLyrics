@@ -118,7 +118,7 @@ return new Response(
         ],
         'temperature': 0.35,
         'stream': false,
-        'max_tokens': 1000000,
+        'max_tokens': 16384,
       };
 
       if (llmReasoningEffort != 'auto') {
