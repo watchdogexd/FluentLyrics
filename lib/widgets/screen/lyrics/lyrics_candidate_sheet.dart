@@ -433,7 +433,13 @@ class _TranslationTab extends StatelessWidget {
   /// Count how many non-empty original lines have a matching translation.
   /// Returns (matched, total).
   (int, int) _coverage(LyricsResult trans, List<Lyric> displayLyrics) {
-    final contentfulLines = displayLyrics
+    final sanitizedDisplayLyrics = displayLyrics
+        .map(
+          (l) =>
+              Lyric(startTime: l.startTime, text: l.text, endTime: l.endTime),
+        )
+        .toList();
+    final contentfulLines = sanitizedDisplayLyrics
         .where((l) => l.text.trim().isNotEmpty)
         .toList();
     final totalLines = contentfulLines.length;
