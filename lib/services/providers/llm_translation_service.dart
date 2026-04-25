@@ -121,7 +121,9 @@ return new Response(
         'max_tokens': 16384,
       };
 
-      if (llmReasoningEffort != 'auto') {
+      if (llmReasoningEffort == 'none') {
+        requestBody['thinking'] = {'type': 'disabled'};
+      } else if (llmReasoningEffort != 'auto') {
         requestBody['reasoning_effort'] = llmReasoningEffort;
       }
 
