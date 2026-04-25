@@ -24,25 +24,30 @@ class LrcParseResult {
 class LrcParser {
   static LrcParseResult parse(String lrcContent, {bool trimMetadata = false}) {
     final List<Lyric> lyrics = [];
-    final RegExp regExp = RegExp(r'\[(\d+):(\d+\.\d+)\](.*)');
+    final RegExp timeTagExp = RegExp(r'\[(\d+):(\d+\.\d+)\]');
 
     final Map<String, String> lrcMetadata = {};
 
     for (final line in lrcContent.split('\n')) {
-      final match = regExp.firstMatch(line);
+      final timeMatches = timeTagExp.allMatches(line).toList();
       final tagMatch = RegExp(r'\[([a-zA-Z]+):(.*)\]').firstMatch(line);
 
-      if (match != null) {
-        final minutes = int.parse(match.group(1)!);
-        final seconds = double.parse(match.group(2)!);
-        final text = match.group(3)!.trim();
+      if (timeMatches.isNotEmpty) {
+        // Extract text after the last timestamp tag
+        final text = line.substring(timeMatches.last.end).trim();
 
-        final duration = Duration(
-          minutes: minutes,
-          milliseconds: (seconds * 1000).toInt(),
-        );
+        // Create a Lyric entry for each stacked timestamp
+        for (final match in timeMatches) {
+          final minutes = int.parse(match.group(1)!);
+          final seconds = double.parse(match.group(2)!);
 
-        lyrics.add(Lyric(startTime: duration, text: text));
+          final duration = Duration(
+            minutes: minutes,
+            milliseconds: (seconds * 1000).toInt(),
+          );
+
+          lyrics.add(Lyric(startTime: duration, text: text));
+        }
       } else if (tagMatch != null) {
         final key = tagMatch.group(1)!.trim();
         final value = tagMatch.group(2)!.trim();
