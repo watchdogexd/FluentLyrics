@@ -167,7 +167,9 @@ return new Response(
         }
       }
 
-      if (content == null) {
+      content = content?.trim();
+
+      if (content == null || content.isEmpty) {
         return LyricsResult.empty();
       }
 
