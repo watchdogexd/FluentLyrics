@@ -74,8 +74,8 @@ class LyricsService {
 
       LyricsResult result = LyricsResult.empty();
       final shouldTrimMetadata = trimMetadataProviders.contains(provider);
-      List<String> accumulatedArtworkUrls = [];
 
+      List<String> accumulatedArtworkUrls = [];
       void onArtworkUrl(String url) {
         if (url.isNotEmpty && !accumulatedArtworkUrls.contains(url)) {
           debugPrint(
