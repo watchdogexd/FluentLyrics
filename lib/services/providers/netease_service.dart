@@ -23,7 +23,6 @@ class NeteaseService {
     Function(String)? onStatusUpdate,
     bool trimMetadata = false,
     int translationBias = 0,
-    bool useStandardLyricsForPairing = false,
     Function(String)? onArtworkUrl,
     Function(LyricsResult)? onTranslation,
   }) async {
@@ -56,7 +55,6 @@ class NeteaseService {
           songId,
           trimMetadata,
           translationBias,
-          useStandardLyricsForPairing,
           onTranslation,
         );
 
@@ -81,7 +79,6 @@ class NeteaseService {
   Future<LyricsResult> fetchTranslation(
     GeneralTranslationRequestData data, {
     int translationBias = 0,
-    bool useStandardLyricsForPairing = false,
   }) async {
     try {
       LyricsResult? translationResult;
@@ -90,7 +87,6 @@ class NeteaseService {
         artist: data.artist,
         durationSeconds: data.durationSeconds,
         translationBias: translationBias,
-        useStandardLyricsForPairing: useStandardLyricsForPairing,
         onTranslation: (trans) {
           translationResult = trans;
         },
@@ -232,7 +228,6 @@ class NeteaseService {
     String songId,
     bool trimMetadata,
     int translationBias,
-    bool useStandardLyricsForPairing,
     Function(LyricsResult)? onTranslation,
   ) async {
     try {
@@ -261,25 +256,26 @@ class NeteaseService {
 
       final lyricData = jsonDecode(lyricResponse.body);
 
-      final String? lrc = lyricData['lrc']?['lyric'];
-      final String? yrc = lyricData['yrc']?['lyric'];
-      final String? tlyric = lyricData['tlyric']?['lyric'];
+      final String? syncedLRC = lyricData['lrc']?['lyric'];
+      final String? syncedTransLRC = lyricData['tlyric']?['lyric'];
+      final String? richSyncedYRC = lyricData['yrc']?['lyric'];
+      final String? richSyncedTransLRC = lyricData['ytlrc']?['lyric'];
       final bool isPureMusic = lyricData['pureMusic'] == true;
 
       final String? lyricContributor = lyricData['lyricUser']?['nickname'];
       final String? translationContributor =
           lyricData['transUser']?['nickname'];
 
-      if ((lrc != null && lrc.isNotEmpty) ||
-          (yrc != null && yrc.isNotEmpty) ||
-          (tlyric != null && tlyric.isNotEmpty) ||
+      if ((syncedLRC != null && syncedLRC.isNotEmpty) ||
+          (richSyncedYRC != null && richSyncedYRC.isNotEmpty) ||
+          (syncedTransLRC != null && syncedTransLRC.isNotEmpty) ||
           isPureMusic) {
         List<Lyric> richLyrics = [];
         List<Lyric> lyrics = [];
         Map<String, String> trimmedMetadata = {};
 
-        if (yrc != null && yrc.isNotEmpty) {
-          richLyrics = _NeteaseYrcParser.parse(yrc);
+        if (richSyncedYRC != null && richSyncedYRC.isNotEmpty) {
+          richLyrics = _NeteaseYrcParser.parse(richSyncedYRC);
           if (trimMetadata) {
             final trimResult = LrcParser.trimMetadataLines(richLyrics);
             richLyrics = trimResult.lyrics;
@@ -287,20 +283,31 @@ class NeteaseService {
           }
         }
 
-        if (lrc != null && lrc.isNotEmpty) {
-          final parseResult = LrcParser.parse(lrc, trimMetadata: trimMetadata);
+        if (syncedLRC != null && syncedLRC.isNotEmpty) {
+          final parseResult = LrcParser.parse(
+            syncedLRC,
+            trimMetadata: trimMetadata,
+          );
           lyrics = parseResult.lyrics;
           trimmedMetadata = parseResult.trimmedMetadata;
         }
 
-        if (tlyric != null && tlyric.isNotEmpty) {
-          final transParse = LrcParser.parse(tlyric);
-          if (transParse.lyrics.isNotEmpty) {
+        if (syncedTransLRC != null && syncedTransLRC.isNotEmpty) {
+          final List<Lyric> richSyncedTransLRCParse =
+              (richSyncedTransLRC != null && richSyncedTransLRC.isNotEmpty)
+              ? LrcParser.parse(richSyncedTransLRC).lyrics
+              : [];
+          final List<Lyric> transParse = richSyncedTransLRCParse.isNotEmpty
+              ? richSyncedTransLRCParse
+              : LrcParser.parse(syncedTransLRC).lyrics;
+          final List<Lyric> pairSourceLyrics = richLyrics.isNotEmpty
+              ? richLyrics
+              : lyrics;
+
+          if (transParse.isNotEmpty && pairSourceLyrics.isNotEmpty) {
             final rawTranslation = TranslationHelper.pair(
-              originalLyrics: useStandardLyricsForPairing
-                  ? lyrics
-                  : (richLyrics.isNotEmpty ? richLyrics : lyrics),
-              translatedLyrics: transParse.lyrics,
+              originalLyrics: pairSourceLyrics,
+              translatedLyrics: transParse,
               translationBias: translationBias,
             );
 

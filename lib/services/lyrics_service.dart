@@ -51,9 +51,6 @@ class LyricsService {
 
     final translationBias =
         (await _settingsService.getTranslationBias()).current;
-    final useStandardLyricsForPairing =
-        (await _settingsService.getUseStandardLyricsForPairingProviders())
-            .current;
 
     // create a on translation wrapper that change translationReceived if called
     bool translationReceived = false;
@@ -120,9 +117,6 @@ class LyricsService {
           onArtworkUrl: onArtworkUrl,
           trimMetadata: shouldTrimMetadata,
           translationBias: translationBias,
-          useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
-            LyricProviderType.netease,
-          ),
           onTranslation: onTranslationWrapper,
         );
       } else if (provider == LyricProviderType.qqmusic) {
@@ -134,9 +128,6 @@ class LyricsService {
           onStatusUpdate: onStatusUpdate,
           trimMetadata: shouldTrimMetadata,
           translationBias: translationBias,
-          useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
-            LyricProviderType.qqmusic,
-          ),
           onTranslation: onTranslationWrapper,
         );
       }
@@ -274,9 +265,6 @@ class LyricsService {
         (await _settingsService.getTranslationIgnoredLanguages()).current;
     final translationBias =
         (await _settingsService.getTranslationBias()).current;
-    final useStandardLyricsForPairing =
-        (await _settingsService.getUseStandardLyricsForPairingProviders())
-            .current;
     final priority = await _settingsService.getPriority();
 
     if (targetLanguages.isEmpty ||
@@ -354,9 +342,6 @@ class LyricsService {
           transResult = await _neteaseService.fetchTranslation(
             requestData,
             translationBias: translationBias,
-            useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
-              LyricProviderType.netease,
-            ),
           );
         } else if (tProvider == LyricProviderType.qqmusic) {
           if (!_qqMusicService.checkTranslationSupport(targetLanguage)) {
@@ -368,9 +353,6 @@ class LyricsService {
           transResult = await _qqMusicService.fetchTranslation(
             requestData,
             translationBias: translationBias,
-            useStandardLyricsForPairing: useStandardLyricsForPairing.contains(
-              LyricProviderType.qqmusic,
-            ),
           );
         } else if (tProvider == LyricProviderType.musixmatch) {
           if (!_musixmatchService.checkTranslationSupport(targetLanguage)) {

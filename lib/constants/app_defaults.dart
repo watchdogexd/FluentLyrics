@@ -35,9 +35,5 @@ class AppDefaults {
   static const String llmReasoningEffort = 'auto';
   static const bool keepScreenOn = true;
   static const bool backgroundMotionEnabled = true;
-  static const List<LyricProviderType> useStandardLyricsForPairingProviders = [
-    LyricProviderType.netease,
-    LyricProviderType.qqmusic,
-  ];
   static const bool experimentalRichInlineFontSizeGlitching = false;
 }

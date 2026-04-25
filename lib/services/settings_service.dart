@@ -21,8 +21,6 @@ class SettingsService {
   static const String _llmApiKeyKey = 'llm_api_key';
   static const String _llmModelKey = 'llm_model';
   static const String _keepScreenOnKey = 'keep_screen_on';
-  static const String _useStandardLyricsForPairingProvidersKey =
-      'use_standard_lyrics_for_pairing_providers';
   static const String _backgroundMotionEnabledKey = 'background_motion_enabled';
   static const String _experimentalRichInlineFontSizeGlitchingKey =
       'experimental_rich_inline_font_size_glitching';
@@ -501,45 +499,6 @@ class SettingsService {
     await prefs.setBool(_backgroundMotionEnabledKey, enabled);
   }
 
-  Future<Setting<List<LyricProviderType>>>
-  getUseStandardLyricsForPairingProviders() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getStringList(_useStandardLyricsForPairingProvidersKey);
-
-    if (saved == null) {
-      return const Setting(
-        current: AppDefaults.useStandardLyricsForPairingProviders,
-        defaultValue: AppDefaults.useStandardLyricsForPairingProviders,
-        changed: false,
-      );
-    }
-
-    final savedList = saved
-        .map((e) => LyricProviderType.values.where((v) => v.name == e))
-        .where((matches) => matches.isNotEmpty)
-        .map((matches) => matches.first)
-        .toList();
-
-    return Setting(
-      current: savedList,
-      defaultValue: AppDefaults.useStandardLyricsForPairingProviders,
-      changed: !listEquals(
-        savedList,
-        AppDefaults.useStandardLyricsForPairingProviders,
-      ),
-    );
-  }
-
-  Future<void> setUseStandardLyricsForPairingProviders(
-    List<LyricProviderType> providers,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-      _useStandardLyricsForPairingProvidersKey,
-      providers.map((e) => e.name).toList(),
-    );
-  }
-  
   Future<Setting<bool>> getExperimentalRichInlineFontSizeGlitching() async {
     final prefs = await SharedPreferences.getInstance();
     final current =

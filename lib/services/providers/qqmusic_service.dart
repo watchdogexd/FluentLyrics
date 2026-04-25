@@ -21,7 +21,6 @@ class QQMusicService {
     Function(String)? onStatusUpdate,
     bool trimMetadata = false,
     int translationBias = 0,
-    bool useStandardLyricsForPairing = false,
     Function(String)? onArtworkUrl,
     Function(LyricsResult)? onTranslation,
   }) async {
@@ -138,7 +137,6 @@ class QQMusicService {
   Future<LyricsResult> fetchTranslation(
     GeneralTranslationRequestData data, {
     int translationBias = 0,
-    bool useStandardLyricsForPairing = false,
   }) async {
     try {
       LyricsResult? translationResult;
@@ -147,7 +145,6 @@ class QQMusicService {
         artist: data.artist,
         durationSeconds: data.durationSeconds,
         translationBias: translationBias,
-        useStandardLyricsForPairing: useStandardLyricsForPairing,
         onTranslation: (trans) {
           translationResult = trans;
         },

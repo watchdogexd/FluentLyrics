@@ -132,12 +132,6 @@ class LyricsProvider with ChangeNotifier {
     defaultValue: AppDefaults.backgroundMotionEnabled,
     changed: false,
   );
-  Setting<List<LyricProviderType>> _useStandardLyricsForPairingProviders =
-      const Setting(
-        current: AppDefaults.useStandardLyricsForPairingProviders,
-        defaultValue: AppDefaults.useStandardLyricsForPairingProviders,
-        changed: false,
-      );
   Setting<bool> _experimentalRichInlineFontSizeGlitching = const Setting(
     current: AppDefaults.experimentalRichInlineFontSizeGlitching,
     defaultValue: AppDefaults.experimentalRichInlineFontSizeGlitching,
@@ -291,8 +285,6 @@ class LyricsProvider with ChangeNotifier {
   Setting<String> get llmReasoningEffort => _llmReasoningEffort;
   Setting<bool> get keepScreenOn => _keepScreenOn;
   Setting<bool> get backgroundMotionEnabled => _backgroundMotionEnabled;
-  Setting<List<LyricProviderType>> get useStandardLyricsForPairingProviders =>
-      _useStandardLyricsForPairingProviders;
   Setting<bool> get experimentalRichInlineFontSizeGlitching =>
       _experimentalRichInlineFontSizeGlitching;
 
@@ -398,8 +390,6 @@ class LyricsProvider with ChangeNotifier {
     _keepScreenOn = await _settingsService.getKeepScreenOn();
     _backgroundMotionEnabled = await _settingsService
         .getBackgroundMotionEnabled();
-    _useStandardLyricsForPairingProviders = await _settingsService
-        .getUseStandardLyricsForPairingProviders();
     _experimentalRichInlineFontSizeGlitching = await _settingsService
         .getExperimentalRichInlineFontSizeGlitching();
 
@@ -639,24 +629,6 @@ class LyricsProvider with ChangeNotifier {
       changed: enabled != _backgroundMotionEnabled.defaultValue,
     );
     _settingsService.setBackgroundMotionEnabled(enabled);
-    notifyListeners();
-  }
-
-  void setUseStandardLyricsForPairingProviders(
-    List<LyricProviderType> providers,
-  ) {
-    if (listEquals(_useStandardLyricsForPairingProviders.current, providers)) {
-      return;
-    }
-    _useStandardLyricsForPairingProviders = Setting(
-      current: providers,
-      defaultValue: _useStandardLyricsForPairingProviders.defaultValue,
-      changed: !listEquals(
-        providers,
-        _useStandardLyricsForPairingProviders.defaultValue,
-      ),
-    );
-    _settingsService.setUseStandardLyricsForPairingProviders(providers);
     notifyListeners();
   }
 
