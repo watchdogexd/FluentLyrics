@@ -116,7 +116,7 @@ return new Response(
           },
           {'role': 'user', 'content': prompt},
         ],
-        'temperature': 0.35,
+        'temperature': 0.75,
         'stream': false,
         'max_tokens': 16384,
       };
