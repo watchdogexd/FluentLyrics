@@ -70,6 +70,8 @@ class TranslationHelper {
       return originalLyrics;
     }
 
+    // debugPrint('rawTranslation: $rawTranslation');
+
     final List<Lyric> newLyrics = [];
     int nextSearchStartIndex = 0;
 
