@@ -41,69 +41,23 @@ class LlmTranslationService {
       final llmReasoningEffort =
           (await _settingsService.getLlmReasoningEffort()).current;
 
-      // 1. Parse original content to get lines
-      final parsed = LrcParser.parse(data.content);
-      final originalLyrics = parsed.lyrics;
+      // Parse original content to get non-empty lines
+      final contentfulOriginalLyrics = LrcParser.parse(
+        data.content,
+      ).lyrics.where((e) => e.text.trim().isNotEmpty).toList();
 
-      if (originalLyrics.isEmpty) {
+      if (contentfulOriginalLyrics.isEmpty) {
         return LyricsResult.empty();
       }
 
-      final linesToTranslate = originalLyrics.map((l) => l.text).toList();
-
-      // 2. Construct Prompt
-      final prompt =
-          '''
-
-Song Metadata:
-Title: ${data.title}
-Artist: ${data.artist}
-
-Requirements:
-1. The output MUST be a raw JSON (see definition below).
-2. Preserve the poetic style, emotional tone, and rhythm.
-3. If a line is empty or instrumental, return an empty string.
-4. You MUST NOT use Markdown formatting (no codeblock like \\`\\`\\`json). Output raw JSON only.
-5. You MUST NOT add comments or notes.
-
-Target Language: ${targetLanguage.substring(4).trim()}
-Instructions:
-1. Detect the source language of the lyrics.
-2. If translation is not needed (eg. the source language is the same as the target language), return "SKIP".
-3. If the source language is different from the target language, 
-   translate the lyrics to the target language following the structure
-4. If the source language is as same as the target language, you MUST ONLY return "SKIP".
-
-Fake code of the instruction:
-```typescript
-const linesToTranslate: string[] = ${jsonEncode(linesToTranslate)}
-
-type TranslatedLine = {original: string, translated: string};
-function Translate(
-  lyrics: string[], 
-  sourceLanguage: string, 
-  targetLanguage: string
-): TranslatedLine[] {
-  if (sourceLanguage == targetLanguage) {
-    return ["SKIP"];
-  } else {
-    return lyrics.map((line) => {original: line, translated: translateLine(line)});
-  }
-}
-const sourceLanguage = detectSourceLanguage(linesToTranslate);
-return new Response(
-  JSON.stringify(
-    {
-      translation: Translate(linesToTranslate, sourceLanguage, targetLanguage),
-      metadata: {
-        sourceLanguage: sourceLanguage,
-        targetLanguage: targetLanguage,
+      // convert to "line_n: <text>"
+      final Map<String, String> linesToTranslate = {};
+      for (var i = 0; i < contentfulOriginalLyrics.length; i++) {
+        final lineKey = 'line_${i + 1}';
+        linesToTranslate[lineKey] = contentfulOriginalLyrics[i].text;
       }
-    }
-  )
-);
-''';
-      // 3. Call LLM API
+
+      // Call LLM API
       final int start = FlutterTimeline.now;
 
       final Map<String, dynamic> requestBody = {
@@ -111,10 +65,56 @@ return new Response(
         'messages': [
           {
             'role': 'system',
-            'content':
-                'You are a professional translator specialized in song lyrics.',
+            'content': '''
+You are a professional translator specialized in song lyrics.
+
+Requirements:
+1. The output MUST follows the structure defined below.
+2. Preserve the poetic style, emotional tone, and rhythm.
+3. If a line is empty or instrumental, return an empty string.
+4. You MUST NOT use Markdown formatting (no codeblock like \\`\\`\\`json). Output raw JSON only.
+5. You MUST NOT add comments or notes.
+
+Instructions:
+1. Detect the source language of the lyrics.
+2. If translation is not needed (eg. the source language is the same as the target language), 
+   you MUST ONLY return "SKIP".
+3. If the source language is different from the target language, 
+   translate the lyrics to the target language following the structure.
+
+Structure:
+Input Contains:
+  "line_<N>": "<Original Lyrics Text>",
+  ...more lines...
+Output:
+  - Translation (MUST be a valid JSON):
+    {
+      "translation": {
+        "line_<N>": "<Translated Lyrics Text>",
+        ...more lines...
+      },
+      "metadata": {
+        "source_language": "<Source Language>",
+        "target_language": "<Target Language>"
+      }
+    }
+  - Skip Translation (MUST ONLY return "SKIP"):
+    SKIP
+''',
           },
-          {'role': 'user', 'content': prompt},
+          {
+            'role': 'user',
+            'content':
+                '''
+Song Metadata:
+Title: ${data.title}
+Artist: ${data.artist}
+
+Target Language: ${targetLanguage.substring(4).trim()}
+Original Lyrics: 
+${linesToTranslate.entries.map((e) => '${e.key}: ${e.value}').join('\n')}
+''',
+          },
         ],
         'temperature': 0.75,
         'stream': false,
@@ -176,7 +176,7 @@ return new Response(
       // Handle SKIP response (case-insensitive and trimmed)
       if (content.toUpperCase() == 'SKIP') {
         return LyricsResult(
-          lyrics: originalLyrics,
+          lyrics: contentfulOriginalLyrics,
           source: 'SKIPPED',
           translation: false,
         );
@@ -224,31 +224,33 @@ return new Response(
       // Handle SKIP response (case-insensitive and trimmed)
       if ((translatedLines is String &&
               translatedLines.toUpperCase() == 'SKIP') ||
-          (translatedLines is List &&
-              translatedLines.length == 1 &&
-              translatedLines[0].toString().toUpperCase() == 'SKIP')) {
+          (translatedLines is Map<String, dynamic> &&
+              translatedLines.values.first.toString().toUpperCase() ==
+                  'SKIP')) {
         return LyricsResult(
-          lyrics: originalLyrics,
+          lyrics: contentfulOriginalLyrics,
           source: 'SKIPPED',
           translation: false,
         );
       }
 
-      if (translatedLines is! List) {
+      if (translatedLines is! Map<String, dynamic>) {
         debugPrint(
-          '[LLM Translation] Error: Model produced malformed JSON. Expected List or "SKIP", got $translatedLines',
+          '[LLM Translation] Error: Model produced malformed JSON. Expected Map<String, dynamic> or "SKIP", got $translatedLines',
         );
         return LyricsResult.empty();
       }
 
       final List<Map<String, String>> rawTranslation = [];
-      for (var item in translatedLines) {
-        if (item is Map) {
-          rawTranslation.add({
-            'original': item['original']?.toString() ?? '',
-            'translated': item['translated']?.toString() ?? '',
-          });
+      for (var item in translatedLines.entries) {
+        final originalLine = linesToTranslate[item.key];
+        if (originalLine == null) {
+          continue; // pair fail?
         }
+        rawTranslation.add({
+          'original': originalLine,
+          'translated': item.value,
+        });
       }
 
       return LyricsResult(
