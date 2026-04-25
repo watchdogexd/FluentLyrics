@@ -362,6 +362,18 @@ class _LyricsTab extends StatelessWidget {
                 fontSize: 14,
               ),
             ),
+            if (!provider.isLoading)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: TextButton.icon(
+                  onPressed: () => provider.refetchLyrics(),
+                  icon: const Icon(Icons.refresh_rounded, size: 16),
+                  label: const Text('Refresh Lyrics'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.lightBlue.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
           ],
         ),
       );
@@ -370,8 +382,33 @@ class _LyricsTab extends StatelessWidget {
     return ListView.builder(
       controller: scrollController,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-      itemCount: candidates.length,
+      itemCount: candidates.length + 1,
       itemBuilder: (context, index) {
+        if (index == candidates.length) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: provider.isLoading
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.lightBlue.withValues(alpha: 0.5),
+                      ),
+                    )
+                  : TextButton.icon(
+                      onPressed: () => provider.refetchLyrics(),
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: const Text('Refresh Lyrics'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.lightBlue.withValues(alpha: 0.8),
+                      ),
+                    ),
+            ),
+          );
+        }
+
         final candidate = candidates[index];
         final isActive = _isActive(candidate, current);
 
@@ -485,6 +522,18 @@ class _TranslationTab extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
+            if (!provider.isFetching)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: TextButton.icon(
+                  onPressed: () => provider.refetchTranslations(),
+                  icon: const Icon(Icons.refresh_rounded, size: 16),
+                  label: const Text('Refresh Translations'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.teal.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
           ],
         ),
       );
@@ -493,8 +542,33 @@ class _TranslationTab extends StatelessWidget {
     return ListView.builder(
       controller: scrollController,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-      itemCount: candidates.length,
+      itemCount: candidates.length + 1,
       itemBuilder: (context, index) {
+        if (index == candidates.length) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: provider.isFetching
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.teal.withValues(alpha: 0.5),
+                      ),
+                    )
+                  : TextButton.icon(
+                      onPressed: () => provider.refetchTranslations(),
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: const Text('Refresh Translations'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.teal.withValues(alpha: 0.8),
+                      ),
+                    ),
+            ),
+          );
+        }
+
         final candidate = candidates[index];
         final isActive = _isActive(candidate, current);
         final (matched, total) = _coverage(candidate, displayLyrics);
