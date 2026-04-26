@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import '../../../models/lyric_model.dart';
 import '../../../providers/lyrics_provider.dart';
 import '../../lyric_line.dart';
 import '../../interlude_indicator.dart';
@@ -100,10 +101,6 @@ class LyricsList extends StatelessWidget {
             final lyric = provider.lyrics[index];
             final isHighlighted = index == provider.currentIndex;
             final distance = (index - provider.currentIndex).toDouble();
-            final adjustedPosition =
-                provider.currentPosition +
-                provider.globalOffset +
-                provider.trackOffset;
 
             if (isHighlighted &&
                 provider.isInterlude &&
@@ -134,29 +131,34 @@ class LyricsList extends StatelessWidget {
                   (pos) => (pos.index - index).abs() <= 2,
                 );
 
-                final lyricLine = LyricLine(
-                  lyric: lyric,
-                  isHighlighted: isHighlighted,
-                  distance: distance,
-                  isManualScrolling: isManualScrolling,
-                  blurEnabled: provider.blurEnabled.current,
-                  inViewport: inViewport,
-                  fontSize: provider.fontSize.current,
-                  inactiveScale: provider.inactiveScale.current,
-                  translationHighlightOnly:
-                      provider.translationHighlightOnly.current,
-                  experimentalRichInlineFontSizeGlitching:
-                      provider.experimentalRichInlineFontSizeGlitching.current,
-                  adjustedPosition: adjustedPosition,
-                  isPlaying: provider.isPlaying,
-                );
-
                 return GestureDetector(
                   onDoubleTap: provider.controlAbility.canSeek
                       ? () => provider.seek(lyric.startTime)
                       : null,
                   behavior: HitTestBehavior.translucent,
-                  child: lyricLine,
+                  child:
+                      isHighlighted &&
+                          lyric.inlineParts != null &&
+                          lyric.inlineParts!.isNotEmpty
+                      ? ValueListenableBuilder<Duration>(
+                          valueListenable: provider.currentPositionNotifier,
+                          builder: (context, currentPosition, child) {
+                            return _buildLyricLine(
+                              lyric: lyric,
+                              isHighlighted: isHighlighted,
+                              distance: distance,
+                              inViewport: inViewport,
+                              currentPosition: currentPosition,
+                            );
+                          },
+                        )
+                      : _buildLyricLine(
+                          lyric: lyric,
+                          isHighlighted: isHighlighted,
+                          distance: distance,
+                          inViewport: inViewport,
+                          currentPosition: provider.currentPosition,
+                        ),
                 );
               },
             );
@@ -169,6 +171,31 @@ class LyricsList extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLyricLine({
+    required Lyric lyric,
+    required bool isHighlighted,
+    required double distance,
+    required bool inViewport,
+    required Duration currentPosition,
+  }) {
+    return LyricLine(
+      lyric: lyric,
+      isHighlighted: isHighlighted,
+      distance: distance,
+      isManualScrolling: isManualScrolling,
+      blurEnabled: provider.blurEnabled.current,
+      inViewport: inViewport,
+      fontSize: provider.fontSize.current,
+      inactiveScale: provider.inactiveScale.current,
+      translationHighlightOnly: provider.translationHighlightOnly.current,
+      experimentalRichInlineFontSizeGlitching:
+          provider.experimentalRichInlineFontSizeGlitching.current,
+      adjustedPosition:
+          currentPosition + provider.globalOffset + provider.trackOffset,
+      isPlaying: provider.isPlaying,
     );
   }
 
