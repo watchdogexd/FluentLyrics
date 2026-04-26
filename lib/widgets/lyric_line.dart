@@ -226,6 +226,7 @@ class _RichPartState extends State<_RichPart>
   static const Duration _progressAnimationThreshold = Duration(
     milliseconds: 800,
   );
+  static const Duration _positionResyncThreshold = Duration(milliseconds: 400);
 
   @override
   void initState() {
@@ -240,11 +241,29 @@ class _RichPartState extends State<_RichPart>
   @override
   void didUpdateWidget(_RichPart oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.endTime - widget.startTime !=
-        oldWidget.endTime - oldWidget.startTime) {
+    final durationChanged =
+        widget.endTime - widget.startTime !=
+        oldWidget.endTime - oldWidget.startTime;
+    if (durationChanged) {
       _controller.duration = widget.endTime - widget.startTime;
     }
-    _syncControllerWithPlayback();
+
+    final timingChanged =
+        widget.startTime != oldWidget.startTime ||
+        widget.endTime != oldWidget.endTime;
+    final playbackChanged = widget.isPlaying != oldWidget.isPlaying;
+    final positionDelta = widget.adjustedPosition - oldWidget.adjustedPosition;
+    final positionJumped =
+        positionDelta < Duration.zero ||
+        positionDelta > _positionResyncThreshold;
+
+    if (durationChanged ||
+        timingChanged ||
+        playbackChanged ||
+        positionJumped ||
+        !widget.isPlaying) {
+      _syncControllerWithPlayback();
+    }
   }
 
   @override
