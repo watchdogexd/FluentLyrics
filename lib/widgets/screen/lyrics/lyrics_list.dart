@@ -141,7 +141,7 @@ class LyricsList extends StatelessWidget {
                           lyric.inlineParts != null &&
                           lyric.inlineParts!.isNotEmpty
                       ? ValueListenableBuilder<Duration>(
-                          valueListenable: provider.currentPositionNotifier,
+                          valueListenable: provider.positionResyncNotifier,
                           builder: (context, currentPosition, child) {
                             return _buildLyricLine(
                               lyric: lyric,
