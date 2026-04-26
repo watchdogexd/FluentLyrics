@@ -51,6 +51,22 @@ class _LyricsScreenState extends State<LyricsScreen> {
   bool _isForceReloading = false;
   bool _isScrubbing = false;
   double _scrubValue = 0.0;
+  LyricsProvider? _wakelockProvider;
+  bool? _lastKeepScreenOn;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!Platform.isAndroid) return;
+
+    final provider = context.read<LyricsProvider>();
+    if (_wakelockProvider == provider) return;
+
+    _wakelockProvider?.removeListener(_handleWakelockSettingChanged);
+    _wakelockProvider = provider;
+    _wakelockProvider!.addListener(_handleWakelockSettingChanged);
+    _syncWakelock(provider.keepScreenOn.current);
+  }
 
   void _scrollToCurrentIndex(int index, int linesBefore) {
     if (_itemScrollController.isAttached) {
@@ -76,15 +92,6 @@ class _LyricsScreenState extends State<LyricsScreen> {
   Widget build(BuildContext context) {
     return Consumer<LyricsProvider>(
       builder: (context, provider, child) {
-        // Wakelock logic (Android only)
-        if (Platform.isAndroid) {
-          if (provider.keepScreenOn.current) {
-            WakelockPlus.enable();
-          } else {
-            WakelockPlus.disable();
-          }
-        }
-
         // Auto-scroll logic
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (provider.currentIndex != _previousIndex) {
@@ -385,11 +392,28 @@ class _LyricsScreenState extends State<LyricsScreen> {
     });
   }
 
+  void _handleWakelockSettingChanged() {
+    final provider = _wakelockProvider;
+    if (provider == null) return;
+    _syncWakelock(provider.keepScreenOn.current);
+  }
+
+  void _syncWakelock(bool keepScreenOn) {
+    if (_lastKeepScreenOn == keepScreenOn) return;
+    _lastKeepScreenOn = keepScreenOn;
+    if (keepScreenOn) {
+      unawaited(WakelockPlus.enable());
+    } else {
+      unawaited(WakelockPlus.disable());
+    }
+  }
+
   @override
   void dispose() {
     _autoResumeTimer?.cancel();
     if (Platform.isAndroid) {
-      WakelockPlus.disable();
+      _wakelockProvider?.removeListener(_handleWakelockSettingChanged);
+      unawaited(WakelockPlus.disable());
     }
     super.dispose();
   }
