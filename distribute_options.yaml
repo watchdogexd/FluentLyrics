@@ -10,6 +10,10 @@ releases:
         package:
           platform: linux
           target: zip
+      - name: release-macos-zip
+        package:
+          platform: macos
+          target: zip
       - name: release-android
         package:
           platform: android
