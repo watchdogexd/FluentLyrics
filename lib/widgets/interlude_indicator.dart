@@ -35,15 +35,46 @@ class _InterludeIndicatorState extends State<InterludeIndicator>
   }
 
   @override
+  void didUpdateWidget(covariant InterludeIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncBreathingAnimation();
+  }
+
+  @override
   void dispose() {
     _breathingController.dispose();
     super.dispose();
+  }
+
+  void _syncBreathingAnimation() {
+    if (_isSwellPhase) {
+      if (_breathingController.isAnimating) {
+        _breathingController.stop();
+      }
+    } else if (!_breathingController.isAnimating) {
+      _breathingController.repeat(reverse: true);
+    }
+  }
+
+  bool get _isSwellPhase {
+    if (widget.duration.inMilliseconds <= 0) return false;
+    const int shrinkDuration = 200;
+    const int swellDuration = 250;
+    final double totalDotWindow =
+        1 - ((shrinkDuration + 150) / widget.duration.inMilliseconds);
+    final double swellStart =
+        totalDotWindow - (swellDuration / widget.duration.inMilliseconds);
+    return widget.progress >= swellStart && widget.progress < totalDotWindow;
   }
 
   @override
   Widget build(BuildContext context) {
     const int shrinkDuration = 200;
     const double overlap = 0.3; // How much the next dot overlaps (0.0 to 1.0)
+    if (widget.duration.inMilliseconds <= 0) {
+      return const SizedBox.shrink();
+    }
+
     final double totalDotWindow =
         1 - ((shrinkDuration + 150) / widget.duration.inMilliseconds);
 
@@ -68,8 +99,6 @@ class _InterludeIndicatorState extends State<InterludeIndicator>
           ((1.0 - widget.progress) / (1.0 - totalDotWindow)).clamp(0.0, 1.0) *
           swellScale;
     } else if (widget.progress >= swellStart) {
-      // stop breathing animation when swell
-      _breathingController.stop();
       final double swellProgress =
           (widget.progress - swellStart) / (totalDotWindow - swellStart);
       targetScale = 1.0 + (swellScale - 1.0) * swellProgress.clamp(0.0, 1.0);
