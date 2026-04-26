@@ -119,7 +119,7 @@ class LyricsList extends StatelessWidget {
               valueListenable: itemPositionsListener.itemPositions,
               builder: (context, positions, child) {
                 final inViewport = positions.any(
-                  (pos) => pos.index - index <= 2,
+                  (pos) => (pos.index - index).abs() <= 2,
                 );
 
                 final lyricLine = LyricLine(
