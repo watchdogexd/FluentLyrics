@@ -69,6 +69,66 @@ class LyricLine extends StatelessWidget {
       height: 1.2,
     );
 
+    final scaledText = AnimatedScale(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutQuart,
+      scale: isHighlighted ? 1.0 : inactiveScale,
+      alignment: Alignment.centerLeft,
+      child: AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutQuart,
+        style: lineStyle,
+        child: Builder(
+          builder: (context) {
+            final mainText = _buildText(context);
+            if (!shouldDisplayTranslation) {
+              return mainText;
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                mainText,
+                shouldDisplayTranslation
+                    ? const SizedBox(width: double.infinity, height: 8)
+                    : const SizedBox(width: double.infinity, height: 0),
+                shouldDisplayTranslation
+                    ? AnimatedOpacity(
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOutQuart,
+                        opacity: 1.0,
+                        child: Builder(
+                          builder: (context) {
+                            final style = DefaultTextStyle.of(context).style;
+                            return Text(
+                              lyric.translation!,
+                              style: style.copyWith(
+                                fontSize: (style.fontSize! * 0.65)
+                                    .roundToDouble(),
+                                height: 1.2,
+                                color: Colors.white.withValues(alpha: 0.65),
+                              ),
+                              textAlign: TextAlign.left,
+                            );
+                          },
+                        ),
+                      )
+                    : const SizedBox(width: double.infinity, height: 0),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+
+    final filteredText = blur == 0.0
+        ? scaledText
+        : ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+            child: scaledText,
+          );
+
     return AnimatedPadding(
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeOutQuart,
@@ -80,65 +140,7 @@ class LyricLine extends StatelessWidget {
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeOutQuart,
         opacity: opacity,
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: AnimatedScale(
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOutQuart,
-            scale: isHighlighted ? 1.0 : inactiveScale,
-            alignment: Alignment.centerLeft,
-            child: AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeOutQuart,
-              style: lineStyle,
-              child: Builder(
-                builder: (context) {
-                  final mainText = _buildText(context);
-                  if (!shouldDisplayTranslation) {
-                    return mainText;
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      mainText,
-                      shouldDisplayTranslation
-                          ? const SizedBox(width: double.infinity, height: 8)
-                          : const SizedBox(width: double.infinity, height: 0),
-                      shouldDisplayTranslation
-                          ? AnimatedOpacity(
-                              duration: const Duration(milliseconds: 500),
-                              curve: Curves.easeOutQuart,
-                              opacity: 1.0,
-                              child: Builder(
-                                builder: (context) {
-                                  final style = DefaultTextStyle.of(
-                                    context,
-                                  ).style;
-                                  return Text(
-                                    lyric.translation!,
-                                    style: style.copyWith(
-                                      fontSize: (style.fontSize! * 0.65)
-                                          .roundToDouble(),
-                                      height: 1.2,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.65,
-                                      ),
-                                    ),
-                                    textAlign: TextAlign.left,
-                                  );
-                                },
-                              ),
-                            )
-                          : const SizedBox(width: double.infinity, height: 0),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
+        child: filteredText,
       ),
     );
   }
