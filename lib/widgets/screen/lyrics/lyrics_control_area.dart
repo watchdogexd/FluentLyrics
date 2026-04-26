@@ -28,8 +28,6 @@ class LyricsControlArea extends StatelessWidget {
   Widget build(BuildContext context) {
     final metadata = provider.currentMetadata;
     final totalMs = metadata?.duration.inMilliseconds ?? 1;
-    final currentMs = provider.currentPosition.inMilliseconds;
-    final progress = (currentMs / totalMs).clamp(0.0, 1.0);
 
     final offsetSeconds = provider.trackOffset.inMilliseconds / 1000.0;
     final offsetText =
@@ -93,54 +91,70 @@ class LyricsControlArea extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: Colors.white,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-              disabledActiveTrackColor: Colors.white,
-              disabledInactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-              thumbColor: Colors.white,
-              trackHeight: 4,
-              thumbShape: provider.controlAbility.canSeek
-                  ? const RoundSliderThumbShape(enabledThumbRadius: 6)
-                  : SliderComponentShape.noThumb,
-              overlayColor: Colors.white.withValues(alpha: 0.1),
-              trackShape: _CustomSliderTrackShape(),
-            ),
-            child: Slider(
-              value: isScrubbing ? scrubValue : progress,
-              onChanged: provider.controlAbility.canSeek
-                  ? (value) => onScrubChanged(value)
-                  : null,
-              onChangeEnd: (value) => onScrubEnd(value),
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _formatDuration(
-                  isScrubbing
-                      ? Duration(milliseconds: (scrubValue * totalMs).round())
-                      : provider.currentPosition,
-                ),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-              Text(
-                _formatDuration(metadata?.duration ?? Duration.zero),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ],
+          ValueListenableBuilder<Duration>(
+            valueListenable: provider.currentPositionNotifier,
+            builder: (context, currentPosition, child) {
+              final currentMs = currentPosition.inMilliseconds;
+              final progress = (currentMs / totalMs).clamp(0.0, 1.0);
+
+              return Column(
+                children: [
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: Colors.white,
+                      inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+                      disabledActiveTrackColor: Colors.white,
+                      disabledInactiveTrackColor: Colors.white.withValues(
+                        alpha: 0.1,
+                      ),
+                      thumbColor: Colors.white,
+                      trackHeight: 4,
+                      thumbShape: provider.controlAbility.canSeek
+                          ? const RoundSliderThumbShape(enabledThumbRadius: 6)
+                          : SliderComponentShape.noThumb,
+                      overlayColor: Colors.white.withValues(alpha: 0.1),
+                      trackShape: _CustomSliderTrackShape(),
+                    ),
+                    child: Slider(
+                      value: isScrubbing ? scrubValue : progress,
+                      onChanged: provider.controlAbility.canSeek
+                          ? (value) => onScrubChanged(value)
+                          : null,
+                      onChangeEnd: (value) => onScrubEnd(value),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _formatDuration(
+                          isScrubbing
+                              ? Duration(
+                                  milliseconds: (scrubValue * totalMs).round(),
+                                )
+                              : currentPosition,
+                        ),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      Text(
+                        _formatDuration(metadata?.duration ?? Duration.zero),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
           Row(

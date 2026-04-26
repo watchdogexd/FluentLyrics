@@ -23,6 +23,9 @@ class LyricsProvider with ChangeNotifier {
   LyricsResult _lyricsResult = LyricsResult.empty();
   LyricsResult? _translationResult;
   Duration _currentPosition = Duration.zero;
+  final ValueNotifier<Duration> currentPositionNotifier = ValueNotifier(
+    Duration.zero,
+  );
 
   // Settings
   Setting<bool> _cacheEnabled = const Setting(
@@ -331,7 +334,12 @@ class LyricsProvider with ChangeNotifier {
 
   double get interludeProgress {
     if (!isInterlude || lyrics.isEmpty) return 0.0;
-    final adjustedPosition = _currentPosition + globalOffset + _trackOffset;
+    return interludeProgressForPosition(_currentPosition);
+  }
+
+  double interludeProgressForPosition(Duration position) {
+    if (!isInterlude || lyrics.isEmpty) return 0.0;
+    final adjustedPosition = position + globalOffset + _trackOffset;
 
     // Empty line progress (works for prelude too)
     if (_currentIndex >= 0 && _currentIndex < lyrics.length - 1) {
@@ -694,7 +702,7 @@ class LyricsProvider with ChangeNotifier {
 
   Future<void> seek(Duration position) async {
     // Optimistic update
-    _currentPosition = position;
+    _setCurrentPosition(position);
     _updateCurrentIndex();
     notifyListeners();
 
@@ -830,7 +838,7 @@ class LyricsProvider with ChangeNotifier {
       _playbackToggleLockedUntil = null;
     }
 
-    _currentPosition = position;
+    _setCurrentPosition(position);
     _controlAbility = controlAbility;
     final indexChanged = _updateCurrentIndex();
 
@@ -1263,12 +1271,19 @@ class LyricsProvider with ChangeNotifier {
     return previousIndex != _currentIndex;
   }
 
+  void _setCurrentPosition(Duration position) {
+    if (_currentPosition == position) return;
+    _currentPosition = position;
+    currentPositionNotifier.value = position;
+  }
+
   @override
   void dispose() {
     _permissionTimer?.cancel();
     mediaService.removeListener(_onMediaChanged);
     mediaService.stopPolling();
     mediaService.dispose();
+    currentPositionNotifier.dispose();
     super.dispose();
   }
 }

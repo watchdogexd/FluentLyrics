@@ -105,13 +105,25 @@ class LyricsList extends StatelessWidget {
                 provider.globalOffset +
                 provider.trackOffset;
 
-            Widget? interludeContent;
             if (isHighlighted &&
                 provider.isInterlude &&
                 lyric.text.trim().isEmpty) {
-              interludeContent = InterludeIndicator(
-                progress: provider.interludeProgress,
-                duration: provider.interludeDuration,
+              return ValueListenableBuilder<Duration>(
+                valueListenable: provider.currentPositionNotifier,
+                builder: (context, currentPosition, child) {
+                  return GestureDetector(
+                    onDoubleTap: provider.controlAbility.canSeek
+                        ? () => provider.seek(lyric.startTime)
+                        : null,
+                    behavior: HitTestBehavior.translucent,
+                    child: InterludeIndicator(
+                      progress: provider.interludeProgressForPosition(
+                        currentPosition,
+                      ),
+                      duration: provider.interludeDuration,
+                    ),
+                  );
+                },
               );
             }
 
@@ -139,14 +151,12 @@ class LyricsList extends StatelessWidget {
                   isPlaying: provider.isPlaying,
                 );
 
-                Widget currentContent = interludeContent ?? lyricLine;
-
                 return GestureDetector(
                   onDoubleTap: provider.controlAbility.canSeek
                       ? () => provider.seek(lyric.startTime)
                       : null,
                   behavior: HitTestBehavior.translucent,
-                  child: currentContent,
+                  child: lyricLine,
                 );
               },
             );
