@@ -26,6 +26,10 @@ class LyricsProvider with ChangeNotifier {
   final ValueNotifier<Duration> currentPositionNotifier = ValueNotifier(
     Duration.zero,
   );
+  final ValueNotifier<Duration> positionResyncNotifier = ValueNotifier(
+    Duration.zero,
+  );
+  static const Duration _positionResyncThreshold = Duration(milliseconds: 400);
 
   // Settings
   Setting<bool> _cacheEnabled = const Setting(
@@ -702,7 +706,7 @@ class LyricsProvider with ChangeNotifier {
 
   Future<void> seek(Duration position) async {
     // Optimistic update
-    _setCurrentPosition(position);
+    _setCurrentPosition(position, forceResync: true);
     _updateCurrentIndex();
     notifyListeners();
 
@@ -1271,10 +1275,18 @@ class LyricsProvider with ChangeNotifier {
     return previousIndex != _currentIndex;
   }
 
-  void _setCurrentPosition(Duration position) {
+  void _setCurrentPosition(Duration position, {bool forceResync = false}) {
     if (_currentPosition == position) return;
+    final previousPosition = _currentPosition;
     _currentPosition = position;
     currentPositionNotifier.value = position;
+
+    final delta = position - previousPosition;
+    if (forceResync ||
+        delta < Duration.zero ||
+        delta > _positionResyncThreshold) {
+      positionResyncNotifier.value = position;
+    }
   }
 
   @override
@@ -1284,6 +1296,7 @@ class LyricsProvider with ChangeNotifier {
     mediaService.stopPolling();
     mediaService.dispose();
     currentPositionNotifier.dispose();
+    positionResyncNotifier.dispose();
     artworkUrlsNotifier.dispose();
     super.dispose();
   }
