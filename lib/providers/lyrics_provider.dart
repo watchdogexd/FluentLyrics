@@ -818,7 +818,8 @@ class LyricsProvider with ChangeNotifier {
       metadataChanged = true;
     }
 
-    bool capabilitiesChanged = _controlAbility != controlAbility;
+    final playbackChanged = _isPlaying != isPlaying;
+    final capabilitiesChanged = _controlAbility != controlAbility;
 
     final now = DateTime.now();
     if (_playbackToggleLockedUntil == null ||
@@ -833,7 +834,10 @@ class LyricsProvider with ChangeNotifier {
     _controlAbility = controlAbility;
     final indexChanged = _updateCurrentIndex();
 
-    if (metadataChanged || isPlaying || capabilitiesChanged || indexChanged) {
+    if (metadataChanged ||
+        playbackChanged ||
+        capabilitiesChanged ||
+        indexChanged) {
       notifyListeners();
     }
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -218,6 +219,7 @@ class _RichPart extends StatefulWidget {
 class _RichPartState extends State<_RichPart>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  Timer? _startTimer;
   static const Duration _defaultProgressAnimationDuration = Duration(
     milliseconds: 350,
   );
@@ -232,6 +234,7 @@ class _RichPartState extends State<_RichPart>
       vsync: this,
       duration: widget.endTime - widget.startTime,
     );
+    _syncControllerWithPlayback();
   }
 
   @override
@@ -241,50 +244,72 @@ class _RichPartState extends State<_RichPart>
         oldWidget.endTime - oldWidget.startTime) {
       _controller.duration = widget.endTime - widget.startTime;
     }
+    _syncControllerWithPlayback();
   }
 
   @override
   void dispose() {
+    _startTimer?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _syncControllerWithPlayback() {
+    _startTimer?.cancel();
+
+    final duration = widget.endTime - widget.startTime;
+    final durationMs = duration.inMilliseconds;
+
+    if (durationMs <= 0) {
+      _controller.value = 1.0;
+      return;
+    }
+
+    if (widget.adjustedPosition < widget.startTime) {
+      if (_controller.value != 0) _controller.value = 0;
+      if (_controller.isAnimating) _controller.stop();
+      if (widget.isPlaying) {
+        _startTimer = Timer(widget.startTime - widget.adjustedPosition, () {
+          if (!mounted || !widget.isPlaying) return;
+          _controller.value = 0.0;
+          _controller.forward();
+        });
+      }
+      return;
+    }
+
+    if (widget.adjustedPosition >= widget.endTime) {
+      if (_controller.value != 1) _controller.value = 1;
+      if (_controller.isAnimating) _controller.stop();
+      return;
+    }
+
+    final double targetProgress =
+        (widget.adjustedPosition - widget.startTime).inMilliseconds /
+        durationMs;
+
+    if (!widget.isPlaying) {
+      if ((_controller.value - targetProgress).abs() > 0.01) {
+        _controller.value = targetProgress;
+      }
+      if (_controller.isAnimating) _controller.stop();
+      return;
+    }
+
+    final double diffMs = ((_controller.value - targetProgress) * durationMs)
+        .abs();
+    if (_controller.value == 0.0 || diffMs > 400) {
+      _controller.value = targetProgress;
+    }
+
+    if (!_controller.isAnimating && _controller.value < 1.0) {
+      _controller.forward();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final duration = widget.endTime - widget.startTime;
-
-    // Synchronize controller with song position
-    if (widget.adjustedPosition < widget.startTime) {
-      if (_controller.value != 0) _controller.value = 0;
-    } else if (widget.adjustedPosition >= widget.endTime) {
-      if (_controller.value != 1) _controller.value = 1;
-    } else {
-      final durationMs = duration.inMilliseconds;
-      if (durationMs > 0) {
-        final double targetProgress =
-            (widget.adjustedPosition - widget.startTime).inMilliseconds /
-            durationMs;
-        if (!widget.isPlaying) {
-          if ((_controller.value - targetProgress).abs() > 0.01) {
-            _controller.value = targetProgress;
-          }
-          if (_controller.isAnimating) _controller.stop();
-        } else {
-          final double diffMs =
-              ((_controller.value - targetProgress) * durationMs).abs();
-          // Snap only if we just started, or if we significantly drifted (e.g., buffering/seeking)
-          if (_controller.value == 0.0 || diffMs > 400) {
-            _controller.value = targetProgress;
-          }
-
-          if (!_controller.isAnimating && _controller.value < 1.0) {
-            _controller.forward();
-          }
-        }
-      } else {
-        _controller.value = 1.0;
-      }
-    }
 
     final baseText = Text(
       widget.text,
