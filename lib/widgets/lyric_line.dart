@@ -1,9 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../models/lyric_model.dart';
-import '../providers/lyrics_provider.dart';
 
 class LyricLine extends StatelessWidget {
   final Lyric lyric;
@@ -12,11 +10,23 @@ class LyricLine extends StatelessWidget {
   final bool isManualScrolling;
   final bool blurEnabled;
   final bool inViewport;
+  final double fontSize;
+  final double inactiveScale;
+  final bool translationHighlightOnly;
+  final bool experimentalRichInlineFontSizeGlitching;
+  final Duration adjustedPosition;
+  final bool isPlaying;
 
   const LyricLine({
     super.key,
     required this.lyric,
     required this.isHighlighted,
+    required this.fontSize,
+    required this.inactiveScale,
+    required this.translationHighlightOnly,
+    required this.experimentalRichInlineFontSizeGlitching,
+    required this.adjustedPosition,
+    required this.isPlaying,
     this.distance = 0,
     this.isManualScrolling = false,
     this.blurEnabled = true,
@@ -25,10 +35,6 @@ class LyricLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lyricsProvider = context.watch<LyricsProvider>();
-    final fontSize = lyricsProvider.fontSize.current;
-    final inactiveScale = lyricsProvider.inactiveScale.current;
-
     const double minOpacity = 0.4;
 
     // Calculate opacity and blur based on distance
@@ -51,7 +57,7 @@ class LyricLine extends StatelessWidget {
         : (distance.abs() * 1.5).clamp(0.0, 4.0);
 
     final bool shouldDisplayTranslation =
-        (isHighlighted || !lyricsProvider.translationHighlightOnly.current) &&
+        (isHighlighted || !translationHighlightOnly) &&
         lyric.translation != null &&
         lyric.translation!.isNotEmpty;
 
@@ -87,7 +93,7 @@ class LyricLine extends StatelessWidget {
               style: lineStyle,
               child: Builder(
                 builder: (context) {
-                  final mainText = _buildText(context, lyricsProvider);
+                  final mainText = _buildText(context);
                   if (!shouldDisplayTranslation) {
                     return mainText;
                   }
@@ -137,7 +143,7 @@ class LyricLine extends StatelessWidget {
     );
   }
 
-  Widget _buildText(BuildContext context, LyricsProvider lyricsProvider) {
+  Widget _buildText(BuildContext context) {
     final text = lyric.text;
     if (!isHighlighted ||
         lyric.inlineParts == null ||
@@ -155,7 +161,7 @@ class LyricLine extends StatelessWidget {
       );
     }
     final richTextStyle = DefaultTextStyle.of(context).style.copyWith(
-      fontSize: lyricsProvider.experimentalRichInlineFontSizeGlitching.current
+      fontSize: experimentalRichInlineFontSizeGlitching
           ? DefaultTextStyle.of(context).style.fontSize! / 0.9
           : DefaultTextStyle.of(context).style.fontSize!,
       height: 1.2,
@@ -175,6 +181,8 @@ class LyricLine extends StatelessWidget {
               startTime: part.startTime,
               endTime: part.endTime,
               style: richTextStyle,
+              adjustedPosition: adjustedPosition,
+              isPlaying: isPlaying,
             ),
           );
         }).toList(),
@@ -189,12 +197,16 @@ class _RichPart extends StatefulWidget {
   final Duration startTime;
   final Duration endTime;
   final TextStyle style;
+  final Duration adjustedPosition;
+  final bool isPlaying;
 
   const _RichPart({
     required this.text,
     required this.startTime,
     required this.endTime,
     required this.style,
+    required this.adjustedPosition,
+    required this.isPlaying,
   });
 
   @override
@@ -237,25 +249,20 @@ class _RichPartState extends State<_RichPart>
 
   @override
   Widget build(BuildContext context) {
-    final lyricsProvider = context.watch<LyricsProvider>();
-    final adjustedPosition =
-        lyricsProvider.currentPosition +
-        lyricsProvider.globalOffset +
-        lyricsProvider.trackOffset;
-
     final duration = widget.endTime - widget.startTime;
 
     // Synchronize controller with song position
-    if (adjustedPosition < widget.startTime) {
+    if (widget.adjustedPosition < widget.startTime) {
       if (_controller.value != 0) _controller.value = 0;
-    } else if (adjustedPosition >= widget.endTime) {
+    } else if (widget.adjustedPosition >= widget.endTime) {
       if (_controller.value != 1) _controller.value = 1;
     } else {
       final durationMs = duration.inMilliseconds;
       if (durationMs > 0) {
         final double targetProgress =
-            (adjustedPosition - widget.startTime).inMilliseconds / durationMs;
-        if (!lyricsProvider.isPlaying) {
+            (widget.adjustedPosition - widget.startTime).inMilliseconds /
+            durationMs;
+        if (!widget.isPlaying) {
           if ((_controller.value - targetProgress).abs() > 0.01) {
             _controller.value = targetProgress;
           }
