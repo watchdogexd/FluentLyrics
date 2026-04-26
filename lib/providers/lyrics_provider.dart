@@ -845,7 +845,10 @@ class LyricsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _fetchLyrics(MediaMetadata metadata) async {
+  Future<void> _fetchLyrics(
+    MediaMetadata metadata, {
+    bool skipFetchTranslations = false,
+  }) async {
     _isFetching = true;
     _isLoading = true;
     _loadingStatus = 'Starting search...';
@@ -993,7 +996,7 @@ class LyricsProvider with ChangeNotifier {
 
       if (!metadata.isSameTrack(_currentMetadata)) return;
 
-      if (_translationEnabled.current &&
+      if ((_translationEnabled.current || !skipFetchTranslations) &&
           _lyricsResult.lyrics.isNotEmpty &&
           _translationResult == null) {
         final transStream = _lyricsService.fetchTranslation(
@@ -1143,6 +1146,84 @@ class LyricsProvider with ChangeNotifier {
       debugPrint(
         '[LyricsProvider] Translation candidate from ${candidate.translationProvider} saved to cache.',
       );
+    }
+  }
+
+  /// Manually re-fires the lyrics fetch logic without resetting the album art.
+  Future<void> refetchLyrics() async {
+    final metadata = _currentMetadata;
+    if (metadata != null) {
+      await _cacheService.clearTrackCache(
+        metadata.title,
+        metadata.artist,
+        metadata.album,
+        metadata.duration.inSeconds,
+      );
+      await _fetchLyrics(metadata);
+    }
+  }
+
+  /// Manually re-fires the translation fetch logic to refresh translations.
+  Future<void> refetchTranslations() async {
+    final metadata = _currentMetadata;
+    if (metadata == null) return;
+    if (_lyricsResult.lyrics.isEmpty) return;
+
+    for (var lang in _translationTargetLanguages.current) {
+      await _cacheService.clearTranslationCache(
+        _cacheService.generateTranslationCacheId(
+          metadata.title,
+          metadata.artist,
+          lang,
+        ),
+      );
+    }
+
+    _isFetching = true;
+    _loadingStatus = 'Refreshing translations...';
+    _translationCandidates = [];
+    _translationResult = null;
+    notifyListeners();
+
+    try {
+      final transStream = _lyricsService.fetchTranslation(
+        bestResult: _lyricsResult,
+        title: metadata.title,
+        artist: metadata.artist,
+        album: metadata.album,
+        durationSeconds: metadata.duration.inSeconds,
+        isCancelled: () => !metadata.isSameTrack(_currentMetadata),
+        onTranslationCandidate: (trans) {
+          if (!metadata.isSameTrack(_currentMetadata)) return;
+          final isDuplicate = _translationCandidates.any(
+            (c) =>
+                c.translationProvider == trans.translationProvider &&
+                c.language == trans.language,
+          );
+          if (!isDuplicate) {
+            _translationCandidates = List.unmodifiable([
+              ..._translationCandidates,
+              trans,
+            ]);
+            notifyListeners();
+          }
+        },
+      );
+
+      await for (var transResult in transStream) {
+        if (!metadata.isSameTrack(_currentMetadata)) return;
+        _translationResult = transResult;
+        _updateCurrentIndex();
+        notifyListeners();
+      }
+    } catch (e) {
+      if (!metadata.isSameTrack(_currentMetadata)) return;
+      _loadingStatus = 'Error: $e';
+    } finally {
+      if (metadata.isSameTrack(_currentMetadata)) {
+        _isFetching = false;
+        notifyListeners();
+      }
     }
   }
 
