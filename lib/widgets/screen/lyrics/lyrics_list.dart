@@ -100,6 +100,10 @@ class LyricsList extends StatelessWidget {
             final lyric = provider.lyrics[index];
             final isHighlighted = index == provider.currentIndex;
             final distance = (index - provider.currentIndex).toDouble();
+            final adjustedPosition =
+                provider.currentPosition +
+                provider.globalOffset +
+                provider.trackOffset;
 
             Widget? interludeContent;
             if (isHighlighted &&
@@ -125,6 +129,14 @@ class LyricsList extends StatelessWidget {
                   isManualScrolling: isManualScrolling,
                   blurEnabled: provider.blurEnabled.current,
                   inViewport: inViewport,
+                  fontSize: provider.fontSize.current,
+                  inactiveScale: provider.inactiveScale.current,
+                  translationHighlightOnly:
+                      provider.translationHighlightOnly.current,
+                  experimentalRichInlineFontSizeGlitching:
+                      provider.experimentalRichInlineFontSizeGlitching.current,
+                  adjustedPosition: adjustedPosition,
+                  isPlaying: provider.isPlaying,
                 );
 
                 Widget currentContent = interludeContent ?? lyricLine;
