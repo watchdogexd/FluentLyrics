@@ -831,9 +831,9 @@ class LyricsProvider with ChangeNotifier {
 
     _currentPosition = position;
     _controlAbility = controlAbility;
-    _updateCurrentIndex();
+    final indexChanged = _updateCurrentIndex();
 
-    if (metadataChanged || isPlaying || capabilitiesChanged) {
+    if (metadataChanged || isPlaying || capabilitiesChanged || indexChanged) {
       notifyListeners();
     }
   }
@@ -1227,33 +1227,36 @@ class LyricsProvider with ChangeNotifier {
     }
   }
 
-  void _updateCurrentIndex() {
+  bool _updateCurrentIndex() {
+    final previousIndex = _currentIndex;
     if (_lyricsResult.lyrics.isEmpty) {
       _currentIndex = -1;
-      return;
+      return previousIndex != _currentIndex;
     }
 
     final adjustedPosition = _currentPosition + globalOffset + _trackOffset;
 
     if (adjustedPosition < _lyricsResult.lyrics[0].startTime) {
-      if (_currentIndex != -1) {
-        _currentIndex = -1;
-        notifyListeners();
-      }
-      return;
+      _currentIndex = -1;
+      return previousIndex != _currentIndex;
     }
 
-    for (int i = 0; i < _lyricsResult.lyrics.length; i++) {
-      if (adjustedPosition >= _lyricsResult.lyrics[i].startTime &&
-          (i == _lyricsResult.lyrics.length - 1 ||
-              adjustedPosition < _lyricsResult.lyrics[i + 1].startTime)) {
-        if (_currentIndex != i) {
-          _currentIndex = i;
-          notifyListeners();
-        }
-        break;
+    int low = 0;
+    int high = _lyricsResult.lyrics.length - 1;
+    int matchedIndex = -1;
+
+    while (low <= high) {
+      final mid = low + ((high - low) >> 1);
+      if (_lyricsResult.lyrics[mid].startTime <= adjustedPosition) {
+        matchedIndex = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
       }
     }
+
+    _currentIndex = matchedIndex;
+    return previousIndex != _currentIndex;
   }
 
   @override
