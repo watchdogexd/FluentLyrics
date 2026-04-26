@@ -1284,6 +1284,7 @@ class LyricsProvider with ChangeNotifier {
     mediaService.stopPolling();
     mediaService.dispose();
     currentPositionNotifier.dispose();
+    artworkUrlsNotifier.dispose();
     super.dispose();
   }
 }
