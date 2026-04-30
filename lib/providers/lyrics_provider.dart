@@ -164,6 +164,7 @@ class LyricsProvider with ChangeNotifier {
 
   // Translation candidates
   List<LyricsResult> _translationCandidates = [];
+  int _translationRequestVersion = 0;
 
   MediaControlAbility _controlAbility = MediaControlAbility.none();
   DateTime? _playbackToggleLockedUntil;
@@ -227,7 +228,8 @@ class LyricsProvider with ChangeNotifier {
       }
     }
 
-    if (_translationResult?.rawTranslation != null) {
+    if (_translationEnabled.current &&
+        _translationResult?.rawTranslation != null) {
       if (_cachedAlignedLyrics != null &&
           _lastLyricsResultForAlignment == _lyricsResult &&
           _lastTranslationResultForAlignment == _translationResult &&
@@ -258,7 +260,8 @@ class LyricsProvider with ChangeNotifier {
     return _lyricsResult;
   }
 
-  LyricsResult? get translationResult => _translationResult;
+  LyricsResult? get translationResult =>
+      _translationEnabled.current ? _translationResult : null;
 
   Duration get currentPosition => _currentPosition;
   Duration get globalOffset => Duration(milliseconds: _globalOffsetMs.current);
@@ -339,6 +342,32 @@ class LyricsProvider with ChangeNotifier {
   double get interludeProgress {
     if (!isInterlude || lyrics.isEmpty) return 0.0;
     return interludeProgressForPosition(_currentPosition);
+  }
+
+  void _clearTranslationState({bool clearCandidates = true}) {
+    _translationResult = null;
+    _cachedAlignedLyrics = null;
+    _lastTranslationResultForAlignment = null;
+    _lastRichSyncEnabledForAlignment = null;
+    if (clearCandidates) {
+      _translationCandidates = [];
+    }
+  }
+
+  void _invalidateTranslationRequests({bool clearCandidates = true}) {
+    _translationRequestVersion++;
+    _clearTranslationState(clearCandidates: clearCandidates);
+  }
+
+  int _beginTranslationRequest() {
+    _translationRequestVersion++;
+    return _translationRequestVersion;
+  }
+
+  bool _canAcceptTranslationResult(MediaMetadata metadata, int requestVersion) {
+    return _translationEnabled.current &&
+        requestVersion == _translationRequestVersion &&
+        metadata.isSameTrack(_currentMetadata);
   }
 
   double interludeProgressForPosition(Duration position) {
@@ -558,13 +587,26 @@ class LyricsProvider with ChangeNotifier {
 
   void setTranslationEnabled(bool enabled) {
     if (_translationEnabled.current == enabled) return;
+    final wasEnabled = _translationEnabled.current;
     _translationEnabled = Setting(
       current: enabled,
       defaultValue: _translationEnabled.defaultValue,
       changed: enabled != _translationEnabled.defaultValue,
     );
     _settingsService.setTranslationEnabled(enabled);
+    if (!enabled) {
+      _invalidateTranslationRequests();
+      notifyListeners();
+      return;
+    }
     notifyListeners();
+
+    if (!wasEnabled &&
+        _currentMetadata != null &&
+        _lyricsResult.lyrics.isNotEmpty &&
+        _translationResult == null) {
+      unawaited(_fetchTranslationsForCurrentTrack(_currentMetadata!));
+    }
   }
 
   void setTranslationHighlightOnly(bool highlightOnly) {
@@ -808,7 +850,7 @@ class LyricsProvider with ChangeNotifier {
       _isPausedForCandidates = false;
       _candidateSheetOpenedEarly = false;
       _candidates = [];
-      _translationCandidates = [];
+      _invalidateTranslationRequests();
 
       if (_currentMetadata != null) {
         if (_currentMetadata!.duration.inSeconds > 0) {
@@ -816,13 +858,11 @@ class LyricsProvider with ChangeNotifier {
         } else {
           _isLoading = false;
           _lyricsResult = LyricsResult.empty();
-          _translationResult = null;
           notifyListeners();
         }
       } else {
         _isLoading = false;
         _lyricsResult = LyricsResult.empty();
-        _translationResult = null;
         notifyListeners();
       }
     } else if (processedMetadata != _currentMetadata) {
@@ -861,6 +901,81 @@ class LyricsProvider with ChangeNotifier {
     }
   }
 
+  Future<void> _fetchTranslationsForCurrentTrack(
+    MediaMetadata metadata, {
+    bool showLoadingState = false,
+    bool clearCachedTranslations = false,
+  }) async {
+    if (!_translationEnabled.current || _lyricsResult.lyrics.isEmpty) return;
+
+    if (clearCachedTranslations) {
+      for (final lang in _translationTargetLanguages.current) {
+        await _cacheService.clearTranslationCache(
+          _cacheService.generateTranslationCacheId(
+            metadata.title,
+            metadata.artist,
+            lang,
+          ),
+        );
+      }
+    }
+
+    final requestVersion = _beginTranslationRequest();
+    _clearTranslationState();
+
+    if (showLoadingState) {
+      _isFetching = true;
+      _loadingStatus = 'Refreshing translations...';
+    }
+    notifyListeners();
+
+    try {
+      final transStream = _lyricsService.fetchTranslation(
+        bestResult: _lyricsResult,
+        title: metadata.title,
+        artist: metadata.artist,
+        album: metadata.album,
+        durationSeconds: metadata.duration.inSeconds,
+        isCancelled: () =>
+            !_canAcceptTranslationResult(metadata, requestVersion),
+        onTranslationCandidate: (trans) {
+          if (!_canAcceptTranslationResult(metadata, requestVersion)) return;
+          final isDuplicate = _translationCandidates.any(
+            (c) =>
+                c.translationProvider == trans.translationProvider &&
+                c.language == trans.language,
+          );
+          if (!isDuplicate) {
+            _translationCandidates = List.unmodifiable([
+              ..._translationCandidates,
+              trans,
+            ]);
+            notifyListeners();
+          }
+        },
+      );
+
+      await for (var transResult in transStream) {
+        if (!_canAcceptTranslationResult(metadata, requestVersion)) return;
+        _translationResult = transResult;
+        _cachedAlignedLyrics = null;
+        _updateCurrentIndex();
+        notifyListeners();
+      }
+    } catch (e) {
+      if (!_canAcceptTranslationResult(metadata, requestVersion)) return;
+      _loadingStatus = 'Error: $e';
+    } finally {
+      if (showLoadingState &&
+          metadata.isSameTrack(_currentMetadata) &&
+          (requestVersion == _translationRequestVersion ||
+              !_translationEnabled.current)) {
+        _isFetching = false;
+        notifyListeners();
+      }
+    }
+  }
+
   Future<void> _fetchLyrics(
     MediaMetadata metadata, {
     bool skipFetchTranslations = false,
@@ -869,13 +984,12 @@ class LyricsProvider with ChangeNotifier {
     _isLoading = true;
     _loadingStatus = 'Starting search...';
     _lyricsResult = LyricsResult.empty();
-    _translationResult = null;
+    _invalidateTranslationRequests();
     _candidates = [];
     _isPausedForCandidates = false;
     _candidateSheetOpenedEarly = false;
     _candidatePauseCompleter?.complete(false);
     _candidatePauseCompleter = null;
-    _translationCandidates = [];
     artworkUrlsNotifier.value = [];
     notifyListeners();
 
@@ -897,7 +1011,8 @@ class LyricsProvider with ChangeNotifier {
         trimMetadataProviders: _trimMetadataProviders.current,
         richSyncEnabled: _richSyncEnabled.current,
         onTranslation: (trans) {
-          if (!_translationEnabled.current ||
+          if (!metadata.isSameTrack(_currentMetadata) ||
+              !_translationEnabled.current ||
               trans.rawTranslation!.isEmpty ||
               trans.language == null) {
             return;
@@ -1012,39 +1127,11 @@ class LyricsProvider with ChangeNotifier {
 
       if (!metadata.isSameTrack(_currentMetadata)) return;
 
-      if ((_translationEnabled.current || !skipFetchTranslations) &&
+      if (_translationEnabled.current &&
+          !skipFetchTranslations &&
           _lyricsResult.lyrics.isNotEmpty &&
           _translationResult == null) {
-        final transStream = _lyricsService.fetchTranslation(
-          bestResult: _lyricsResult,
-          title: metadata.title,
-          artist: metadata.artist,
-          album: metadata.album,
-          durationSeconds: metadata.duration.inSeconds,
-          isCancelled: () => !metadata.isSameTrack(_currentMetadata),
-          onTranslationCandidate: (trans) {
-            if (!metadata.isSameTrack(_currentMetadata)) return;
-            final isDuplicate = _translationCandidates.any(
-              (c) =>
-                  c.translationProvider == trans.translationProvider &&
-                  c.language == trans.language,
-            );
-            if (!isDuplicate) {
-              _translationCandidates = List.unmodifiable([
-                ..._translationCandidates,
-                trans,
-              ]);
-              notifyListeners();
-            }
-          },
-        );
-
-        await for (var transResult in transStream) {
-          if (!metadata.isSameTrack(_currentMetadata)) return;
-          _translationResult = transResult;
-          _updateCurrentIndex();
-          notifyListeners();
-        }
+        await _fetchTranslationsForCurrentTrack(metadata);
       }
     } catch (e) {
       if (!metadata.isSameTrack(_currentMetadata)) return;
@@ -1183,64 +1270,13 @@ class LyricsProvider with ChangeNotifier {
   Future<void> refetchTranslations() async {
     final metadata = _currentMetadata;
     if (metadata == null) return;
+    if (!_translationEnabled.current) return;
     if (_lyricsResult.lyrics.isEmpty) return;
-
-    for (var lang in _translationTargetLanguages.current) {
-      await _cacheService.clearTranslationCache(
-        _cacheService.generateTranslationCacheId(
-          metadata.title,
-          metadata.artist,
-          lang,
-        ),
-      );
-    }
-
-    _isFetching = true;
-    _loadingStatus = 'Refreshing translations...';
-    _translationCandidates = [];
-    _translationResult = null;
-    notifyListeners();
-
-    try {
-      final transStream = _lyricsService.fetchTranslation(
-        bestResult: _lyricsResult,
-        title: metadata.title,
-        artist: metadata.artist,
-        album: metadata.album,
-        durationSeconds: metadata.duration.inSeconds,
-        isCancelled: () => !metadata.isSameTrack(_currentMetadata),
-        onTranslationCandidate: (trans) {
-          if (!metadata.isSameTrack(_currentMetadata)) return;
-          final isDuplicate = _translationCandidates.any(
-            (c) =>
-                c.translationProvider == trans.translationProvider &&
-                c.language == trans.language,
-          );
-          if (!isDuplicate) {
-            _translationCandidates = List.unmodifiable([
-              ..._translationCandidates,
-              trans,
-            ]);
-            notifyListeners();
-          }
-        },
-      );
-
-      await for (var transResult in transStream) {
-        if (!metadata.isSameTrack(_currentMetadata)) return;
-        _translationResult = transResult;
-        _updateCurrentIndex();
-        notifyListeners();
-      }
-    } catch (e) {
-      if (!metadata.isSameTrack(_currentMetadata)) return;
-      _loadingStatus = 'Error: $e';
-    } finally {
-      if (metadata.isSameTrack(_currentMetadata)) {
-        _isFetching = false;
-        notifyListeners();
-      }
-    }
+    await _fetchTranslationsForCurrentTrack(
+      metadata,
+      showLoadingState: true,
+      clearCachedTranslations: true,
+    );
   }
 
   bool _updateCurrentIndex() {
