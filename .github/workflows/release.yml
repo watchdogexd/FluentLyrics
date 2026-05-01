@@ -6,10 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
+  build-linux-android:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,7 +43,7 @@ jobs:
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
 
-      - name: Build
+      - name: Build Linux and Android
         env:
           RELEASE_VERSION: ${{ github.ref_name }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -53,8 +51,63 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/android/upload-keystore.jks
         run: |
-          fastforge release --name production
+          fastforge release --name production --skip-jobs=release-macos-zip
           bash ./.github/fix-fastforge-artifacts.sh
+
+      - name: Upload Linux and Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-android-dist
+          path: dist/**/*
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Fastforge
+        run: dart pub global activate fastforge
+
+      - name: Add path
+        run: echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build macOS
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: fastforge release --name production --jobs=release-macos-zip
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dist
+          path: dist/**/*
+
+  release:
+    needs:
+      - build-linux-android
+      - build-macos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
       - name: Generate Release Notes
         env:

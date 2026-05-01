@@ -25,6 +25,12 @@
                     <a href="https://aur.archlinux.org/packages/fluent-lyrics-bin"> <img src="https://img.shields.io/badge/AUR-fluent--lyrics--bin-67b7d1.svg?logo=archlinux"></a>
                 </td>
             </tr>
+            <tr>
+                <td>macOS</td>
+                <td>
+                    <a href="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_VERSION}/fluent_lyrics-${VERSION_NAME}-macos.zip"><img src="https://img.shields.io/badge/Portable-x64-000000.svg?logo=apple"></a>
+                </td>
+            </tr>
         </tbody>
     </table>
 </div>
