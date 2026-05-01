@@ -41,6 +41,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
 
   final Set<String> _failedArtUrls = {};
   int _previousIndex = 0;
+  int? _scheduledScrollIndex;
   String? _lastArtUrl;
   ImageProvider? _foregroundArtProvider;
   ImageProvider? _backgroundArtProvider;
@@ -51,15 +52,23 @@ class _LyricsScreenState extends State<LyricsScreen> {
   bool _isForceReloading = false;
   bool _isScrubbing = false;
   double _scrubValue = 0.0;
+  LyricsProvider? _scrollSyncProvider;
   LyricsProvider? _wakelockProvider;
   bool? _lastKeepScreenOn;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!Platform.isAndroid) return;
-
     final provider = context.read<LyricsProvider>();
+
+    if (_scrollSyncProvider != provider) {
+      _scrollSyncProvider?.removeListener(_handleProviderChanged);
+      _scrollSyncProvider = provider;
+      _scrollSyncProvider!.addListener(_handleProviderChanged);
+      _syncCurrentIndex(provider.currentIndex, provider.linesBefore.current);
+    }
+
+    if (!Platform.isAndroid) return;
     if (_wakelockProvider == provider) return;
 
     _wakelockProvider?.removeListener(_handleWakelockSettingChanged);
@@ -88,23 +97,28 @@ class _LyricsScreenState extends State<LyricsScreen> {
     }
   }
 
+  void _syncCurrentIndex(int index, int linesBefore) {
+    if (index == _previousIndex) return;
+    _previousIndex = index;
+
+    if (_isManualScrolling || _scheduledScrollIndex == index) {
+      return;
+    }
+
+    _scheduledScrollIndex = index;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scheduledScrollIndex == index) {
+        _scheduledScrollIndex = null;
+      }
+      if (!mounted || _isManualScrolling) return;
+      _scrollToCurrentIndex(index, linesBefore);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<LyricsProvider>(
       builder: (context, provider, child) {
-        // Auto-scroll logic
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (provider.currentIndex != _previousIndex) {
-            if (!_isManualScrolling) {
-              _scrollToCurrentIndex(
-                provider.currentIndex,
-                provider.linesBefore.current,
-              );
-            }
-            _previousIndex = provider.currentIndex;
-          }
-        });
-
         final metadata = provider.currentMetadata;
         _updateArtProviders(
           metadata,
@@ -127,7 +141,8 @@ class _LyricsScreenState extends State<LyricsScreen> {
               // Background Layer
               LyricsBackground(
                 artProvider: bgArt,
-                motionEnabled: provider.backgroundMotionEnabled.current,
+                motionEnabled:
+                    provider.backgroundMotionEnabled.current && provider.isPlaying,
               ),
 
               // Content Layer
@@ -247,6 +262,12 @@ class _LyricsScreenState extends State<LyricsScreen> {
         );
       },
     );
+  }
+
+  void _handleProviderChanged() {
+    final provider = _scrollSyncProvider;
+    if (provider == null) return;
+    _syncCurrentIndex(provider.currentIndex, provider.linesBefore.current);
   }
 
   void _updateArtProviders(
@@ -411,6 +432,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
   @override
   void dispose() {
     _autoResumeTimer?.cancel();
+    _scrollSyncProvider?.removeListener(_handleProviderChanged);
     if (Platform.isAndroid) {
       _wakelockProvider?.removeListener(_handleWakelockSettingChanged);
       unawaited(WakelockPlus.disable());

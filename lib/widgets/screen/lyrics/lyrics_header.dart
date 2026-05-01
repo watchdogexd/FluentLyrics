@@ -239,6 +239,8 @@ class _CandidatesButton extends StatelessWidget {
 }
 
 class _PulseDot extends StatefulWidget {
+  const _PulseDot();
+
   @override
   State<_PulseDot> createState() => _PulseDotState();
 }
@@ -247,6 +249,7 @@ class _PulseDotState extends State<_PulseDot>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _anim;
+  int _completedCycles = 0;
 
   @override
   void initState() {
@@ -254,7 +257,16 @@ class _PulseDotState extends State<_PulseDot>
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
+    )
+      ..addStatusListener((status) {
+        if (status != AnimationStatus.dismissed) return;
+        _completedCycles++;
+        if (_completedCycles >= 3 && _ctrl.isAnimating) {
+          _ctrl.stop();
+          _ctrl.value = 1.0;
+        }
+      })
+      ..repeat(reverse: true);
     _anim = Tween<double>(begin: 0.4, end: 1.0).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
     );

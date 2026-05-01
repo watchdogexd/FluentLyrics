@@ -24,6 +24,12 @@ class LyricsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lyrics = provider.lyrics;
+    final metadata = provider.currentMetadata;
+    final lyricsResult = provider.lyricsResult;
+    final currentIndex = provider.currentIndex;
+    final isInterlude = provider.isInterlude;
+
     if (provider.isLoading) {
       return Center(
         child: Column(
@@ -52,11 +58,11 @@ class LyricsList extends StatelessWidget {
       );
     }
 
-    if (provider.lyrics.isEmpty) {
+    if (lyrics.isEmpty) {
       String message = 'No lyrics found for this track';
-      if (provider.currentMetadata == null) {
+      if (metadata == null) {
         message = 'Start playing music';
-      } else if (provider.lyricsResult.isPureMusic) {
+      } else if (lyricsResult.isPureMusic) {
         message = 'Pure Music / Instrumental';
       }
 
@@ -87,24 +93,20 @@ class LyricsList extends StatelessWidget {
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: ScrollablePositionedList.builder(
-          itemCount: provider.lyrics.length + 1,
+          itemCount: lyrics.length + 1,
           itemScrollController: itemScrollController,
           itemPositionsListener: itemPositionsListener,
           minCacheExtent: 0,
           itemBuilder: (context, index) {
-            // Metadata Line
-            if (index == provider.lyrics.length) {
+            if (index == lyrics.length) {
               return _buildLyricsInfoLine();
             }
 
-            // Lyric Lines
-            final lyric = provider.lyrics[index];
-            final isHighlighted = index == provider.currentIndex;
-            final distance = (index - provider.currentIndex).toDouble();
+            final lyric = lyrics[index];
+            final isHighlighted = index == currentIndex;
+            final distance = (index - currentIndex).toDouble();
 
-            if (isHighlighted &&
-                provider.isInterlude &&
-                lyric.text.trim().isEmpty) {
+            if (isHighlighted && isInterlude && lyric.text.trim().isEmpty) {
               return ValueListenableBuilder<Duration>(
                 valueListenable: provider.currentPositionNotifier,
                 builder: (context, currentPosition, child) {
@@ -136,8 +138,7 @@ class LyricsList extends StatelessWidget {
                       ? () => provider.seek(lyric.startTime)
                       : null,
                   behavior: HitTestBehavior.translucent,
-                  child:
-                      lyric.inlineParts != null && lyric.inlineParts!.isNotEmpty
+                  child: lyric.inlineParts != null && lyric.inlineParts!.isNotEmpty
                       ? ValueListenableBuilder<Duration>(
                           valueListenable: provider.positionResyncNotifier,
                           builder: (context, currentPosition, child) {

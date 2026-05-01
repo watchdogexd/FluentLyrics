@@ -403,6 +403,24 @@ class LyricsProvider with ChangeNotifier {
     return Duration.zero;
   }
 
+  bool _setLoadingStatus(String status) {
+    if (_loadingStatus == status) return false;
+    _loadingStatus = status;
+    return true;
+  }
+
+  bool _setFetchingState(bool isFetching) {
+    if (_isFetching == isFetching) return false;
+    _isFetching = isFetching;
+    return true;
+  }
+
+  bool _setLoadingState(bool isLoading) {
+    if (_isLoading == isLoading) return false;
+    _isLoading = isLoading;
+    return true;
+  }
+
   Future<void> _loadSettings() async {
     _cacheEnabled = await _settingsService.getCacheEnabled();
     _linesBefore = await _settingsService.getLinesBefore();
@@ -923,11 +941,16 @@ class LyricsProvider with ChangeNotifier {
     final requestVersion = _beginTranslationRequest();
     _clearTranslationState();
 
+    var shouldNotify = false;
     if (showLoadingState) {
-      _isFetching = true;
-      _loadingStatus = 'Refreshing translations...';
+      shouldNotify =
+          _setFetchingState(true) ||
+          _setLoadingStatus('Refreshing translations...') ||
+          shouldNotify;
     }
-    notifyListeners();
+    if (shouldNotify) {
+      notifyListeners();
+    }
 
     try {
       final transStream = _lyricsService.fetchTranslation(
@@ -964,14 +987,17 @@ class LyricsProvider with ChangeNotifier {
       }
     } catch (e) {
       if (!_canAcceptTranslationResult(metadata, requestVersion)) return;
-      _loadingStatus = 'Error: $e';
+      if (_setLoadingStatus('Error: $e')) {
+        notifyListeners();
+      }
     } finally {
       if (showLoadingState &&
           metadata.isSameTrack(_currentMetadata) &&
           (requestVersion == _translationRequestVersion ||
               !_translationEnabled.current)) {
-        _isFetching = false;
-        notifyListeners();
+        if (_setFetchingState(false)) {
+          notifyListeners();
+        }
       }
     }
   }
@@ -1000,12 +1026,14 @@ class LyricsProvider with ChangeNotifier {
         album: metadata.album,
         durationSeconds: metadata.duration.inSeconds,
         onStatusUpdate: (status) {
-          _loadingStatus = status;
-          notifyListeners();
+          if (_setLoadingStatus(status)) {
+            notifyListeners();
+          }
         },
         onFetchStatusUpdate: (status) {
-          _isFetching = status;
-          notifyListeners();
+          if (_setFetchingState(status)) {
+            notifyListeners();
+          }
         },
         isCancelled: () => !metadata.isSameTrack(_currentMetadata),
         trimMetadataProviders: _trimMetadataProviders.current,
@@ -1118,7 +1146,7 @@ class LyricsProvider with ChangeNotifier {
         }
 
         if (result.lyrics.isNotEmpty || result.isPureMusic) {
-          _isLoading = false;
+          _setLoadingState(false);
         }
 
         _updateCurrentIndex();
@@ -1135,13 +1163,13 @@ class LyricsProvider with ChangeNotifier {
       }
     } catch (e) {
       if (!metadata.isSameTrack(_currentMetadata)) return;
-      _loadingStatus = 'Error: $e';
+      _setLoadingStatus('Error: $e');
     } finally {
       if (metadata.isSameTrack(_currentMetadata)) {
         _isPausedForCandidates = false;
         _candidatePauseCompleter?.complete(false);
         _candidatePauseCompleter = null;
-        _isLoading = false;
+        _setLoadingState(false);
         notifyListeners();
       }
     }
