@@ -219,6 +219,7 @@ class _RichPartState extends State<_RichPart>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   Timer? _startTimer;
+  bool _hasReachedStartTime = false;
   static const Duration _defaultProgressAnimationDuration = Duration(
     milliseconds: 350,
   );
@@ -279,16 +280,38 @@ class _RichPartState extends State<_RichPart>
     final durationMs = duration.inMilliseconds;
 
     if (durationMs <= 0) {
-      _controller.value = 1.0;
+      if (widget.adjustedPosition < widget.startTime) {
+        _hasReachedStartTime = false;
+        if (_controller.value != 0) _controller.value = 0;
+        if (_controller.isAnimating) _controller.stop();
+        if (widget.isPlaying) {
+          _startTimer = Timer(widget.startTime - widget.adjustedPosition, () {
+            if (!mounted || !widget.isPlaying) return;
+            setState(() {
+              _hasReachedStartTime = true;
+            });
+            _controller.value = 1.0;
+          });
+        }
+        return;
+      }
+
+      _hasReachedStartTime = true;
+      if (_controller.value != 1) _controller.value = 1;
+      if (_controller.isAnimating) _controller.stop();
       return;
     }
 
     if (widget.adjustedPosition < widget.startTime) {
+      _hasReachedStartTime = false;
       if (_controller.value != 0) _controller.value = 0;
       if (_controller.isAnimating) _controller.stop();
       if (widget.isPlaying) {
         _startTimer = Timer(widget.startTime - widget.adjustedPosition, () {
           if (!mounted || !widget.isPlaying) return;
+          setState(() {
+            _hasReachedStartTime = true;
+          });
           _controller.value = 0.0;
           _controller.forward();
         });
@@ -297,10 +320,13 @@ class _RichPartState extends State<_RichPart>
     }
 
     if (widget.adjustedPosition >= widget.endTime) {
+      _hasReachedStartTime = true;
       if (_controller.value != 1) _controller.value = 1;
       if (_controller.isAnimating) _controller.stop();
       return;
     }
+
+    _hasReachedStartTime = true;
 
     final double targetProgress =
         (widget.adjustedPosition - widget.startTime).inMilliseconds /
@@ -339,7 +365,7 @@ class _RichPartState extends State<_RichPart>
       animation: _controller,
       builder: (context, child) {
         final progress = _controller.value;
-        final bool isLifting = progress > 0;
+        final bool isLifting = _hasReachedStartTime;
         final bool isShort =
             duration < _progressAnimationThreshold ||
             (widget.text.length <= 1 &&
