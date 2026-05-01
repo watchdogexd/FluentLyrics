@@ -30,7 +30,7 @@ jobs:
               version_code=""
             fi
 
-            version_name="$(git describe --long --tags --match 'v*' | sed -E 's/^v//;s/\+[0-9]+//;s/-/.r/;s/-/./g')"
+            version_name="$(git describe --long --tags --match 'v*' | sed -E 's/^v//;s/\+[0-9]+//;s/-([0-9]+)-g/-r\1.g/')"
             build_version="$version_name"
             if [ -n "$version_code" ]; then
               build_version="$version_name+$version_code"
