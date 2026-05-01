@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       build_version: ${{ steps.version.outputs.build_version }}
+      version_name: ${{ steps.version.outputs.version_name }}
+      version_code: ${{ steps.version.outputs.version_code }}
       release_version: ${{ steps.version.outputs.release_version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
@@ -38,11 +40,19 @@ jobs:
             prerelease="true"
           else
             build_version="${{ github.ref_name }}"
+            version_string="${build_version#v}"
+            version_name="${version_string%%+*}"
+            version_code="${version_string#*+}"
+            if [ "$version_code" = "$version_string" ]; then
+              version_code=""
+            fi
             release_version="${{ github.ref_name }}"
             prerelease="false"
           fi
 
           echo "build_version=$build_version" >> "$GITHUB_OUTPUT"
+          echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
+          echo "version_code=$version_code" >> "$GITHUB_OUTPUT"
           echo "release_version=$release_version" >> "$GITHUB_OUTPUT"
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
 
@@ -77,6 +87,13 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Set release version
+        env:
+          VERSION: ${{ needs.prepare-version.outputs.build_version }}
+        run: |
+          version="${VERSION#v}"
+          VERSION="$version" perl -0pi -e 's/^version: .*/version: $ENV{VERSION}/m' pubspec.yaml
 
       - name: Decode Keystore for Android build
         env:
@@ -122,6 +139,13 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Set release version
+        env:
+          VERSION: ${{ needs.prepare-version.outputs.build_version }}
+        run: |
+          version="${VERSION#v}"
+          VERSION="$version" perl -0pi -e 's/^version: .*/version: $ENV{VERSION}/m' pubspec.yaml
+
       - name: Build macOS
         env:
           RELEASE_VERSION: ${{ needs.prepare-version.outputs.build_version }}
@@ -133,15 +157,19 @@ jobs:
         run: |
           version_string="${RELEASE_VERSION#v}"
           version_name="${version_string%%+*}"
-          if [ "$version_name" != "$version_string" ] && [ -d "dist/$version_string" ]; then
-            for artifact in "dist/$version_string"/*; do
-              [ -e "$artifact" ] || continue
-              target="${artifact//$version_string/$version_name}"
-              if [ "$target" != "$artifact" ]; then
-                mv "$artifact" "$target"
-              fi
-            done
+          dist_dir="dist/$version_string"
+          if [ ! -d "$dist_dir" ] && [ -d dist ]; then
+            dist_dir="$(find dist -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)"
           fi
+          [ -n "$dist_dir" ] && [ -d "$dist_dir" ] || exit 0
+
+          for artifact in "$dist_dir"/*; do
+            [ -e "$artifact" ] || continue
+            target="${artifact//$version_string/$version_name}"
+            if [ "$target" != "$artifact" ]; then
+              mv "$artifact" "$target"
+            fi
+          done
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
