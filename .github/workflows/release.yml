@@ -6,7 +6,48 @@ on:
   workflow_dispatch:
 
 jobs:
+  prepare-version:
+    runs-on: ubuntu-latest
+    outputs:
+      build_version: ${{ steps.version.outputs.build_version }}
+      release_version: ${{ steps.version.outputs.release_version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            latest_tag="$(git describe --tags --abbrev=0 --match 'v*')"
+            latest_version="${latest_tag#v}"
+            version_code="${latest_version#*+}"
+            if [ "$version_code" = "$latest_version" ]; then
+              version_code=""
+            fi
+
+            version_name="$(git describe --long --tags --match 'v*' | sed -E 's/^v//;s/\+[0-9]+//;s/-/.r/;s/-/./g')"
+            build_version="$version_name"
+            if [ -n "$version_code" ]; then
+              build_version="$version_name+$version_code"
+            fi
+
+            release_version="v$version_name"
+            prerelease="true"
+          else
+            build_version="${{ github.ref_name }}"
+            release_version="${{ github.ref_name }}"
+            prerelease="false"
+          fi
+
+          echo "build_version=$build_version" >> "$GITHUB_OUTPUT"
+          echo "release_version=$release_version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+
   build-linux-android:
+    needs: prepare-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +86,7 @@ jobs:
 
       - name: Build Linux and Android
         env:
-          RELEASE_VERSION: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ needs.prepare-version.outputs.build_version }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -61,6 +102,7 @@ jobs:
           path: dist/**/*
 
   build-macos:
+    needs: prepare-version
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -82,8 +124,24 @@ jobs:
 
       - name: Build macOS
         env:
-          RELEASE_VERSION: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ needs.prepare-version.outputs.build_version }}
         run: fastforge release --name production --jobs=release-macos-zip
+
+      - name: Normalize macOS artifact names
+        env:
+          RELEASE_VERSION: ${{ needs.prepare-version.outputs.build_version }}
+        run: |
+          version_string="${RELEASE_VERSION#v}"
+          version_name="${version_string%%+*}"
+          if [ "$version_name" != "$version_string" ] && [ -d "dist/$version_string" ]; then
+            for artifact in "dist/$version_string"/*; do
+              [ -e "$artifact" ] || continue
+              target="${artifact//$version_string/$version_name}"
+              if [ "$target" != "$artifact" ]; then
+                mv "$artifact" "$target"
+              fi
+            done
+          fi
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -93,6 +151,7 @@ jobs:
 
   release:
     needs:
+      - prepare-version
       - build-linux-android
       - build-macos
     runs-on: ubuntu-latest
@@ -111,15 +170,16 @@ jobs:
 
       - name: Generate Release Notes
         env:
-          RELEASE_VERSION: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ needs.prepare-version.outputs.release_version }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           bash ./.github/generate-release-notes.sh
 
       - name: Upload Release Artifacts
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
+          tag_name: ${{ needs.prepare-version.outputs.release_version }}
+          prerelease: ${{ needs.prepare-version.outputs.prerelease }}
           body_path: release.md
           files: |
             dist/**/*
