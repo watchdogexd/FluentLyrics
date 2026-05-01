@@ -158,12 +158,17 @@ class MacOSMediaService extends MediaService implements MediaController {
   static const MethodChannel _channel = MethodChannel(
     'cc.koto.fluent_lyrics/media',
   );
+  static const Duration _activePollInterval = Duration(milliseconds: 250);
+  static const Duration _idlePollInterval = Duration(seconds: 1);
+  static const Duration _disconnectedPollInterval = Duration(seconds: 2);
 
   Timer? _pollTimer;
   MediaMetadata? _metadata;
   MediaPlaybackStatus _status = MediaPlaybackStatus.empty();
   MediaControlAbility _controlAbility = MediaControlAbility.none();
   bool _isUpdating = false;
+  bool _isPolling = false;
+  int _pollSession = 0;
   int _emptyResultCount = 0;
 
   @override
@@ -177,29 +182,47 @@ class MacOSMediaService extends MediaService implements MediaController {
 
   @override
   void startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(
-      const Duration(milliseconds: 250),
-      (_) => _updateState(),
-    );
-    _updateState();
+    _pollSession++;
+    _isPolling = true;
+    _scheduleNextPoll(Duration.zero, _pollSession);
   }
 
   @override
   void stopPolling() {
+    _pollSession++;
+    _isPolling = false;
     _pollTimer?.cancel();
     _pollTimer = null;
   }
 
-  Future<void> _updateState() async {
+  void _scheduleNextPoll(Duration delay, int session) {
+    if (!_isPolling || session != _pollSession) return;
+    _pollTimer?.cancel();
+    _pollTimer = Timer(delay, () => _updateState(session));
+  }
+
+  Duration _nextPollDelay({required bool hasMetadata, required bool isPlaying}) {
+    if (!hasMetadata) return _disconnectedPollInterval;
+    return isPlaying ? _activePollInterval : _idlePollInterval;
+  }
+
+  Future<void> _updateState(int session) async {
+    if (session != _pollSession) {
+      return;
+    }
     if (_isUpdating) {
       return;
     }
     _isUpdating = true;
+    var nextPollDelay = _nextPollDelay(
+      hasMetadata: _metadata != null,
+      isPlaying: _status.isPlaying,
+    );
     try {
       final Map? result = await _channel.invokeMethod('getStatus');
       if (result == null) {
         _emptyResultCount++;
+        nextPollDelay = _disconnectedPollInterval;
         if (_emptyResultCount >= 4 &&
             (_metadata != null || _status != MediaPlaybackStatus.empty())) {
           _metadata = null;
@@ -245,6 +268,10 @@ class MacOSMediaService extends MediaService implements MediaController {
         isPlaying: result['isPlaying'] ?? false,
         position: Duration(milliseconds: positionMs),
       );
+      nextPollDelay = _nextPollDelay(
+        hasMetadata: newMetadata != null,
+        isPlaying: newStatus.isPlaying,
+      );
       final newAbility = abilityMap != null
           ? MediaControlAbility(
               canPlayPause: abilityMap['canPlayPause'] ?? false,
@@ -266,6 +293,7 @@ class MacOSMediaService extends MediaService implements MediaController {
       debugPrint('Failed to get macOS media info: $e');
     } finally {
       _isUpdating = false;
+      _scheduleNextPoll(nextPollDelay, session);
     }
   }
 
@@ -312,12 +340,18 @@ class LinuxMediaService extends MediaService implements MediaController {
   DateTime? _lastDiscoveryTime;
   static const _discoveryInterval = Duration(seconds: 2);
   static const _dbusTimeout = Duration(milliseconds: 500);
+  static const Duration _activePollInterval = Duration(milliseconds: 250);
+  static const Duration _idlePollInterval = Duration(seconds: 1);
+  static const Duration _disconnectedPollInterval = Duration(seconds: 2);
 
   Timer? _pollTimer;
   MediaMetadata? _metadata;
   MediaPlaybackStatus _status = MediaPlaybackStatus.empty();
   MediaControlAbility _controlAbility = MediaControlAbility.none();
   String? _currentTrackId;
+  bool _isUpdating = false;
+  bool _isPolling = false;
+  int _pollSession = 0;
 
   @override
   MediaMetadata? get metadata => _metadata;
@@ -330,24 +364,47 @@ class LinuxMediaService extends MediaService implements MediaController {
 
   @override
   void startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(
-      const Duration(milliseconds: 250),
-      (_) => _updateState(),
-    );
-    _updateState();
+    _pollSession++;
+    _isPolling = true;
+    _scheduleNextPoll(Duration.zero, _pollSession);
   }
 
   @override
   void stopPolling() {
+    _pollSession++;
+    _isPolling = false;
     _pollTimer?.cancel();
     _pollTimer = null;
   }
 
-  Future<void> _updateState() async {
+  void _scheduleNextPoll(Duration delay, int session) {
+    if (!_isPolling || session != _pollSession) return;
+    _pollTimer?.cancel();
+    _pollTimer = Timer(delay, () => _updateState(session));
+  }
+
+  Duration _nextPollDelay({required bool hasMetadata, required bool isPlaying}) {
+    if (!hasMetadata) return _disconnectedPollInterval;
+    return isPlaying ? _activePollInterval : _idlePollInterval;
+  }
+
+  Future<void> _updateState(int session) async {
+    if (session != _pollSession) {
+      return;
+    }
+    if (_isUpdating) {
+      return;
+    }
+
+    _isUpdating = true;
+    var nextPollDelay = _nextPollDelay(
+      hasMetadata: _metadata != null,
+      isPlaying: _status.isPlaying,
+    );
     try {
       final playerBusName = await _getBestPlayer();
       if (playerBusName == null) {
+        nextPollDelay = _disconnectedPollInterval;
         if (_metadata != null || _status != MediaPlaybackStatus.empty()) {
           _metadata = null;
           _status = MediaPlaybackStatus.empty();
@@ -447,6 +504,10 @@ class LinuxMediaService extends MediaService implements MediaController {
         isPlaying: isPlaying,
         position: position,
       );
+      nextPollDelay = _nextPollDelay(
+        hasMetadata: newMetadata != null,
+        isPlaying: newStatus.isPlaying,
+      );
       final newAbility = MediaControlAbility(
         canPlayPause: canPlay || canPause,
         canGoNext: canGoNext,
@@ -477,6 +538,9 @@ class LinuxMediaService extends MediaService implements MediaController {
       }
     } catch (e) {
       _cachedPlayerBusName = null;
+    } finally {
+      _isUpdating = false;
+      _scheduleNextPoll(nextPollDelay, session);
     }
   }
 
@@ -680,11 +744,17 @@ class AndroidMediaService extends MediaService implements MediaController {
   static const MethodChannel _channel = MethodChannel(
     'cc.koto.fluent_lyrics/media',
   );
+  static const Duration _activePollInterval = Duration(milliseconds: 250);
+  static const Duration _idlePollInterval = Duration(seconds: 1);
+  static const Duration _disconnectedPollInterval = Duration(seconds: 2);
 
   Timer? _pollTimer;
   MediaMetadata? _metadata;
   MediaPlaybackStatus _status = MediaPlaybackStatus.empty();
   MediaControlAbility _controlAbility = MediaControlAbility.none();
+  bool _isUpdating = false;
+  bool _isPolling = false;
+  int _pollSession = 0;
 
   @override
   MediaMetadata? get metadata => _metadata;
@@ -697,24 +767,47 @@ class AndroidMediaService extends MediaService implements MediaController {
 
   @override
   void startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(
-      const Duration(milliseconds: 250),
-      (_) => _updateState(),
-    );
-    _updateState();
+    _pollSession++;
+    _isPolling = true;
+    _scheduleNextPoll(Duration.zero, _pollSession);
   }
 
   @override
   void stopPolling() {
+    _pollSession++;
+    _isPolling = false;
     _pollTimer?.cancel();
     _pollTimer = null;
   }
 
-  Future<void> _updateState() async {
+  void _scheduleNextPoll(Duration delay, int session) {
+    if (!_isPolling || session != _pollSession) return;
+    _pollTimer?.cancel();
+    _pollTimer = Timer(delay, () => _updateState(session));
+  }
+
+  Duration _nextPollDelay({required bool hasMetadata, required bool isPlaying}) {
+    if (!hasMetadata) return _disconnectedPollInterval;
+    return isPlaying ? _activePollInterval : _idlePollInterval;
+  }
+
+  Future<void> _updateState(int session) async {
+    if (session != _pollSession) {
+      return;
+    }
+    if (_isUpdating) {
+      return;
+    }
+
+    _isUpdating = true;
+    var nextPollDelay = _nextPollDelay(
+      hasMetadata: _metadata != null,
+      isPlaying: _status.isPlaying,
+    );
     try {
       final Map? result = await _channel.invokeMethod('getStatus');
       if (result == null) {
+        nextPollDelay = _disconnectedPollInterval;
         if (_metadata != null || _status != MediaPlaybackStatus.empty()) {
           _metadata = null;
           _status = MediaPlaybackStatus.empty();
@@ -756,6 +849,10 @@ class AndroidMediaService extends MediaService implements MediaController {
         isPlaying: isPlaying,
         position: position,
       );
+      nextPollDelay = _nextPollDelay(
+        hasMetadata: newMetadata != null,
+        isPlaying: newStatus.isPlaying,
+      );
       final newAbility = abilityMap != null
           ? MediaControlAbility(
               canPlayPause: abilityMap['canPlayPause'] ?? false,
@@ -775,6 +872,9 @@ class AndroidMediaService extends MediaService implements MediaController {
       }
     } catch (e) {
       debugPrint('Failed to get media info: $e');
+    } finally {
+      _isUpdating = false;
+      _scheduleNextPoll(nextPollDelay, session);
     }
   }
 
