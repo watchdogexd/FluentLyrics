@@ -1272,7 +1272,11 @@ class LyricsProvider with ChangeNotifier {
     }
 
     _currentIndex = matchedIndex;
-    return previousIndex != _currentIndex;
+    final indexChanged = previousIndex != _currentIndex;
+    if (indexChanged) {
+      positionResyncNotifier.value = _currentPosition;
+    }
+    return indexChanged;
   }
 
   void _setCurrentPosition(Duration position, {bool forceResync = false}) {

@@ -123,12 +123,11 @@ class LyricLine extends StatelessWidget {
       ),
     );
 
-    final filteredText = blur == 0.0
-        ? scaledText
-        : ImageFiltered(
-            imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-            child: scaledText,
-          );
+    final filteredText = ImageFiltered(
+      enabled: blur != 0.0,
+      imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+      child: scaledText,
+    );
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 500),
