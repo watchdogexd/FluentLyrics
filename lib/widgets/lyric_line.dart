@@ -201,17 +201,40 @@ class LyricLine extends StatelessWidget {
     if (parts.length < 2) return parts;
 
     final merged = <LyricInlinePart>[];
-    for (final part in parts) {
-      if (merged.isNotEmpty &&
+    for (int i = 0; i < parts.length; i++) {
+      final part = parts[i];
+      final next = i + 1 < parts.length ? parts[i + 1] : null;
+
+      if (_isSingleQuote(part.text) &&
+          merged.isNotEmpty &&
+          !_isWhitespace(merged.last.text)) {
+        final previous = merged.removeLast();
+        if (next != null && !_isWhitespace(next.text)) {
+          merged.add(
+            LyricInlinePart(
+              startTime: previous.startTime,
+              endTime: _latestEndTime(previous.endTime, next.endTime),
+              text: previous.text + part.text + next.text,
+            ),
+          );
+          i++;
+        } else {
+          merged.add(
+            LyricInlinePart(
+              startTime: previous.startTime,
+              endTime: _latestEndTime(previous.endTime, part.endTime),
+              text: previous.text + part.text,
+            ),
+          );
+        }
+      } else if (merged.isNotEmpty &&
           _isAttachablePunctuation(part.text) &&
           !_endsWithWhitespace(merged.last.text)) {
         final previous = merged.removeLast();
         merged.add(
           LyricInlinePart(
             startTime: previous.startTime,
-            endTime: part.endTime > previous.endTime
-                ? part.endTime
-                : previous.endTime,
+            endTime: _latestEndTime(previous.endTime, part.endTime),
             text: previous.text + part.text,
           ),
         );
@@ -221,6 +244,12 @@ class LyricLine extends StatelessWidget {
     }
 
     return merged;
+  }
+
+  bool _isSingleQuote(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return false;
+    return trimmed.split('').every((char) => char == '\'' || char == '’');
   }
 
   bool _isAttachablePunctuation(String text) {
@@ -237,6 +266,14 @@ class LyricLine extends StatelessWidget {
 
   bool _endsWithWhitespace(String text) {
     return text.isNotEmpty && text[text.length - 1].trim().isEmpty;
+  }
+
+  bool _isWhitespace(String text) {
+    return text.trim().isEmpty;
+  }
+
+  Duration _latestEndTime(Duration a, Duration b) {
+    return a > b ? a : b;
   }
 }
 
