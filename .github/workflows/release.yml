@@ -165,7 +165,8 @@ jobs:
 
           for artifact in "$dist_dir"/*; do
             [ -e "$artifact" ] || continue
-            target="${artifact//$version_string/$version_name}"
+            filename="$(basename "$artifact")"
+            target="$dist_dir/${filename//$version_string/$version_name}"
             if [ "$target" != "$artifact" ]; then
               mv "$artifact" "$target"
             fi
