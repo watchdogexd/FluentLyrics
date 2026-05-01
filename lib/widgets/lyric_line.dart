@@ -169,9 +169,11 @@ class LyricLine extends StatelessWidget {
       height: 1.2,
     );
 
+    final inlineParts = _mergeAttachedPunctuation(lyric.inlineParts!);
+
     return Text.rich(
       TextSpan(
-        children: lyric.inlineParts!.map<InlineSpan>((part) {
+        children: inlineParts.map<InlineSpan>((part) {
           if (part.text.trim().isEmpty) {
             return TextSpan(text: part.text, style: richTextStyle);
           }
@@ -191,6 +193,50 @@ class LyricLine extends StatelessWidget {
       ),
       textAlign: TextAlign.left,
     );
+  }
+
+  List<LyricInlinePart> _mergeAttachedPunctuation(
+    List<LyricInlinePart> parts,
+  ) {
+    if (parts.length < 2) return parts;
+
+    final merged = <LyricInlinePart>[];
+    for (final part in parts) {
+      if (merged.isNotEmpty &&
+          _isAttachablePunctuation(part.text) &&
+          !_endsWithWhitespace(merged.last.text)) {
+        final previous = merged.removeLast();
+        merged.add(
+          LyricInlinePart(
+            startTime: previous.startTime,
+            endTime: part.endTime > previous.endTime
+                ? part.endTime
+                : previous.endTime,
+            text: previous.text + part.text,
+          ),
+        );
+      } else {
+        merged.add(part);
+      }
+    }
+
+    return merged;
+  }
+
+  bool _isAttachablePunctuation(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed.contains(RegExp(r'[\p{L}\p{N}]', unicode: true))) {
+      return false;
+    }
+    if (trimmed.contains(RegExp('[()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕“”‘’"\']'))) {
+      return false;
+    }
+    return trimmed.contains(RegExp(r'[\p{P}\p{S}]', unicode: true));
+  }
+
+  bool _endsWithWhitespace(String text) {
+    return text.isNotEmpty && text[text.length - 1].trim().isEmpty;
   }
 }
 
