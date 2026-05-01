@@ -24,19 +24,36 @@ class DelayedLoadingImage extends StatefulWidget {
 class _DelayedLoadingImageState extends State<DelayedLoadingImage> {
   bool _showLoading = false;
   Timer? _timer;
+  late ImageProvider _resolvedImage;
 
   @override
   void initState() {
     super.initState();
+    _resolvedImage = _buildResolvedImage();
     _startTimer();
   }
 
   @override
   void didUpdateWidget(DelayedLoadingImage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.image != oldWidget.image) {
+    if (widget.image != oldWidget.image ||
+        widget.cacheWidth != oldWidget.cacheWidth ||
+        widget.cacheHeight != oldWidget.cacheHeight) {
+      _resolvedImage = _buildResolvedImage();
       _startTimer();
     }
+  }
+
+  ImageProvider _buildResolvedImage() {
+    if (widget.cacheWidth == null && widget.cacheHeight == null) {
+      return widget.image;
+    }
+
+    return ResizeImage(
+      widget.image,
+      width: widget.cacheWidth,
+      height: widget.cacheHeight,
+    );
   }
 
   void _startTimer() {
@@ -60,10 +77,7 @@ class _DelayedLoadingImageState extends State<DelayedLoadingImage> {
   @override
   Widget build(BuildContext context) {
     return Image(
-      image: (widget.cacheWidth != null || widget.cacheHeight != null)
-          ? ResizeImage(widget.image,
-              width: widget.cacheWidth, height: widget.cacheHeight)
-          : widget.image,
+      image: _resolvedImage,
       fit: widget.fit,
       errorBuilder: widget.errorBuilder,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {

@@ -5,6 +5,21 @@ import 'package:flutter/material.dart';
 import '../models/lyric_model.dart';
 
 class LyricLine extends StatelessWidget {
+  static final Expando<List<LyricInlinePart>> _mergedInlinePartsCache = Expando(
+    'mergedInlineParts',
+  );
+  static final RegExp _wordOrNumberPattern = RegExp(
+    r'[\p{L}\p{N}]',
+    unicode: true,
+  );
+  static final RegExp _bracketOrQuotePattern = RegExp(
+    '[()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕“”‘’"\']',
+  );
+  static final RegExp _punctuationOrSymbolPattern = RegExp(
+    r'[\p{P}\p{S}]',
+    unicode: true,
+  );
+
   final Lyric lyric;
   final bool isHighlighted;
   final double distance; // 0 is current, 1 is adjacent, etc.
@@ -62,7 +77,7 @@ class LyricLine extends StatelessWidget {
         lyric.translation != null &&
         lyric.translation!.isNotEmpty;
 
-    TextStyle lineStyle = TextStyle(
+    final lineStyle = TextStyle(
       fontFamily: 'Outfit',
       fontSize: fontSize,
       fontWeight: isHighlighted ? FontWeight.w800 : FontWeight.w700,
@@ -169,7 +184,7 @@ class LyricLine extends StatelessWidget {
       height: 1.2,
     );
 
-    final inlineParts = _mergeAttachedPunctuation(lyric.inlineParts!);
+    final inlineParts = _getMergedInlineParts(lyric.inlineParts!);
 
     return Text.rich(
       TextSpan(
@@ -193,6 +208,17 @@ class LyricLine extends StatelessWidget {
       ),
       textAlign: TextAlign.left,
     );
+  }
+
+  List<LyricInlinePart> _getMergedInlineParts(List<LyricInlinePart> parts) {
+    final cached = _mergedInlinePartsCache[parts];
+    if (cached != null) {
+      return cached;
+    }
+
+    final merged = _mergeAttachedPunctuation(parts);
+    _mergedInlinePartsCache[parts] = merged;
+    return merged;
   }
 
   List<LyricInlinePart> _mergeAttachedPunctuation(
@@ -255,13 +281,13 @@ class LyricLine extends StatelessWidget {
   bool _isAttachablePunctuation(String text) {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return false;
-    if (trimmed.contains(RegExp(r'[\p{L}\p{N}]', unicode: true))) {
+    if (trimmed.contains(_wordOrNumberPattern)) {
       return false;
     }
-    if (trimmed.contains(RegExp('[()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕“”‘’"\']'))) {
+    if (trimmed.contains(_bracketOrQuotePattern)) {
       return false;
     }
-    return trimmed.contains(RegExp(r'[\p{P}\p{S}]', unicode: true));
+    return trimmed.contains(_punctuationOrSymbolPattern);
   }
 
   bool _endsWithWhitespace(String text) {

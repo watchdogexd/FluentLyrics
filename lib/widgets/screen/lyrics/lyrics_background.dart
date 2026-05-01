@@ -33,17 +33,42 @@ class LyricsBackground extends StatelessWidget {
 }
 
 /// Original static blurred background.
-class _StaticBackground extends StatelessWidget {
+class _StaticBackground extends StatefulWidget {
   final ImageProvider artProvider;
 
   const _StaticBackground({super.key, required this.artProvider});
+
+  @override
+  State<_StaticBackground> createState() => _StaticBackgroundState();
+}
+
+class _StaticBackgroundState extends State<_StaticBackground> {
+  late ImageProvider _resizedArtProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _resizedArtProvider = _createResizedArtProvider(widget.artProvider);
+  }
+
+  @override
+  void didUpdateWidget(covariant _StaticBackground oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artProvider != widget.artProvider) {
+      _resizedArtProvider = _createResizedArtProvider(widget.artProvider);
+    }
+  }
+
+  ImageProvider _createResizedArtProvider(ImageProvider artProvider) {
+    return ResizeImage(artProvider, width: 128, height: 128);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         image: DecorationImage(
-          image: ResizeImage(artProvider, width: 128, height: 128),
+          image: _resizedArtProvider,
           fit: BoxFit.cover,
         ),
       ),
@@ -69,6 +94,7 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late List<_Fragment> _fragments;
+  late ImageProvider _resizedArtProvider;
   static const int _fragmentCount = 6;
 
   @override
@@ -78,7 +104,12 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
       vsync: this,
       duration: const Duration(seconds: 25),
     )..repeat();
+    _resizedArtProvider = _createResizedArtProvider(widget.artProvider);
     _fragments = _generateFragments();
+  }
+
+  ImageProvider _createResizedArtProvider(ImageProvider artProvider) {
+    return ResizeImage(artProvider, width: 128, height: 128);
   }
 
   List<_Fragment> _generateFragments() {
@@ -105,6 +136,7 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
   void didUpdateWidget(covariant _FragmentedBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.artProvider != widget.artProvider) {
+      _resizedArtProvider = _createResizedArtProvider(widget.artProvider);
       _fragments = _generateFragments();
     }
   }
@@ -165,13 +197,13 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
           transform: Matrix4.identity()
             ..rotateZ(rot)
             ..scaleByDouble(frag.scale, frag.scale, frag.scale, frag.scale),
-          child: Opacity(
-            opacity: 0.7,
-            child: Image(
-              image: ResizeImage(widget.artProvider, width: 128, height: 128),
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.medium,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            child: Opacity(
+              opacity: 0.7,
+              child: Image(
+                image: _resizedArtProvider,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
           ),
         ),
