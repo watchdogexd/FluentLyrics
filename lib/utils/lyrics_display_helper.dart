@@ -41,6 +41,30 @@ class LyricsDisplayHelper {
     );
   }
 
+  static bool canReuseStrippedLyrics({
+    required List<Lyric>? cachedStrippedLyrics,
+    required LyricsResult? lastLyricsResultForStripping,
+    required LyricsResult lyricsResult,
+  }) {
+    return cachedStrippedLyrics != null &&
+        lastLyricsResultForStripping == lyricsResult;
+  }
+
+  static bool canReuseAlignedLyrics({
+    required List<Lyric>? cachedAlignedLyrics,
+    required LyricsResult? lastLyricsResultForAlignment,
+    required LyricsResult lyricsResult,
+    required LyricsResult? lastTranslationResultForAlignment,
+    required LyricsResult? translationResult,
+    required bool? lastRichSyncEnabledForAlignment,
+    required bool richSyncEnabled,
+  }) {
+    return cachedAlignedLyrics != null &&
+        lastLyricsResultForAlignment == lyricsResult &&
+        lastTranslationResultForAlignment == translationResult &&
+        lastRichSyncEnabledForAlignment == richSyncEnabled;
+  }
+
   static bool isInterlude(List<Lyric> lyrics, int currentIndex) {
     if (lyrics.isEmpty) return false;
     if (currentIndex < 0 || currentIndex >= lyrics.length) return false;

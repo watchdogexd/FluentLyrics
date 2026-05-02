@@ -203,8 +203,11 @@ class LyricsProvider with ChangeNotifier {
     if (curRichSync) {
       baseLyrics = _lyricsResult.lyrics;
     } else {
-      if (_cachedStrippedLyrics != null &&
-          _lastLyricsResultForStripping == _lyricsResult) {
+      if (LyricsDisplayHelper.canReuseStrippedLyrics(
+        cachedStrippedLyrics: _cachedStrippedLyrics,
+        lastLyricsResultForStripping: _lastLyricsResultForStripping,
+        lyricsResult: _lyricsResult,
+      )) {
         baseLyrics = _cachedStrippedLyrics!;
       } else {
         baseLyrics = LyricsDisplayHelper.buildDisplayedLyrics(
@@ -218,10 +221,16 @@ class LyricsProvider with ChangeNotifier {
 
     if (_translationEnabled.current &&
         _translationResult?.rawTranslation != null) {
-      if (_cachedAlignedLyrics != null &&
-          _lastLyricsResultForAlignment == _lyricsResult &&
-          _lastTranslationResultForAlignment == _translationResult &&
-          _lastRichSyncEnabledForAlignment == curRichSync) {
+      if (LyricsDisplayHelper.canReuseAlignedLyrics(
+        cachedAlignedLyrics: _cachedAlignedLyrics,
+        lastLyricsResultForAlignment: _lastLyricsResultForAlignment,
+        lyricsResult: _lyricsResult,
+        lastTranslationResultForAlignment:
+            _lastTranslationResultForAlignment,
+        translationResult: _translationResult,
+        lastRichSyncEnabledForAlignment: _lastRichSyncEnabledForAlignment,
+        richSyncEnabled: curRichSync,
+      )) {
         return _cachedAlignedLyrics!;
       }
       _cachedAlignedLyrics = LyricsDisplayHelper.buildDisplayedLyrics(
