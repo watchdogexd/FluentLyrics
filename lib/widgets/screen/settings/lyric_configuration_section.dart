@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../models/lyric_provider_type.dart';
 import '../../../providers/lyrics_provider.dart';
+import '../../../utils/lyric_configuration_helper.dart';
 import '../../settings_card_frame.dart';
 import '../../settings_section.dart';
 import '../../settings_slider_card.dart';
@@ -93,14 +94,11 @@ class LyricConfigurationSection extends StatelessWidget {
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: GestureDetector(
                               onTap: () {
-                                final updated = List<LyricProviderType>.from(
-                                  provider.trimMetadataProviders.current,
-                                );
-                                if (isSelected) {
-                                  updated.remove(providerType);
-                                } else {
-                                  updated.add(providerType);
-                                }
+                                final updated =
+                                    LyricConfigurationHelper.toggleTrimMetadataProvider(
+                                      provider.trimMetadataProviders.current,
+                                      providerType,
+                                    );
                                 provider.setTrimMetadataProviders(updated);
                               },
                               child: Row(
@@ -109,16 +107,13 @@ class LyricConfigurationSection extends StatelessWidget {
                                     value: isSelected,
                                     onChanged: (value) {
                                       final updated =
-                                          List<LyricProviderType>.from(
+                                          LyricConfigurationHelper.toggleTrimMetadataProvider(
                                             provider
                                                 .trimMetadataProviders
                                                 .current,
+                                            providerType,
+                                            select: value == true,
                                           );
-                                      if (value == true) {
-                                        updated.add(providerType);
-                                      } else {
-                                        updated.remove(providerType);
-                                      }
                                       provider.setTrimMetadataProviders(
                                         updated,
                                       );
