@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'settings_card_frame.dart';
 
 class SettingsToggleCard extends StatelessWidget {
   final String title;
@@ -16,13 +17,7 @@ class SettingsToggleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
+    return SettingsCardFrame(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
