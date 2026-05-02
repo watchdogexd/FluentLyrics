@@ -10,6 +10,7 @@ import 'providers/qqmusic_service.dart';
 import 'providers/lyrics_cache_service.dart';
 import 'providers/llm_translation_service.dart';
 import '../utils/app_logger.dart';
+import 'winner_selector.dart';
 
 class LyricsService {
   final SettingsService _settingsService = SettingsService();
@@ -141,50 +142,19 @@ class LyricsService {
         // Report every provider result as a candidate (not just the best).
         onCandidate?.call(result);
 
-        bool newBetter = false;
-        if (bestResult == null) {
-          // this is the first valid result
-          newBetter = true;
-        } else if (result.isPureMusic && !bestResult.isPureMusic) {
-          // new is pure music, old is not
-          newBetter = false;
-        } else if (result.lyrics.isNotEmpty && bestResult.lyrics.isEmpty) {
-          // new has lyrics, old does not
-          newBetter = true;
-        } else if (result.lyrics.isNotEmpty &&
-            result.isRichSync &&
-            richSyncEnabled &&
-            !bestResult.isRichSync) {
-          // new is rich sync, old is not
-          newBetter = true;
-        } else if (result.lyrics.isNotEmpty &&
-            result.isSynced &&
-            !bestResult.isSynced) {
-          // new is synced, old is not
-          newBetter = true;
-        } else if ((result.artworkUrls?.length ?? 0) >
-            (bestResult.artworkUrls?.length ?? 0)) {
-          // new have more artwork urls, old does not
-          newBetter = true;
-        }
+        final nextBest = selectBetterCandidate(
+          result,
+          bestResult,
+          richSyncEnabled,
+        );
 
-        if (newBetter) {
-          bestResult = result.copyWith(
-            lyrics: result.lyrics,
-            source: result.source,
-            isSynced: result.isSynced,
-            writtenBy: result.writtenBy,
-            composer: result.composer,
-            contributor: result.contributor,
-            copyright: result.copyright,
-            isPureMusic: result.isPureMusic,
-            artworkUrls: result.artworkUrls,
-          );
+        if (nextBest != null && nextBest != bestResult) {
+          bestResult = nextBest;
 
           AppLogger.debug(
             '[LyricsService.fetchLyrics]     ==> Yielding new best result',
           );
-          yield bestResult;
+          yield nextBest;
 
           // Cached? break
           if (provider == LyricProviderType.cache) {
@@ -196,9 +166,9 @@ class LyricsService {
           // Cache the raw result from other providers
           if (cacheEnabled &&
               provider != LyricProviderType.cache &&
-              (bestResult.lyrics.isNotEmpty || bestResult.isPureMusic)) {
+               (nextBest.lyrics.isNotEmpty || nextBest.isPureMusic)) {
             await _cacheService
-                .cacheLyrics(title, artist, album, durationSeconds, bestResult)
+                .cacheLyrics(title, artist, album, durationSeconds, nextBest)
                 .then((_) {
                   AppLogger.debug(
                     '[LyricsService.fetchLyrics]     ==> newBetter lyrics cached',
