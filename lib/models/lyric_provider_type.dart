@@ -33,7 +33,7 @@ extension LyricProviderTypeMetadata on LyricProviderType {
       case LyricProviderType.llm:
         return {
           'color': Colors.purple,
-          'name': 'LLM Traslation',
+          'name': 'LLM Translation',
           'description': 'OpenAI compatible LLM API',
         };
       case LyricProviderType.cache:
