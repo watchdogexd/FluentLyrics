@@ -1,4 +1,5 @@
 import '../models/lyric_model.dart';
+import 'translation_helper.dart';
 
 class LyricsDisplayHelper {
   const LyricsDisplayHelper._();
@@ -16,6 +17,28 @@ class LyricsDisplayHelper {
       }
       return lyric;
     }).toList();
+  }
+
+  static List<Lyric> buildDisplayedLyrics({
+    required LyricsResult lyricsResult,
+    required bool richSyncEnabled,
+    bool translationEnabled = false,
+    LyricsResult? translationResult,
+    int translationAlignmentThreshold = 80,
+  }) {
+    final baseLyrics = richSyncEnabled
+        ? lyricsResult.lyrics
+        : stripRichSync(lyricsResult.lyrics);
+
+    if (!translationEnabled || translationResult?.rawTranslation == null) {
+      return baseLyrics;
+    }
+
+    return TranslationHelper.align(
+      originalLyrics: baseLyrics,
+      rawTranslation: translationResult!.rawTranslation!,
+      similarityThreshold: translationAlignmentThreshold,
+    );
   }
 
   static bool isInterlude(List<Lyric> lyrics, int currentIndex) {

@@ -10,7 +10,6 @@ import '../services/lyrics_service.dart';
 import '../services/settings_service.dart';
 import '../services/providers/lyrics_cache_service.dart';
 import '../utils/lyrics_display_helper.dart';
-import '../utils/translation_helper.dart';
 import '../utils/richify_helper.dart';
 
 class LyricsProvider with ChangeNotifier {
@@ -208,7 +207,10 @@ class LyricsProvider with ChangeNotifier {
           _lastLyricsResultForStripping == _lyricsResult) {
         baseLyrics = _cachedStrippedLyrics!;
       } else {
-        baseLyrics = LyricsDisplayHelper.stripRichSync(_lyricsResult.lyrics);
+        baseLyrics = LyricsDisplayHelper.buildDisplayedLyrics(
+          lyricsResult: _lyricsResult,
+          richSyncEnabled: false,
+        );
         _cachedStrippedLyrics = baseLyrics;
         _lastLyricsResultForStripping = _lyricsResult;
       }
@@ -222,10 +224,12 @@ class LyricsProvider with ChangeNotifier {
           _lastRichSyncEnabledForAlignment == curRichSync) {
         return _cachedAlignedLyrics!;
       }
-      _cachedAlignedLyrics = TranslationHelper.align(
-        originalLyrics: baseLyrics,
-        rawTranslation: _translationResult!.rawTranslation!,
-        similarityThreshold: _translationAlignmentThreshold.current,
+      _cachedAlignedLyrics = LyricsDisplayHelper.buildDisplayedLyrics(
+        lyricsResult: _lyricsResult,
+        richSyncEnabled: curRichSync,
+        translationEnabled: true,
+        translationResult: _translationResult,
+        translationAlignmentThreshold: _translationAlignmentThreshold.current,
       );
       _lastLyricsResultForAlignment = _lyricsResult;
       _lastTranslationResultForAlignment = _translationResult;
