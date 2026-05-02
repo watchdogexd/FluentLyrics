@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import '../../../utils/version_display_helper.dart';
 
 class VersionSection extends StatelessWidget {
   final String version;
@@ -8,11 +9,11 @@ class VersionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final versionDisplay = kDebugMode
-        ? '(dev, parent v$version)'
-        : kProfileMode
-        ? '(profile, parent v$version)'
-        : 'v$version';
+    final versionDisplay = VersionDisplayHelper.formatVersionLabel(
+      version: version,
+      isDebugMode: kDebugMode,
+      isProfileMode: kProfileMode,
+    );
     return Center(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
