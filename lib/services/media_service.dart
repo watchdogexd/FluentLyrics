@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../utils/app_logger.dart';
 
 class MediaMetadata {
   final String title;
@@ -290,7 +291,7 @@ class MacOSMediaService extends MediaService implements MediaController {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Failed to get macOS media info: $e');
+      AppLogger.debug('Failed to get macOS media info: $e');
     } finally {
       _isUpdating = false;
       _scheduleNextPoll(nextPollDelay, session);
@@ -871,7 +872,7 @@ class AndroidMediaService extends MediaService implements MediaController {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Failed to get media info: $e');
+      AppLogger.debug('Failed to get media info: $e');
     } finally {
       _isUpdating = false;
       _scheduleNextPoll(nextPollDelay, session);

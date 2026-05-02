@@ -9,6 +9,7 @@ import '../services/media_service.dart';
 import '../services/lyrics_service.dart';
 import '../services/settings_service.dart';
 import '../services/providers/lyrics_cache_service.dart';
+import '../utils/app_logger.dart';
 import '../utils/lyrics_display_helper.dart';
 import '../utils/richify_helper.dart';
 
@@ -1056,7 +1057,7 @@ class LyricsProvider with ChangeNotifier {
                 trans.language!,
               );
               _cacheService.cacheTranslation(cacheId, trans).then((_) {
-                debugPrint(
+                AppLogger.debug(
                   'Cached translation from ${trans.source} for ${metadata.title} - ${metadata.artist.join(', ')}',
                 );
               });
@@ -1206,7 +1207,7 @@ class LyricsProvider with ChangeNotifier {
         _currentMetadata!.duration.inSeconds,
         candidate, // store the raw (un-trimmed) result so re-loads are consistent
       );
-      debugPrint(
+      AppLogger.debug(
         '[LyricsProvider] Candidate from ${candidate.source} saved to cache.',
       );
     }
@@ -1250,7 +1251,7 @@ class LyricsProvider with ChangeNotifier {
         targetLanguage,
       );
       await _cacheService.cacheTranslation(cacheId, candidate);
-      debugPrint(
+      AppLogger.debug(
         '[LyricsProvider] Translation candidate from ${candidate.translationProvider} saved to cache.',
       );
     }
