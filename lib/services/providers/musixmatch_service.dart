@@ -6,6 +6,7 @@ import '../../models/lyric_model.dart';
 import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
 import '../../utils/rich_lrc_parser.dart';
+import '../../utils/app_logger.dart';
 import '../settings_service.dart';
 
 class MusixmatchService {
@@ -69,7 +70,7 @@ class MusixmatchService {
         return result;
       }
     } catch (e) {
-      debugPrint('[Musixmatch] Error fetching lyrics: $e');
+      AppLogger.debug('[Musixmatch] Error fetching lyrics: $e');
     }
     return LyricsResult.empty();
   }
@@ -89,7 +90,7 @@ class MusixmatchService {
         return data['message']['body']['user_token'];
       }
     } catch (e) {
-      debugPrint('[Musixmatch] Error fetching token: $e');
+      AppLogger.debug('[Musixmatch] Error fetching token: $e');
     }
     return null;
   }
@@ -414,7 +415,7 @@ class MusixmatchService {
 
       return LyricsResult.empty();
     } catch (e) {
-      debugPrint('[Musixmatch] Error fetching translation: $e');
+      AppLogger.debug('[Musixmatch] Error fetching translation: $e');
       return LyricsResult.empty();
     }
   }
@@ -452,7 +453,7 @@ class MusixmatchService {
         return body;
       }
     } catch (e) {
-      debugPrint('[Musixmatch] Request error: $e');
+      AppLogger.debug('[Musixmatch] Request error: $e');
     }
     return null;
   }

@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:string_similarity/string_similarity.dart';
 import '../models/lyric_model.dart';
+import 'app_logger.dart';
 
 class TranslationHelper {
   static const int maxIndexMove = 3;
@@ -130,7 +130,7 @@ class TranslationHelper {
       final similarity = StringSimilarity.compareTwoStrings(clean1, clean2);
       return (similarity * 100).toInt();
     } catch (e) {
-      debugPrint('[LyricAligner] Error calculating similarity: $e');
+      AppLogger.debug('[LyricAligner] Error calculating similarity: $e');
       return 0;
     }
   }

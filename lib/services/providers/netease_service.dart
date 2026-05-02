@@ -9,6 +9,7 @@ import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
 import '../../utils/translation_helper.dart';
 import '../../utils/song_result_helper.dart';
+import '../../utils/app_logger.dart';
 
 class NeteaseService {
   static const int lyricEmptyRetryCount = 3;
@@ -62,7 +63,7 @@ class NeteaseService {
           onStatusUpdate?.call(
             '[NeteaseMusic] No lyrics found for songId $songId, trying next song (${i + 1}/$maxRetryCount)...',
           );
-          debugPrint(
+          AppLogger.debug(
             '[NeteaseMusic] No lyrics found for songId $songId, trying next song (${i + 1}/$maxRetryCount)...',
           );
           continue;
@@ -71,7 +72,7 @@ class NeteaseService {
         return lyricData;
       }
     } catch (e) {
-      debugPrint('[NeteaseMusic] Error fetching lyrics: $e');
+      AppLogger.debug('[NeteaseMusic] Error fetching lyrics: $e');
     }
     return LyricsResult.empty();
   }
@@ -94,7 +95,7 @@ class NeteaseService {
 
       return translationResult ?? LyricsResult.empty();
     } catch (e) {
-      debugPrint('[NeteaseMusic] Error fetching translation: $e');
+      AppLogger.debug('[NeteaseMusic] Error fetching translation: $e');
     }
     return LyricsResult.empty();
   }
@@ -153,7 +154,7 @@ class NeteaseService {
             .timeout(const Duration(seconds: 10));
 
         if (searchResponse.statusCode != 200) {
-          debugPrint(
+          AppLogger.debug(
             '[NeteaseMusic] Search failed: ${searchResponse.statusCode}',
           );
           continue;
@@ -161,7 +162,7 @@ class NeteaseService {
 
         final searchData = jsonDecode(searchResponse.body);
         if (searchData['code'] != 200) {
-          debugPrint(
+          AppLogger.debug(
             '[NeteaseMusic] Search returned unexpected code: ${searchData['code']}',
           );
           continue;
@@ -209,7 +210,7 @@ class NeteaseService {
         );
 
         if (processedSongs.isEmpty) {
-          debugPrint(
+          AppLogger.debug(
             '[NeteaseMusic] search returned songs but none matched the similarity threshold or length differ too large',
           );
           continue;
@@ -219,7 +220,7 @@ class NeteaseService {
       }
       return [];
     } catch (e) {
-      debugPrint('[NeteaseMusic] Error searching song: $e');
+      AppLogger.debug('[NeteaseMusic] Error searching song: $e');
       return [];
     }
   }
@@ -335,7 +336,7 @@ class NeteaseService {
         );
       }
     } catch (e) {
-      debugPrint('[NeteaseMusic] Error fetching lyrics: $e');
+      AppLogger.debug('[NeteaseMusic] Error fetching lyrics: $e');
     }
     return null;
   }

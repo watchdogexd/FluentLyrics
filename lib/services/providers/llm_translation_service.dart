@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../../models/lyric_model.dart';
 import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
+import '../../utils/app_logger.dart';
 import '../settings_service.dart';
 
 class LlmTranslationService {
@@ -29,12 +30,12 @@ class LlmTranslationService {
       final model = (await _settingsService.getLlmModel()).current;
 
       if (baseURI.isEmpty || apiKey.isEmpty) {
-        debugPrint('[LLM Translation] Endpoint or API Key is empty.');
+        AppLogger.debug('[LLM Translation] Endpoint or API Key is empty.');
         return LyricsResult.empty();
       }
       // check for dummy endpoint
       if (baseURIParsed.host.contains('dummy.endpoint.example')) {
-        debugPrint('[LLM Translation] Endpoint is dummy, skipping.');
+        AppLogger.debug('[LLM Translation] Endpoint is dummy, skipping.');
         return LyricsResult.empty();
       }
 
@@ -141,10 +142,10 @@ ${linesToTranslate.entries.map((e) => '${e.key}: ${e.value}').join('\n')}
       );
       final int end = FlutterTimeline.now;
       final int requestElapsed = (end - start) ~/ 1000;
-      debugPrint('[LLM Translation] Request Elapsed: $requestElapsed ms');
+      AppLogger.debug('[LLM Translation] Request Elapsed: $requestElapsed ms');
 
       if (response.statusCode != 200) {
-        debugPrint(
+        AppLogger.debug(
           '[LLM Translation] Failed: ${response.statusCode} ${response.body}',
         );
         return LyricsResult.empty();
@@ -187,9 +188,9 @@ ${linesToTranslate.entries.map((e) => '${e.key}: ${e.value}').join('\n')}
         jsonResponse = jsonDecode(content);
         translatedLines = jsonResponse['translation'];
       } catch (e) {
-        debugPrint(
-          '[LLM Translation] Fail to parse response as raw JSON, trying to strip...',
-        );
+          AppLogger.debug(
+            '[LLM Translation] Fail to parse response as raw JSON, trying to strip...',
+          );
         try {
           // check if markdown codeblock present
           final codeblockPattern = RegExp(
@@ -215,7 +216,7 @@ ${linesToTranslate.entries.map((e) => '${e.key}: ${e.value}').join('\n')}
             }
           }
         } catch (e) {
-          debugPrint(
+          AppLogger.debug(
             '[LLM Translation] Error: Model produced malformed JSON. Expected List or "SKIP", got $translatedLines',
           );
         }
@@ -235,7 +236,7 @@ ${linesToTranslate.entries.map((e) => '${e.key}: ${e.value}').join('\n')}
       }
 
       if (translatedLines is! Map<String, dynamic>) {
-        debugPrint(
+        AppLogger.debug(
           '[LLM Translation] Error: Model produced malformed JSON. Expected Map<String, dynamic> or "SKIP", got $translatedLines',
         );
         return LyricsResult.empty();
@@ -264,7 +265,7 @@ ${linesToTranslate.entries.map((e) => '${e.key}: ${e.value}').join('\n')}
             'Model $model, Request Elapsed ${requestElapsed / 1000}s',
       );
     } catch (e) {
-      debugPrint('[LLM Translation] Error: $e');
+      AppLogger.debug('[LLM Translation] Error: $e');
       return LyricsResult.empty();
     }
   }

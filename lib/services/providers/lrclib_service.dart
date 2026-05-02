@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../models/lyric_model.dart';
+import '../../utils/app_logger.dart';
 import '../../utils/lrc_parser.dart';
 import '../../utils/rich_lrc_parser.dart';
 import '../../utils/string_similarity.dart';
@@ -56,7 +57,7 @@ class LrclibService {
         }).toList();
 
         if (results.isEmpty) {
-          debugPrint(
+          AppLogger.debug(
             '[LRCLIB] Search returned songs but none matched the title similarity threshold.',
           );
           return LyricsResult.empty();
@@ -132,7 +133,7 @@ class LrclibService {
         }
       }
     } catch (e) {
-      debugPrint('[LRCLIB] Error fetching lyrics: $e');
+      AppLogger.debug('[LRCLIB] Error fetching lyrics: $e');
     }
     return LyricsResult.empty();
   }

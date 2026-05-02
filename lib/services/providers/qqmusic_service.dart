@@ -7,6 +7,7 @@ import '../../models/general_translation_request_data.dart';
 import '../../utils/lrc_parser.dart';
 import '../../utils/translation_helper.dart';
 import '../../utils/song_result_helper.dart';
+import '../../utils/app_logger.dart';
 
 class QQMusicService {
   static const int lyricEmptyRetryCount = 3;
@@ -54,7 +55,7 @@ class QQMusicService {
 
         final lyricsResponse = await _getLyrics(songMid);
         if (lyricsResponse == null) {
-          debugPrint('[QQMusic] Lyrics response for best match is null');
+          AppLogger.debug('[QQMusic] Lyrics response for best match is null');
           return LyricsResult.empty();
         }
 
@@ -122,14 +123,14 @@ class QQMusicService {
         onStatusUpdate?.call(
           '[QQMusic] No lyrics found for songMid $songMid, trying next song (${i + 1}/$maxRetryCount)...',
         );
-        debugPrint(
+        AppLogger.debug(
           '[QQMusic] No lyrics found for songMid $songMid, trying next song (${i + 1}/$maxRetryCount)...',
         );
       }
 
       return LyricsResult.empty();
     } catch (e) {
-      debugPrint('[QQMusic] Error fetching lyrics: $e');
+      AppLogger.debug('[QQMusic] Error fetching lyrics: $e');
       return LyricsResult.empty();
     }
   }
@@ -152,7 +153,7 @@ class QQMusicService {
 
       return translationResult ?? LyricsResult.empty();
     } catch (e) {
-      debugPrint('[QQMusic] Error fetching translation: $e');
+      AppLogger.debug('[QQMusic] Error fetching translation: $e');
     }
     return LyricsResult.empty();
   }
@@ -190,20 +191,22 @@ class QQMusicService {
             .timeout(const Duration(seconds: 10));
 
         if (searchResponse.statusCode != 200) {
-          debugPrint('[QQMusic] Search failed: ${searchResponse.statusCode}');
+          AppLogger.debug(
+            '[QQMusic] Search failed: ${searchResponse.statusCode}',
+          );
           continue;
         }
 
         final searchData = jsonDecode(utf8.decode(searchResponse.bodyBytes));
         final req1 = searchData['req_1'];
         if (req1['code'] != 0) {
-          debugPrint('[QQMusic] Search API error: ${req1['code']}');
+          AppLogger.debug('[QQMusic] Search API error: ${req1['code']}');
           continue;
         }
 
         final songList = req1['data']['body']['song']['list'] as List? ?? [];
         if (songList.isEmpty) {
-          debugPrint('[QQMusic] Search returned no songs');
+          AppLogger.debug('[QQMusic] Search returned no songs');
           continue;
         }
 
@@ -239,7 +242,7 @@ class QQMusicService {
         );
 
         if (orderedSongs.isEmpty) {
-          debugPrint(
+          AppLogger.debug(
             '[QQMusic] Search returned songs but none matched the similarity threshold or length differ too large',
           );
           continue;
@@ -249,7 +252,7 @@ class QQMusicService {
       }
       return [];
     } catch (e) {
-      debugPrint('[QQMusic] Error searching song: $e');
+      AppLogger.debug('[QQMusic] Error searching song: $e');
       return [];
     }
   }
@@ -295,7 +298,7 @@ class QQMusicService {
         }
       }
     } catch (e) {
-      debugPrint('[QQMusic] Cannot fetch lyrics: $e');
+      AppLogger.debug('[QQMusic] Cannot fetch lyrics: $e');
     }
     return null;
   }

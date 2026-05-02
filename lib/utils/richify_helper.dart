@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:string_similarity/string_similarity.dart';
 import '../models/lyric_model.dart';
+import 'app_logger.dart';
 
 /// Merges word-level timing (inlineParts) from a rich-synced source into a
 /// regular synced target, producing a new rich-synced result.
@@ -88,7 +88,7 @@ class RichifyHelper {
         .where((l) => l.text.trim().isNotEmpty)
         .length;
 
-    debugPrint(
+    AppLogger.debug(
       '[RichifyHelper] Richified $richCount / $totalContent lines '
       '(source: ${richSource.source}, target: ${syncedTarget.source})',
     );
