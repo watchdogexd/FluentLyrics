@@ -98,4 +98,83 @@ void main() {
 
     expect(duration, const Duration(milliseconds: 4500));
   });
+
+  test('buildDisplayedLyrics strips inline parts when rich sync is disabled', () {
+    final lyricsResult = LyricsResult(
+      lyrics: [
+        Lyric(
+          startTime: const Duration(seconds: 1),
+          endTime: const Duration(seconds: 2),
+          text: 'hello',
+          inlineParts: [
+            LyricInlinePart(
+              startTime: const Duration(seconds: 1),
+              endTime: const Duration(seconds: 1, milliseconds: 500),
+              text: 'he',
+            ),
+          ],
+        ),
+      ],
+      source: 'Musixmatch',
+    );
+
+    final displayed = LyricsDisplayHelper.buildDisplayedLyrics(
+      lyricsResult: lyricsResult,
+      richSyncEnabled: false,
+    );
+
+    expect(displayed.first.inlineParts, isNull);
+  });
+
+  test('buildDisplayedLyrics preserves inline parts when rich sync is enabled', () {
+    final lyricsResult = LyricsResult(
+      lyrics: [
+        Lyric(
+          startTime: const Duration(seconds: 1),
+          endTime: const Duration(seconds: 2),
+          text: 'hello',
+          inlineParts: [
+            LyricInlinePart(
+              startTime: const Duration(seconds: 1),
+              endTime: const Duration(seconds: 1, milliseconds: 500),
+              text: 'he',
+            ),
+          ],
+        ),
+      ],
+      source: 'Musixmatch',
+    );
+
+    final displayed = LyricsDisplayHelper.buildDisplayedLyrics(
+      lyricsResult: lyricsResult,
+      richSyncEnabled: true,
+    );
+
+    expect(displayed.first.inlineParts, isNotNull);
+  });
+
+  test('buildDisplayedLyrics aligns translations onto base lyrics', () {
+    final lyricsResult = LyricsResult(
+      lyrics: [lyric('hello', 1)],
+      source: 'QQ Music',
+    );
+    final translationResult = LyricsResult(
+      lyrics: [],
+      source: 'Netease Music',
+      translation: true,
+      rawTranslation: const [
+        {'original': 'hello', 'translated': '你好'},
+      ],
+    );
+
+    final displayed = LyricsDisplayHelper.buildDisplayedLyrics(
+      lyricsResult: lyricsResult,
+      richSyncEnabled: false,
+      translationEnabled: true,
+      translationResult: translationResult,
+      translationAlignmentThreshold: 50,
+    );
+
+    expect(displayed.first.translation, '你好');
+  });
 }
