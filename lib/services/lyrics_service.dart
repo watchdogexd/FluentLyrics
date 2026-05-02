@@ -1,7 +1,6 @@
 import '../models/lyric_model.dart';
 import '../models/lyric_provider_type.dart';
 import '../models/general_translation_request_data.dart';
-import 'package:flutter/foundation.dart';
 import 'settings_service.dart';
 import 'providers/lrclib_service.dart';
 import 'providers/musixmatch_service.dart';
