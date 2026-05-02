@@ -56,3 +56,17 @@ LyricsResult? selectBetterCandidate(
     artworkUrls: candidate.artworkUrls,
   );
 }
+
+bool hasGoodEnoughLyricsResult(
+  LyricsResult? best,
+  bool richSyncEnabled,
+  bool translationEnabled,
+  bool translationReceived,
+) {
+  return best != null &&
+      (best.isPureMusic ||
+          (best.lyrics.isNotEmpty &&
+              ((best.isRichSync && richSyncEnabled) ||
+                  (!richSyncEnabled && best.isSynced)))) &&
+      ((translationEnabled && translationReceived) || !translationEnabled);
+}

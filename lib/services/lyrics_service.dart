@@ -181,13 +181,12 @@ class LyricsService {
       // Early-exit when we already have a high-quality result.
       // If onPauseForCandidates is provided, pause here (once) so the user can
       // open the candidates panel; resolving true continues remaining providers.
-      final bool isGoodEnough =
-          bestResult != null &&
-          (bestResult.isPureMusic ||
-              (bestResult.lyrics.isNotEmpty &&
-                  ((bestResult.isRichSync && richSyncEnabled) ||
-                      (!richSyncEnabled && bestResult.isSynced)))) &&
-          ((translationEnabled && translationReceived) || !translationEnabled);
+      final bool isGoodEnough = hasGoodEnoughLyricsResult(
+        bestResult,
+        richSyncEnabled,
+        translationEnabled,
+        translationReceived,
+      );
 
       if (isGoodEnough) {
         if (onPauseForCandidates != null) {
