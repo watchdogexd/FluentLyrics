@@ -3,6 +3,14 @@ import 'package:fluent_lyrics/utils/lyrics_display_helper.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  Lyric lyric(String text, int seconds) {
+    return Lyric(
+      startTime: Duration(seconds: seconds),
+      endTime: Duration(seconds: seconds + 1),
+      text: text,
+    );
+  }
+
   test('stripRichSync removes inline parts and preserves line fields', () {
     final richLine = Lyric(
       startTime: const Duration(seconds: 1),
@@ -39,5 +47,55 @@ void main() {
 
     expect(stripped, hasLength(1));
     expect(stripped.first, same(plainLine));
+  });
+
+  test('isInterlude returns true only for current empty lyric line', () {
+    final lyrics = [lyric('hello', 0), lyric('', 5), lyric('world', 10)];
+
+    expect(LyricsDisplayHelper.isInterlude(lyrics, 1), isTrue);
+    expect(LyricsDisplayHelper.isInterlude(lyrics, 0), isFalse);
+    expect(LyricsDisplayHelper.isInterlude(lyrics, 3), isFalse);
+  });
+
+  test('interludeProgressForPosition applies offsets and clamps progress', () {
+    final lyrics = [lyric('', 5), lyric('next', 10)];
+
+    final progress = LyricsDisplayHelper.interludeProgressForPosition(
+      lyrics: lyrics,
+      currentIndex: 0,
+      position: const Duration(seconds: 6),
+      globalOffset: const Duration(seconds: 1),
+      trackOffset: Duration.zero,
+      interludeOffset: const Duration(milliseconds: 500),
+    );
+
+    expect(progress, closeTo(0.4444, 0.001));
+  });
+
+  test('interludeProgressForPosition returns zero for invalid interlude state', () {
+    final lyrics = [lyric('hello', 0), lyric('world', 5)];
+
+    final progress = LyricsDisplayHelper.interludeProgressForPosition(
+      lyrics: lyrics,
+      currentIndex: 0,
+      position: const Duration(seconds: 2),
+      globalOffset: Duration.zero,
+      trackOffset: Duration.zero,
+      interludeOffset: const Duration(milliseconds: 500),
+    );
+
+    expect(progress, 0.0);
+  });
+
+  test('interludeDuration returns remaining gap minus offset', () {
+    final lyrics = [lyric('', 5), lyric('next', 10)];
+
+    final duration = LyricsDisplayHelper.interludeDuration(
+      lyrics: lyrics,
+      currentIndex: 0,
+      interludeOffset: const Duration(milliseconds: 500),
+    );
+
+    expect(duration, const Duration(milliseconds: 4500));
   });
 }
