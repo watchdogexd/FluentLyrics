@@ -9,6 +9,7 @@ import '../services/media_service.dart';
 import '../services/lyrics_service.dart';
 import '../services/settings_service.dart';
 import '../services/providers/lyrics_cache_service.dart';
+import '../utils/lyrics_display_helper.dart';
 import '../utils/translation_helper.dart';
 import '../utils/richify_helper.dart';
 
@@ -196,21 +197,6 @@ class LyricsProvider with ChangeNotifier {
   List<Lyric>? _cachedStrippedLyrics;
   LyricsResult? _lastLyricsResultForStripping;
 
-  List<Lyric> _stripRichSync(List<Lyric> source) {
-    return source.map((l) {
-      if (l.inlineParts != null && l.inlineParts!.isNotEmpty) {
-        return Lyric(
-          startTime: l.startTime,
-          endTime: l.endTime,
-          text: l.text,
-          inlineParts: null,
-          translation: l.translation,
-        );
-      }
-      return l;
-    }).toList();
-  }
-
   List<Lyric> get lyrics {
     final curRichSync = _richSyncEnabled.current;
 
@@ -222,7 +208,7 @@ class LyricsProvider with ChangeNotifier {
           _lastLyricsResultForStripping == _lyricsResult) {
         baseLyrics = _cachedStrippedLyrics!;
       } else {
-        baseLyrics = _stripRichSync(_lyricsResult.lyrics);
+        baseLyrics = LyricsDisplayHelper.stripRichSync(_lyricsResult.lyrics);
         _cachedStrippedLyrics = baseLyrics;
         _lastLyricsResultForStripping = _lyricsResult;
       }
