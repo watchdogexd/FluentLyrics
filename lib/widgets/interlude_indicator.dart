@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/interlude_indicator_helper.dart';
 
 class InterludeIndicator extends StatefulWidget {
   final double progress;
@@ -57,64 +58,41 @@ class _InterludeIndicatorState extends State<InterludeIndicator>
   }
 
   bool get _isSwellPhase {
-    if (widget.duration.inMilliseconds <= 0) return false;
-    const int shrinkDuration = 200;
-    const int swellDuration = 250;
-    final double totalDotWindow =
-        1 - ((shrinkDuration + 150) / widget.duration.inMilliseconds);
-    final double swellStart =
-        totalDotWindow - (swellDuration / widget.duration.inMilliseconds);
-    return widget.progress >= swellStart && widget.progress < totalDotWindow;
+    return InterludeIndicatorHelper.isSwellPhase(
+      progress: widget.progress,
+      duration: widget.duration,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const int shrinkDuration = 200;
-    const double overlap = 0.3; // How much the next dot overlaps (0.0 to 1.0)
     if (widget.duration.inMilliseconds <= 0) {
       return const SizedBox.shrink();
     }
 
-    final double totalDotWindow =
-        1 - ((shrinkDuration + 150) / widget.duration.inMilliseconds);
-
-    final double step = 1 - overlap;
-    final double d = totalDotWindow / (2 * step + 1);
-
-    // Calculate duration for each dot's animation
-    final dotDuration = Duration(
-      milliseconds: (d * totalDotWindow * widget.duration.inMilliseconds)
-          .round(),
+    final dotDuration = InterludeIndicatorHelper.dotDurationForDuration(
+      widget.duration,
     );
-
-    // Target scale for the entire widget
-    double targetScale = 1.0;
-    const double swellScale = 1.15;
-    const int swellDuration = 250;
-    final double swellStart =
-        totalDotWindow - (swellDuration / widget.duration.inMilliseconds);
-
-    if (widget.progress >= totalDotWindow) {
-      targetScale =
-          ((1.0 - widget.progress) / (1.0 - totalDotWindow)).clamp(0.0, 1.0) *
-          swellScale;
-    } else if (widget.progress >= swellStart) {
-      final double swellProgress =
-          (widget.progress - swellStart) / (totalDotWindow - swellStart);
-      targetScale = 1.0 + (swellScale - 1.0) * swellProgress.clamp(0.0, 1.0);
-    }
+    final targetScale = InterludeIndicatorHelper.targetScale(
+      progress: widget.progress,
+      duration: widget.duration,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
       alignment: Alignment.centerLeft,
       child: AnimatedScale(
         scale: targetScale,
-        duration: const Duration(milliseconds: shrinkDuration),
+        duration: const Duration(
+          milliseconds: InterludeIndicatorHelper.shrinkDurationMs,
+        ),
         curve: Curves.easeInCirc,
         alignment: Alignment.centerLeft,
         child: AnimatedOpacity(
           opacity: targetScale.clamp(0.0, 1.0),
-          duration: const Duration(milliseconds: shrinkDuration),
+          duration: const Duration(
+            milliseconds: InterludeIndicatorHelper.shrinkDurationMs,
+          ),
           child: AnimatedBuilder(
             animation: _breathingAnimation,
             builder: (context, child) {
@@ -128,20 +106,26 @@ class _InterludeIndicatorState extends State<InterludeIndicator>
               mainAxisSize: MainAxisSize.min,
               children: [
                 _AnimatedDot(
-                  progress: (widget.progress / d).clamp(0.0, 1.0),
-                  duration: dotDuration,
-                ),
-                _AnimatedDot(
-                  progress: ((widget.progress - (step * d)) / d).clamp(
-                    0.0,
-                    1.0,
+                  progress: InterludeIndicatorHelper.dotProgress(
+                    progress: widget.progress,
+                    dotIndex: 0,
+                    duration: widget.duration,
                   ),
                   duration: dotDuration,
                 ),
                 _AnimatedDot(
-                  progress: ((widget.progress - (2 * step * d)) / d).clamp(
-                    0.0,
-                    1.0,
+                  progress: InterludeIndicatorHelper.dotProgress(
+                    progress: widget.progress,
+                    dotIndex: 1,
+                    duration: widget.duration,
+                  ),
+                  duration: dotDuration,
+                ),
+                _AnimatedDot(
+                  progress: InterludeIndicatorHelper.dotProgress(
+                    progress: widget.progress,
+                    dotIndex: 2,
+                    duration: widget.duration,
                   ),
                   duration: dotDuration,
                 ),
