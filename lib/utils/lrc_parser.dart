@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
 import '../models/lyric_model.dart';
 import '../../utils/string_similarity.dart';
 import 'package:html_unescape/html_unescape.dart';
+import 'app_logger.dart';
 
 /// Result of parsing LRC content with optional metadata trimming.
 class LrcParseResult {
@@ -181,10 +181,10 @@ class LrcParser {
         firstLine,
         trimTitleKeyword_2,
       );
-      debugPrint(
+      AppLogger.debug(
         '[trimMetadataLines] similarity for first line "$firstLine" with keyword "$trimTitleKeyword_1": $similarity_1',
       );
-      debugPrint(
+      AppLogger.debug(
         '[trimMetadataLines] similarity for first line "$firstLine" with keyword "$trimTitleKeyword_2": $similarity_2',
       );
       if (similarity_1 >= 0.75 || similarity_2 >= 0.75) {
