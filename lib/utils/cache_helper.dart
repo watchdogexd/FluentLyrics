@@ -1,8 +1,14 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'app_logger.dart';
 
 class CacheHelper {
+  static String formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
   static Future<Map<String, int>> getArtworkCacheStats() async {
     try {
       int totalSize = 0;
@@ -23,7 +29,7 @@ class CacheHelper {
 
       return {'count': count, 'size': totalSize};
     } catch (e) {
-      debugPrint('Error getting artwork cache stats: $e');
+      AppLogger.debug('Error getting artwork cache stats: $e');
       return {'count': 0, 'size': 0};
     }
   }
@@ -36,7 +42,7 @@ class CacheHelper {
         await appCacheDir.delete(recursive: true);
       }
     } catch (e) {
-      debugPrint('Error clearing artwork cache: $e');
+      AppLogger.debug('Error clearing artwork cache: $e');
     }
   }
 }

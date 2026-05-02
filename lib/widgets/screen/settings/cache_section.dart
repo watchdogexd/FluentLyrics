@@ -20,12 +20,6 @@ class CacheSection extends StatefulWidget {
 }
 
 class _CacheSectionState extends State<CacheSection> {
-  String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
@@ -46,7 +40,7 @@ class _CacheSectionState extends State<CacheSection> {
                       final count = snapshot.data!['count'];
                       final size = snapshot.data!['size'];
                       return Text(
-                        '$count items, ${_formatSize(size)} (Est.)',
+                        '$count items, ${CacheHelper.formatSize(size)} (Est.)',
                         style: const TextStyle(
                           color: Colors.blue,
                           fontSize: 13,
@@ -127,7 +121,7 @@ class _CacheSectionState extends State<CacheSection> {
                   final count = snapshot.data!['count']!;
                   final size = snapshot.data!['size']!;
                   return Text(
-                    '$count items, ${_formatSize(size)}',
+                    '$count items, ${CacheHelper.formatSize(size)}',
                     style: const TextStyle(
                       color: Colors.blue,
                       fontSize: 13,
