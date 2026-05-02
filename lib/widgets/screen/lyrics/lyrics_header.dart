@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../../../providers/lyrics_provider.dart';
 import '../../../screens/settings_screen.dart';
 import 'delayed_loading_image.dart';
@@ -187,7 +188,7 @@ class LyricsHeader extends StatelessWidget {
               cacheWidth: cacheWidth,
               cacheHeight: cacheHeight,
               errorBuilder: (context, error, stackTrace) {
-                debugPrint('Error loading album art: $error');
+                AppLogger.debug('Error loading album art: $error');
                 return Image.asset('assets/album_art.png', fit: BoxFit.cover);
               },
             );
