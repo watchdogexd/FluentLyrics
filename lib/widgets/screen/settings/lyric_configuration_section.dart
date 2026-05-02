@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../models/lyric_provider_type.dart';
 import '../../../providers/lyrics_provider.dart';
+import '../../settings_card_frame.dart';
 import '../../settings_section.dart';
 import '../../settings_slider_card.dart';
 import '../../settings_toggle_card.dart';
@@ -58,13 +59,7 @@ class LyricConfigurationSection extends StatelessWidget {
               resetTooltip: 'Reset to 0s',
             ),
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
+            SettingsCardFrame(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -151,13 +146,7 @@ class LyricConfigurationSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
+            SettingsCardFrame(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/lyric_provider_type.dart';
+import '../../settings_card_frame.dart';
 import '../../settings_section.dart';
 
 class PrioritySection extends StatelessWidget {
@@ -89,12 +90,7 @@ class PrioritySection extends StatelessWidget {
   }
 
   Widget _buildCacheButton() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
+    return SettingsCardFrame(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Container(
@@ -170,13 +166,9 @@ class PrioritySection extends StatelessWidget {
     return Opacity(
       opacity: isEnabled ? 1.0 : 0.4,
       key: ValueKey(type),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: SettingsCardFrame(
         child: ReorderableDragStartListener(
           index: index + (index >= enabledCount ? 1 : 0),
           child: ListTile(
@@ -225,6 +217,7 @@ class PrioritySection extends StatelessWidget {
             ),
             trailing: const Icon(Icons.drag_indicator, color: Colors.white24),
           ),
+        ),
         ),
       ),
     );
