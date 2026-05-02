@@ -177,4 +177,64 @@ void main() {
 
     expect(displayed.first.translation, '你好');
   });
+
+  test('canReuseStrippedLyrics only reuses when cache and source match', () {
+    final lyricsResult = LyricsResult(lyrics: [lyric('hello', 1)], source: 'A');
+
+    expect(
+      LyricsDisplayHelper.canReuseStrippedLyrics(
+        cachedStrippedLyrics: [lyric('hello', 1)],
+        lastLyricsResultForStripping: lyricsResult,
+        lyricsResult: lyricsResult,
+      ),
+      isTrue,
+    );
+
+    expect(
+      LyricsDisplayHelper.canReuseStrippedLyrics(
+        cachedStrippedLyrics: null,
+        lastLyricsResultForStripping: lyricsResult,
+        lyricsResult: lyricsResult,
+      ),
+      isFalse,
+    );
+  });
+
+  test('canReuseAlignedLyrics requires matching lyrics translation and mode', () {
+    final lyricsResult = LyricsResult(lyrics: [lyric('hello', 1)], source: 'A');
+    final translationResult = LyricsResult(
+      lyrics: [],
+      source: 'B',
+      translation: true,
+      rawTranslation: const [
+        {'original': 'hello', 'translated': '你好'},
+      ],
+    );
+
+    expect(
+      LyricsDisplayHelper.canReuseAlignedLyrics(
+        cachedAlignedLyrics: [lyric('hello', 1)],
+        lastLyricsResultForAlignment: lyricsResult,
+        lyricsResult: lyricsResult,
+        lastTranslationResultForAlignment: translationResult,
+        translationResult: translationResult,
+        lastRichSyncEnabledForAlignment: false,
+        richSyncEnabled: false,
+      ),
+      isTrue,
+    );
+
+    expect(
+      LyricsDisplayHelper.canReuseAlignedLyrics(
+        cachedAlignedLyrics: [lyric('hello', 1)],
+        lastLyricsResultForAlignment: lyricsResult,
+        lyricsResult: lyricsResult,
+        lastTranslationResultForAlignment: translationResult,
+        translationResult: translationResult,
+        lastRichSyncEnabledForAlignment: true,
+        richSyncEnabled: false,
+      ),
+      isFalse,
+    );
+  });
 }
