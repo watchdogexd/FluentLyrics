@@ -313,16 +313,7 @@ class LyricsProvider with ChangeNotifier {
   }
 
   bool get isInterlude {
-    if (lyrics.isEmpty) return false;
-
-    // Mid-song pause indicator (includes injected prelude)
-    if (_currentIndex >= 0 && _currentIndex < lyrics.length) {
-      if (lyrics[_currentIndex].text.trim().isEmpty) {
-        return true;
-      }
-    }
-
-    return false;
+    return LyricsDisplayHelper.isInterlude(lyrics, _currentIndex);
   }
 
   double get interludeProgress {
@@ -357,36 +348,22 @@ class LyricsProvider with ChangeNotifier {
   }
 
   double interludeProgressForPosition(Duration position) {
-    if (!isInterlude || lyrics.isEmpty) return 0.0;
-    final adjustedPosition = position + globalOffset + _trackOffset;
-
-    // Empty line progress (works for prelude too)
-    if (_currentIndex >= 0 && _currentIndex < lyrics.length - 1) {
-      final currentStartTime = lyrics[_currentIndex].startTime;
-      final nextStartTime = lyrics[_currentIndex + 1].startTime;
-      final duration =
-          nextStartTime.inMilliseconds -
-          currentStartTime.inMilliseconds -
-          _interludeOffset.inMilliseconds;
-      if (duration > 0) {
-        return ((adjustedPosition.inMilliseconds -
-                    currentStartTime.inMilliseconds) /
-                duration)
-            .clamp(0.0, 1.0);
-      }
-    }
-
-    return 0.0;
+    return LyricsDisplayHelper.interludeProgressForPosition(
+      lyrics: lyrics,
+      currentIndex: _currentIndex,
+      position: position,
+      globalOffset: globalOffset,
+      trackOffset: _trackOffset,
+      interludeOffset: _interludeOffset,
+    );
   }
 
   Duration get interludeDuration {
-    if (!isInterlude || lyrics.isEmpty) return Duration.zero;
-    if (_currentIndex >= 0 && _currentIndex < lyrics.length - 1) {
-      final currentStartTime = lyrics[_currentIndex].startTime;
-      final nextStartTime = lyrics[_currentIndex + 1].startTime;
-      return nextStartTime - currentStartTime - _interludeOffset;
-    }
-    return Duration.zero;
+    return LyricsDisplayHelper.interludeDuration(
+      lyrics: lyrics,
+      currentIndex: _currentIndex,
+      interludeOffset: _interludeOffset,
+    );
   }
 
   bool _setLoadingStatus(String status) {
