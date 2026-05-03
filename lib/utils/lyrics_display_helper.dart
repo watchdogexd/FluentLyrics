@@ -92,7 +92,8 @@ class LyricsDisplayHelper {
 
     if (duration <= 0) return 0.0;
 
-    return ((adjustedPosition.inMilliseconds - currentStartTime.inMilliseconds) /
+    return ((adjustedPosition.inMilliseconds -
+                currentStartTime.inMilliseconds) /
             duration)
         .clamp(0.0, 1.0);
   }

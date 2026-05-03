@@ -12,7 +12,8 @@ class InterludeIndicatorHelper {
   }) {
     if (duration.inMilliseconds <= 0) return false;
     final totalDotWindow = totalDotWindowForDuration(duration);
-    final swellStart = totalDotWindow - (swellDurationMs / duration.inMilliseconds);
+    final swellStart =
+        totalDotWindow - (swellDurationMs / duration.inMilliseconds);
     return progress >= swellStart && progress < totalDotWindow;
   }
 
@@ -35,7 +36,8 @@ class InterludeIndicatorHelper {
     required Duration duration,
   }) {
     final totalDotWindow = totalDotWindowForDuration(duration);
-    final swellStart = totalDotWindow - (swellDurationMs / duration.inMilliseconds);
+    final swellStart =
+        totalDotWindow - (swellDurationMs / duration.inMilliseconds);
 
     if (progress >= totalDotWindow) {
       return ((1.0 - progress) / (1.0 - totalDotWindow)).clamp(0.0, 1.0) *

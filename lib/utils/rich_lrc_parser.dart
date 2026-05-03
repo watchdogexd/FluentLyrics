@@ -210,7 +210,9 @@ class QQRichParser {
           );
         }
 
-        final text = inlineParts.isNotEmpty ? plainText.toString() : lineContent.trim();
+        final text = inlineParts.isNotEmpty
+            ? plainText.toString()
+            : lineContent.trim();
         lyrics.add(
           Lyric(
             startTime: Duration(milliseconds: lineStartMs),
