@@ -384,59 +384,72 @@ class LyricsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setCacheEnabled(bool enabled) {
-    if (_cacheEnabled.current == enabled) return;
-    _cacheEnabled = Setting(
-      current: enabled,
-      defaultValue: _cacheEnabled.defaultValue,
-      changed: enabled != _cacheEnabled.defaultValue,
+  bool _setSettingValue<T>({
+    required Setting<T> currentSetting,
+    required T value,
+    required void Function(Setting<T>) assign,
+    required Future<void> Function(T) persist,
+    bool Function(T current, T next)? equals,
+  }) {
+    final isEqual = equals ?? (T current, T next) => current == next;
+    if (isEqual(currentSetting.current, value)) return false;
+
+    assign(
+      Setting(
+        current: value,
+        defaultValue: currentSetting.defaultValue,
+        changed: !isEqual(value, currentSetting.defaultValue),
+      ),
     );
-    _settingsService.setCacheEnabled(enabled);
+    unawaited(persist(value));
     notifyListeners();
+    return true;
+  }
+
+  void setCacheEnabled(bool enabled) {
+    _setSettingValue(
+      currentSetting: _cacheEnabled,
+      value: enabled,
+      assign: (value) => _cacheEnabled = value,
+      persist: _settingsService.setCacheEnabled,
+    );
   }
 
   void setLinesBefore(int lines) {
-    if (_linesBefore.current == lines) return;
-    _linesBefore = Setting(
-      current: lines,
-      defaultValue: _linesBefore.defaultValue,
-      changed: lines != _linesBefore.defaultValue,
+    _setSettingValue(
+      currentSetting: _linesBefore,
+      value: lines,
+      assign: (value) => _linesBefore = value,
+      persist: _settingsService.setLinesBefore,
     );
-    _settingsService.setLinesBefore(lines);
-    notifyListeners();
   }
 
   void setScrollAutoResumeDelay(int seconds) {
-    if (_scrollAutoResumeDelay.current == seconds) return;
-    _scrollAutoResumeDelay = Setting(
-      current: seconds,
-      defaultValue: _scrollAutoResumeDelay.defaultValue,
-      changed: seconds != _scrollAutoResumeDelay.defaultValue,
+    _setSettingValue(
+      currentSetting: _scrollAutoResumeDelay,
+      value: seconds,
+      assign: (value) => _scrollAutoResumeDelay = value,
+      persist: _settingsService.setScrollAutoResumeDelay,
     );
-    _settingsService.setScrollAutoResumeDelay(seconds);
-    notifyListeners();
   }
 
   void setBlurEnabled(bool enabled) {
-    if (_blurEnabled.current == enabled) return;
-    _blurEnabled = Setting(
-      current: enabled,
-      defaultValue: _blurEnabled.defaultValue,
-      changed: enabled != _blurEnabled.defaultValue,
+    _setSettingValue(
+      currentSetting: _blurEnabled,
+      value: enabled,
+      assign: (value) => _blurEnabled = value,
+      persist: _settingsService.setBlurEnabled,
     );
-    _settingsService.setBlurEnabled(enabled);
-    notifyListeners();
   }
 
   void setRichSyncEnabled(bool enabled) {
-    if (_richSyncEnabled.current == enabled) return;
-    _richSyncEnabled = Setting(
-      current: enabled,
-      defaultValue: _richSyncEnabled.defaultValue,
-      changed: enabled != _richSyncEnabled.defaultValue,
+    final changed = _setSettingValue(
+      currentSetting: _richSyncEnabled,
+      value: enabled,
+      assign: (value) => _richSyncEnabled = value,
+      persist: _settingsService.setRichSyncEnabled,
     );
-    _settingsService.setRichSyncEnabled(enabled);
-    notifyListeners();
+    if (!changed) return;
 
     if (_currentMetadata != null) {
       _fetchLyrics(_currentMetadata!);
@@ -444,14 +457,13 @@ class LyricsProvider with ChangeNotifier {
   }
 
   void setTrimMetadataProviders(List<LyricProviderType> providers) {
-    bool changed = !listEquals(providers, _trimMetadataProviders.defaultValue);
-    _trimMetadataProviders = Setting(
-      current: providers,
-      defaultValue: _trimMetadataProviders.defaultValue,
-      changed: changed,
+    _setSettingValue(
+      currentSetting: _trimMetadataProviders,
+      value: providers,
+      assign: (value) => _trimMetadataProviders = value,
+      persist: _settingsService.setTrimMetadataProviders,
+      equals: listEquals,
     );
-    _settingsService.setTrimMetadataProviders(providers);
-    notifyListeners();
   }
 
   bool shouldTrimMetadata(LyricProviderType provider) {
@@ -459,73 +471,60 @@ class LyricsProvider with ChangeNotifier {
   }
 
   void setFontSize(double size) {
-    if (_fontSize.current == size) return;
-    _fontSize = Setting(
-      current: size,
-      defaultValue: _fontSize.defaultValue,
-      changed: size != _fontSize.defaultValue,
+    _setSettingValue(
+      currentSetting: _fontSize,
+      value: size,
+      assign: (value) => _fontSize = value,
+      persist: _settingsService.setFontSize,
     );
-    _settingsService.setFontSize(size);
-    notifyListeners();
   }
 
   void setInactiveScale(double scale) {
-    if (_inactiveScale.current == scale) return;
-    _inactiveScale = Setting(
-      current: scale,
-      defaultValue: _inactiveScale.defaultValue,
-      changed: scale != _inactiveScale.defaultValue,
+    _setSettingValue(
+      currentSetting: _inactiveScale,
+      value: scale,
+      assign: (value) => _inactiveScale = value,
+      persist: _settingsService.setInactiveScale,
     );
-    _settingsService.setInactiveScale(scale);
-    notifyListeners();
   }
 
   void setTranslationTargetLanguages(List<String> languages) {
-    if (_translationTargetLanguages.current == languages) return;
-    _translationTargetLanguages = Setting(
-      current: languages,
-      defaultValue: _translationTargetLanguages.defaultValue,
-      changed: languages != _translationTargetLanguages.defaultValue,
+    _setSettingValue(
+      currentSetting: _translationTargetLanguages,
+      value: languages,
+      assign: (value) => _translationTargetLanguages = value,
+      persist: _settingsService.setTranslationTargetLanguages,
+      equals: listEquals,
     );
-    _settingsService.setTranslationTargetLanguages(languages);
-    notifyListeners();
   }
 
   void setTranslationIgnoredLanguages(List<String> languages) {
-    // List comparison might need equality check logic if not handled by Setting
-    // But listEquals is safer.
-    if (listEquals(_translationIgnoredLanguages.current, languages)) return;
-    _translationIgnoredLanguages = Setting(
-      current: languages,
-      defaultValue: _translationIgnoredLanguages.defaultValue,
-      changed: !listEquals(
-        languages,
-        _translationIgnoredLanguages.defaultValue,
-      ),
+    _setSettingValue(
+      currentSetting: _translationIgnoredLanguages,
+      value: languages,
+      assign: (value) => _translationIgnoredLanguages = value,
+      persist: _settingsService.setTranslationIgnoredLanguages,
+      equals: listEquals,
     );
-    _settingsService.setTranslationIgnoredLanguages(languages);
-    notifyListeners();
   }
 
   void setTranslationBias(int bias) {
-    if (_translationBias.current == bias) return;
-    _translationBias = Setting(
-      current: bias,
-      defaultValue: _translationBias.defaultValue,
-      changed: bias != _translationBias.defaultValue,
+    _setSettingValue(
+      currentSetting: _translationBias,
+      value: bias,
+      assign: (value) => _translationBias = value,
+      persist: _settingsService.setTranslationBias,
     );
-    _settingsService.setTranslationBias(bias);
-    notifyListeners();
   }
 
   void setTranslationAlignmentThreshold(int threshold) {
-    if (_translationAlignmentThreshold.current == threshold) return;
-    _translationAlignmentThreshold = Setting(
-      current: threshold,
-      defaultValue: _translationAlignmentThreshold.defaultValue,
-      changed: threshold != _translationAlignmentThreshold.defaultValue,
+    final changed = _setSettingValue(
+      currentSetting: _translationAlignmentThreshold,
+      value: threshold,
+      assign: (value) => _translationAlignmentThreshold = value,
+      persist: _settingsService.setTranslationAlignmentThreshold,
     );
-    _settingsService.setTranslationAlignmentThreshold(threshold);
+    if (!changed) return;
 
     // Changing the threshold requires realigning lyrics
     _lastTranslationResultForAlignment = null;
@@ -557,102 +556,87 @@ class LyricsProvider with ChangeNotifier {
   }
 
   void setTranslationHighlightOnly(bool highlightOnly) {
-    if (_translationHighlightOnly.current == highlightOnly) return;
-    _translationHighlightOnly = Setting(
-      current: highlightOnly,
-      defaultValue: _translationHighlightOnly.defaultValue,
-      changed: highlightOnly != _translationHighlightOnly.defaultValue,
+    _setSettingValue(
+      currentSetting: _translationHighlightOnly,
+      value: highlightOnly,
+      assign: (value) => _translationHighlightOnly = value,
+      persist: _settingsService.setTranslationHighlightOnly,
     );
-    _settingsService.setTranslationHighlightOnly(highlightOnly);
-    notifyListeners();
   }
 
   void setLlmApiEndpoint(String endpoint) {
-    if (_llmApiEndpoint.current == endpoint) return;
-    _llmApiEndpoint = Setting(
-      current: endpoint,
-      defaultValue: _llmApiEndpoint.defaultValue,
-      changed: endpoint != _llmApiEndpoint.defaultValue,
+    _setSettingValue(
+      currentSetting: _llmApiEndpoint,
+      value: endpoint,
+      assign: (value) => _llmApiEndpoint = value,
+      persist: _settingsService.setLlmApiEndpoint,
     );
-    _settingsService.setLlmApiEndpoint(endpoint);
-    notifyListeners();
   }
 
   void setLlmApiKey(String apiKey) {
-    if (_llmApiKey.current == apiKey) return;
-    _llmApiKey = Setting(
-      current: apiKey,
-      defaultValue: _llmApiKey.defaultValue,
-      changed: apiKey != _llmApiKey.defaultValue,
+    _setSettingValue(
+      currentSetting: _llmApiKey,
+      value: apiKey,
+      assign: (value) => _llmApiKey = value,
+      persist: _settingsService.setLlmApiKey,
     );
-    _settingsService.setLlmApiKey(apiKey);
-    notifyListeners();
   }
 
   void setLlmModel(String model) {
-    if (_llmModel.current == model) return;
-    _llmModel = Setting(
-      current: model,
-      defaultValue: _llmModel.defaultValue,
-      changed: model != _llmModel.defaultValue,
+    _setSettingValue(
+      currentSetting: _llmModel,
+      value: model,
+      assign: (value) => _llmModel = value,
+      persist: _settingsService.setLlmModel,
     );
-    _settingsService.setLlmModel(model);
-    notifyListeners();
   }
 
   void setLlmReasoningEffort(String effort) {
-    if (_llmReasoningEffort.current == effort) return;
-    _llmReasoningEffort = Setting(
-      current: effort,
-      defaultValue: _llmReasoningEffort.defaultValue,
-      changed: effort != _llmReasoningEffort.defaultValue,
+    _setSettingValue(
+      currentSetting: _llmReasoningEffort,
+      value: effort,
+      assign: (value) => _llmReasoningEffort = value,
+      persist: _settingsService.setLlmReasoningEffort,
     );
-    _settingsService.setLlmReasoningEffort(effort);
-    notifyListeners();
   }
 
   void setKeepScreenOn(bool enabled) {
-    if (_keepScreenOn.current == enabled) return;
-    _keepScreenOn = Setting(
-      current: enabled,
-      defaultValue: _keepScreenOn.defaultValue,
-      changed: enabled != _keepScreenOn.defaultValue,
+    _setSettingValue(
+      currentSetting: _keepScreenOn,
+      value: enabled,
+      assign: (value) => _keepScreenOn = value,
+      persist: _settingsService.setKeepScreenOn,
     );
-    _settingsService.setKeepScreenOn(enabled);
-    notifyListeners();
   }
 
   void setBackgroundMotionEnabled(bool enabled) {
-    if (_backgroundMotionEnabled.current == enabled) return;
-    _backgroundMotionEnabled = Setting(
-      current: enabled,
-      defaultValue: _backgroundMotionEnabled.defaultValue,
-      changed: enabled != _backgroundMotionEnabled.defaultValue,
+    _setSettingValue(
+      currentSetting: _backgroundMotionEnabled,
+      value: enabled,
+      assign: (value) => _backgroundMotionEnabled = value,
+      persist: _settingsService.setBackgroundMotionEnabled,
     );
-    _settingsService.setBackgroundMotionEnabled(enabled);
-    notifyListeners();
   }
 
   void setExperimentalRichInlineFontSizeGlitching(bool enabled) {
-    if (_experimentalRichInlineFontSizeGlitching.current == enabled) return;
-    _experimentalRichInlineFontSizeGlitching = Setting(
-      current: enabled,
-      defaultValue: _experimentalRichInlineFontSizeGlitching.defaultValue,
-      changed: enabled != _experimentalRichInlineFontSizeGlitching.defaultValue,
+    _setSettingValue(
+      currentSetting: _experimentalRichInlineFontSizeGlitching,
+      value: enabled,
+      assign: (value) => _experimentalRichInlineFontSizeGlitching = value,
+      persist: _settingsService.setExperimentalRichInlineFontSizeGlitching,
     );
-    _settingsService.setExperimentalRichInlineFontSizeGlitching(enabled);
-    notifyListeners();
   }
 
   void setGlobalOffset(Duration offset) {
     final ms = offset.inMilliseconds;
-    if (_globalOffsetMs.current == ms) return;
-    _globalOffsetMs = Setting(
-      current: ms,
-      defaultValue: _globalOffsetMs.defaultValue,
-      changed: ms != _globalOffsetMs.defaultValue,
+    final changed = _setSettingValue(
+      currentSetting: _globalOffsetMs,
+      value: ms,
+      assign: (value) => _globalOffsetMs = value,
+      persist: _settingsService.setGlobalOffset,
     );
-    _settingsService.setGlobalOffset(ms);
+    if (!changed) return;
+
     _updateCurrentIndex();
     notifyListeners();
   }
