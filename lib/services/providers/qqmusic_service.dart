@@ -92,13 +92,21 @@ class QQMusicService {
         );
 
         if (translation != null && translation.isNotEmpty) {
-          final transParsedLyrics = LrcParser.parse(translation).lyrics.map(
-            (i) => Lyric(
-              startTime: i.startTime,
-              text: i.text == '//' ? '' : i.text,
-              endTime: i.endTime,
-            ),
-          ).toList();
+          final transParsedLyrics = LrcParser.parse(translation).lyrics
+              .map(
+                (i) => Lyric(
+                  startTime: i.startTime,
+                  text: i.text == '//' ? '' : i.text,
+                  endTime: i.endTime,
+                ),
+              )
+              .where(
+                (i) =>
+                    !(i.text.isEmpty ||
+                        i.text.contains('享有本翻译作品的著作权') ||
+                        i.text.contains('以下歌词翻译由文曲大模型提供')),
+              )
+              .toList();
           if (transParsedLyrics.isNotEmpty) {
             final rawTranslation = TranslationHelper.pair(
               originalLyrics: parseResult.lyrics,
