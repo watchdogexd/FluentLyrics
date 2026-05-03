@@ -62,7 +62,10 @@ class QQMusicService {
 
         onStatusUpdate?.call('[QQMusic] Fetching lyrics...');
 
-        final lyricsResponse = await _getLyrics(songId: songId, songMid: songMid);
+        final lyricsResponse = await _getLyrics(
+          songId: songId,
+          songMid: songMid,
+        );
         if (lyricsResponse == null) {
           AppLogger.debug('[QQMusic] Lyrics response for best match is null');
           continue;

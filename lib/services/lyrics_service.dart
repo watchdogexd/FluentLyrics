@@ -294,14 +294,12 @@ class LyricsService {
       return;
     }
 
-    // start searching 
+    // start searching
     bool isYielded = false;
 
     // check for cache (if enabled)
     if (cacheEnabled) {
-      AppLogger.debug(
-        '[LyricsService.fetchTranslation]   ==> Checking cache',
-      );
+      AppLogger.debug('[LyricsService.fetchTranslation]   ==> Checking cache');
       bool cachedResult = false;
       LyricsResult? transResult;
       for (var targetLanguage in targetLanguages) {
@@ -317,8 +315,7 @@ class LyricsService {
           );
           cachedResult = true;
           transResult = transResult.copyWith(
-            translationProvider:
-                '${transResult.translationProvider} (cached)',
+            translationProvider: '${transResult.translationProvider} (cached)',
           );
           if (_isCandidate(transResult)) {
             onTranslationCandidate?.call(transResult);
@@ -351,8 +348,7 @@ class LyricsService {
         final source = _sourceRegistry.sourceFor(tProvider);
 
         // supported?
-        if (source == null ||
-            !source.checkTranslationSupport(targetLanguage)) {
+        if (source == null || !source.checkTranslationSupport(targetLanguage)) {
           AppLogger.debug(
             '[LyricsService.fetchTranslation]     ==> [!] Unsupported provider: $tProvider',
           );
@@ -370,7 +366,8 @@ class LyricsService {
           ),
         );
         // check if successed (malformed? null?)
-        final bool usableResult = transResult.translation || transResult.source == 'SKIPPED';
+        final bool usableResult =
+            transResult.translation || transResult.source == 'SKIPPED';
 
         if (usableResult) {
           // New usable translation found
@@ -408,6 +405,7 @@ class LyricsService {
       }
     }
   }
+
   bool _shouldYield(LyricsResult? transResult) {
     if (transResult != null && transResult.translation) {
       return true;
@@ -420,6 +418,7 @@ class LyricsService {
       return false;
     }
   }
+
   bool _isCandidate(LyricsResult? transResult) {
     if (transResult != null && transResult.translation) {
       return true;

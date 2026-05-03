@@ -188,9 +188,9 @@ ${linesToTranslate.entries.map((e) => '${e.key}: ${e.value}').join('\n')}
         jsonResponse = jsonDecode(content);
         translatedLines = jsonResponse['translation'];
       } catch (e) {
-          AppLogger.debug(
-            '[LLM Translation] Fail to parse response as raw JSON, trying to strip...',
-          );
+        AppLogger.debug(
+          '[LLM Translation] Fail to parse response as raw JSON, trying to strip...',
+        );
         try {
           // check if markdown codeblock present
           final codeblockPattern = RegExp(
