@@ -110,7 +110,12 @@ jobs:
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/android/upload-keystore.jks
         run: |
           fastforge release --name production --skip-jobs=release-macos-zip
-          bash ./.github/fix-fastforge-artifacts.sh
+
+      - name: Normalize Android artifact names
+        env:
+          RELEASE_VERSION: ${{ needs.prepare-version.outputs.build_version }}
+        run: |
+          bash ./.github/normalize-artifacts-android.sh
 
       - name: Upload Linux and Android artifacts
         uses: actions/upload-artifact@v4
