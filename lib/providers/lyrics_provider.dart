@@ -799,7 +799,6 @@ class LyricsProvider with ChangeNotifier {
     }
   }
 
-
   Future<void> clearAllCache() async {
     await _cacheService.clearAllCache();
     if (_currentMetadata != null) {
@@ -900,7 +899,7 @@ class LyricsProvider with ChangeNotifier {
   }
 
   Future<void> _clearTranslationCacheForCurrentTrack(
-    MediaMetadata metadata
+    MediaMetadata metadata,
   ) async {
     await Future.wait(
       _translationTargetLanguages.current.map(
