@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../models/lyric_model.dart';
 import '../models/setting.dart';
 import '../models/lyric_provider_type.dart';
-import '../constants/app_defaults.dart';
+import 'lyrics_provider_settings.dart';
 import '../services/media_service.dart';
 import '../services/lyrics_service.dart';
 import '../services/settings_service.dart';
@@ -32,119 +32,92 @@ class LyricsProvider with ChangeNotifier {
   );
   static const Duration _positionResyncThreshold = Duration(milliseconds: 400);
 
-  // Settings
-  Setting<bool> _cacheEnabled = const Setting(
-    current: AppDefaults.cacheEnabled,
-    defaultValue: AppDefaults.cacheEnabled,
-    changed: false,
-  );
-  Setting<int> _linesBefore = const Setting(
-    current: AppDefaults.linesBefore,
-    defaultValue: AppDefaults.linesBefore,
-    changed: false,
-  );
-  Setting<int> _globalOffsetMs = const Setting(
-    current: AppDefaults.globalOffsetMs,
-    defaultValue: AppDefaults.globalOffsetMs,
-    changed: false,
-  );
-  Setting<int> _scrollAutoResumeDelay = const Setting(
-    current: AppDefaults.scrollAutoResumeDelay,
-    defaultValue: AppDefaults.scrollAutoResumeDelay,
-    changed: false,
-  );
-  Setting<bool> _blurEnabled = const Setting(
-    current: AppDefaults.blurEnabled,
-    defaultValue: AppDefaults.blurEnabled,
-    changed: false,
-  );
-  Setting<bool> _richSyncEnabled = const Setting(
-    current: AppDefaults.richSyncEnabled,
-    defaultValue: AppDefaults.richSyncEnabled,
-    changed: false,
-  );
-  Setting<List<LyricProviderType>> _trimMetadataProviders = const Setting(
-    current: AppDefaults.trimMetadataProviders,
-    defaultValue: AppDefaults.trimMetadataProviders,
-    changed: false,
-  );
-  Setting<double> _fontSize = const Setting(
-    current: AppDefaults.fontSize,
-    defaultValue: AppDefaults.fontSize,
-    changed: false,
-  );
-  Setting<double> _inactiveScale = const Setting(
-    current: AppDefaults.inactiveScale,
-    defaultValue: AppDefaults.inactiveScale,
-    changed: false,
-  );
-  Setting<bool> _translationHighlightOnly = const Setting(
-    current: AppDefaults.translationHighlightOnly,
-    defaultValue: AppDefaults.translationHighlightOnly,
-    changed: false,
-  );
+  LyricsProviderSettings _settings = LyricsProviderSettings.defaults();
 
-  // Translation Settings
-  Setting<bool> _translationEnabled = const Setting(
-    current: AppDefaults.translationEnabled,
-    defaultValue: AppDefaults.translationEnabled,
-    changed: false,
-  );
-  Setting<List<String>> _translationTargetLanguages = const Setting(
-    current: AppDefaults.translationTargetLanguages,
-    defaultValue: AppDefaults.translationTargetLanguages,
-    changed: false,
-  );
-  Setting<List<String>> _translationIgnoredLanguages = const Setting(
-    current: AppDefaults.translationIgnoredLanguages,
-    defaultValue: AppDefaults.translationIgnoredLanguages,
-    changed: false,
-  );
-  Setting<int> _translationBias = const Setting(
-    current: AppDefaults.translationBias,
-    defaultValue: AppDefaults.translationBias,
-    changed: false,
-  );
-  Setting<int> _translationAlignmentThreshold = const Setting(
-    current: AppDefaults.translationAlignmentThreshold,
-    defaultValue: AppDefaults.translationAlignmentThreshold,
-    changed: false,
-  );
-  Setting<String> _llmApiEndpoint = const Setting(
-    current: AppDefaults.llmApiEndpoint,
-    defaultValue: AppDefaults.llmApiEndpoint,
-    changed: false,
-  );
-  Setting<String> _llmApiKey = const Setting(
-    current: AppDefaults.llmApiKey,
-    defaultValue: AppDefaults.llmApiKey,
-    changed: false,
-  );
-  Setting<String> _llmModel = const Setting(
-    current: AppDefaults.llmModel,
-    defaultValue: AppDefaults.llmModel,
-    changed: false,
-  );
-  Setting<String> _llmReasoningEffort = const Setting(
-    current: AppDefaults.llmReasoningEffort,
-    defaultValue: AppDefaults.llmReasoningEffort,
-    changed: false,
-  );
-  Setting<bool> _keepScreenOn = const Setting(
-    current: AppDefaults.keepScreenOn,
-    defaultValue: AppDefaults.keepScreenOn,
-    changed: false,
-  );
-  Setting<bool> _backgroundMotionEnabled = const Setting(
-    current: AppDefaults.backgroundMotionEnabled,
-    defaultValue: AppDefaults.backgroundMotionEnabled,
-    changed: false,
-  );
-  Setting<bool> _experimentalRichInlineFontSizeGlitching = const Setting(
-    current: AppDefaults.experimentalRichInlineFontSizeGlitching,
-    defaultValue: AppDefaults.experimentalRichInlineFontSizeGlitching,
-    changed: false,
-  );
+  Setting<bool> get _cacheEnabled => _settings.cacheEnabled;
+  set _cacheEnabled(Setting<bool> value) => _settings.cacheEnabled = value;
+
+  Setting<int> get _linesBefore => _settings.linesBefore;
+  set _linesBefore(Setting<int> value) => _settings.linesBefore = value;
+
+  Setting<int> get _globalOffsetMs => _settings.globalOffsetMs;
+  set _globalOffsetMs(Setting<int> value) => _settings.globalOffsetMs = value;
+
+  Setting<int> get _scrollAutoResumeDelay => _settings.scrollAutoResumeDelay;
+  set _scrollAutoResumeDelay(Setting<int> value) =>
+      _settings.scrollAutoResumeDelay = value;
+
+  Setting<bool> get _blurEnabled => _settings.blurEnabled;
+  set _blurEnabled(Setting<bool> value) => _settings.blurEnabled = value;
+
+  Setting<bool> get _richSyncEnabled => _settings.richSyncEnabled;
+  set _richSyncEnabled(Setting<bool> value) =>
+      _settings.richSyncEnabled = value;
+
+  Setting<List<LyricProviderType>> get _trimMetadataProviders =>
+      _settings.trimMetadataProviders;
+  set _trimMetadataProviders(Setting<List<LyricProviderType>> value) =>
+      _settings.trimMetadataProviders = value;
+
+  Setting<double> get _fontSize => _settings.fontSize;
+  set _fontSize(Setting<double> value) => _settings.fontSize = value;
+
+  Setting<double> get _inactiveScale => _settings.inactiveScale;
+  set _inactiveScale(Setting<double> value) => _settings.inactiveScale = value;
+
+  Setting<bool> get _translationHighlightOnly =>
+      _settings.translationHighlightOnly;
+  set _translationHighlightOnly(Setting<bool> value) =>
+      _settings.translationHighlightOnly = value;
+
+  Setting<bool> get _translationEnabled => _settings.translationEnabled;
+  set _translationEnabled(Setting<bool> value) =>
+      _settings.translationEnabled = value;
+
+  Setting<List<String>> get _translationTargetLanguages =>
+      _settings.translationTargetLanguages;
+  set _translationTargetLanguages(Setting<List<String>> value) =>
+      _settings.translationTargetLanguages = value;
+
+  Setting<List<String>> get _translationIgnoredLanguages =>
+      _settings.translationIgnoredLanguages;
+  set _translationIgnoredLanguages(Setting<List<String>> value) =>
+      _settings.translationIgnoredLanguages = value;
+
+  Setting<int> get _translationBias => _settings.translationBias;
+  set _translationBias(Setting<int> value) => _settings.translationBias = value;
+
+  Setting<int> get _translationAlignmentThreshold =>
+      _settings.translationAlignmentThreshold;
+  set _translationAlignmentThreshold(Setting<int> value) =>
+      _settings.translationAlignmentThreshold = value;
+
+  Setting<String> get _llmApiEndpoint => _settings.llmApiEndpoint;
+  set _llmApiEndpoint(Setting<String> value) =>
+      _settings.llmApiEndpoint = value;
+
+  Setting<String> get _llmApiKey => _settings.llmApiKey;
+  set _llmApiKey(Setting<String> value) => _settings.llmApiKey = value;
+
+  Setting<String> get _llmModel => _settings.llmModel;
+  set _llmModel(Setting<String> value) => _settings.llmModel = value;
+
+  Setting<String> get _llmReasoningEffort => _settings.llmReasoningEffort;
+  set _llmReasoningEffort(Setting<String> value) =>
+      _settings.llmReasoningEffort = value;
+
+  Setting<bool> get _keepScreenOn => _settings.keepScreenOn;
+  set _keepScreenOn(Setting<bool> value) => _settings.keepScreenOn = value;
+
+  Setting<bool> get _backgroundMotionEnabled =>
+      _settings.backgroundMotionEnabled;
+  set _backgroundMotionEnabled(Setting<bool> value) =>
+      _settings.backgroundMotionEnabled = value;
+
+  Setting<bool> get _experimentalRichInlineFontSizeGlitching =>
+      _settings.experimentalRichInlineFontSizeGlitching;
+  set _experimentalRichInlineFontSizeGlitching(Setting<bool> value) =>
+      _settings.experimentalRichInlineFontSizeGlitching = value;
 
   Duration _trackOffset = Duration.zero;
   int _currentIndex = -1;
@@ -406,35 +379,7 @@ class LyricsProvider with ChangeNotifier {
   }
 
   Future<void> _loadSettings() async {
-    _cacheEnabled = await _settingsService.getCacheEnabled();
-    _linesBefore = await _settingsService.getLinesBefore();
-    _globalOffsetMs = await _settingsService.getGlobalOffset();
-    _scrollAutoResumeDelay = await _settingsService.getScrollAutoResumeDelay();
-    _blurEnabled = await _settingsService.getBlurEnabled();
-    _richSyncEnabled = await _settingsService.getRichSyncEnabled();
-    _trimMetadataProviders = await _settingsService.getTrimMetadataProviders();
-    _fontSize = await _settingsService.getFontSize();
-    _inactiveScale = await _settingsService.getInactiveScale();
-
-    _translationEnabled = await _settingsService.getTranslationEnabled();
-    _translationHighlightOnly = await _settingsService
-        .getTranslationHighlightOnly();
-    _translationTargetLanguages = await _settingsService
-        .getTranslationTargetLanguages();
-    _translationIgnoredLanguages = await _settingsService
-        .getTranslationIgnoredLanguages();
-    _translationBias = await _settingsService.getTranslationBias();
-    _translationAlignmentThreshold = await _settingsService
-        .getTranslationAlignmentThreshold();
-    _llmApiEndpoint = await _settingsService.getLlmApiEndpoint();
-    _llmApiKey = await _settingsService.getLlmApiKey();
-    _llmModel = await _settingsService.getLlmModel();
-    _llmReasoningEffort = await _settingsService.getLlmReasoningEffort();
-    _keepScreenOn = await _settingsService.getKeepScreenOn();
-    _backgroundMotionEnabled = await _settingsService
-        .getBackgroundMotionEnabled();
-    _experimentalRichInlineFontSizeGlitching = await _settingsService
-        .getExperimentalRichInlineFontSizeGlitching();
+    _settings = await LyricsProviderSettings.load(_settingsService);
 
     notifyListeners();
   }
