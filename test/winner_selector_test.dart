@@ -71,10 +71,7 @@ void main() {
   });
 
   test('prefers rich sync candidate when rich sync is enabled', () {
-    final best = result(
-      source: 'QQ Music',
-      lyrics: [lyric('plain', 1000)],
-    );
+    final best = result(source: 'QQ Music', lyrics: [lyric('plain', 1000)]);
     final candidate = result(
       source: 'Musixmatch',
       lyrics: [lyric('rich', 1000, rich: true)],
@@ -115,22 +112,25 @@ void main() {
     expect(isGoodEnough, isTrue);
   });
 
-  test('requires translation before early exit when translation is enabled', () {
-    final best = result(
-      source: 'QQ Music',
-      lyrics: [lyric('hello', 1000)],
-    );
+  test(
+    'requires translation before early exit when translation is enabled',
+    () {
+      final best = result(source: 'QQ Music', lyrics: [lyric('hello', 1000)]);
 
-    final isGoodEnough = hasGoodEnoughLyricsResult(best, false, true, false);
+      final isGoodEnough = hasGoodEnoughLyricsResult(best, false, true, false);
 
-    expect(isGoodEnough, isFalse);
-  });
+      expect(isGoodEnough, isFalse);
+    },
+  );
 
-  test('accepts pure music result as good enough after translation arrives', () {
-    final best = result(source: 'LRCLIB', isPureMusic: true);
+  test(
+    'accepts pure music result as good enough after translation arrives',
+    () {
+      final best = result(source: 'LRCLIB', isPureMusic: true);
 
-    final isGoodEnough = hasGoodEnoughLyricsResult(best, true, true, true);
+      final isGoodEnough = hasGoodEnoughLyricsResult(best, true, true, true);
 
-    expect(isGoodEnough, isTrue);
-  });
+      expect(isGoodEnough, isTrue);
+    },
+  );
 }

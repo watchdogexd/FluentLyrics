@@ -4,19 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('toggleTrimMetadataProvider adds provider when absent', () {
-    final updated = LyricConfigurationHelper.toggleTrimMetadataProvider(
-      [LyricProviderType.lrclib],
-      LyricProviderType.netease,
-    );
+    final updated = LyricConfigurationHelper.toggleTrimMetadataProvider([
+      LyricProviderType.lrclib,
+    ], LyricProviderType.netease);
 
     expect(updated, [LyricProviderType.lrclib, LyricProviderType.netease]);
   });
 
   test('toggleTrimMetadataProvider removes provider when present', () {
-    final updated = LyricConfigurationHelper.toggleTrimMetadataProvider(
-      [LyricProviderType.lrclib, LyricProviderType.netease],
+    final updated = LyricConfigurationHelper.toggleTrimMetadataProvider([
+      LyricProviderType.lrclib,
       LyricProviderType.netease,
-    );
+    ], LyricProviderType.netease);
 
     expect(updated, [LyricProviderType.lrclib]);
   });

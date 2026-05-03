@@ -72,20 +72,23 @@ void main() {
     expect(progress, closeTo(0.4444, 0.001));
   });
 
-  test('interludeProgressForPosition returns zero for invalid interlude state', () {
-    final lyrics = [lyric('hello', 0), lyric('world', 5)];
+  test(
+    'interludeProgressForPosition returns zero for invalid interlude state',
+    () {
+      final lyrics = [lyric('hello', 0), lyric('world', 5)];
 
-    final progress = LyricsDisplayHelper.interludeProgressForPosition(
-      lyrics: lyrics,
-      currentIndex: 0,
-      position: const Duration(seconds: 2),
-      globalOffset: Duration.zero,
-      trackOffset: Duration.zero,
-      interludeOffset: const Duration(milliseconds: 500),
-    );
+      final progress = LyricsDisplayHelper.interludeProgressForPosition(
+        lyrics: lyrics,
+        currentIndex: 0,
+        position: const Duration(seconds: 2),
+        globalOffset: Duration.zero,
+        trackOffset: Duration.zero,
+        interludeOffset: const Duration(milliseconds: 500),
+      );
 
-    expect(progress, 0.0);
-  });
+      expect(progress, 0.0);
+    },
+  );
 
   test('interludeDuration returns remaining gap minus offset', () {
     final lyrics = [lyric('', 5), lyric('next', 10)];
@@ -99,59 +102,65 @@ void main() {
     expect(duration, const Duration(milliseconds: 4500));
   });
 
-  test('buildDisplayedLyrics strips inline parts when rich sync is disabled', () {
-    final lyricsResult = LyricsResult(
-      lyrics: [
-        Lyric(
-          startTime: const Duration(seconds: 1),
-          endTime: const Duration(seconds: 2),
-          text: 'hello',
-          inlineParts: [
-            LyricInlinePart(
-              startTime: const Duration(seconds: 1),
-              endTime: const Duration(seconds: 1, milliseconds: 500),
-              text: 'he',
-            ),
-          ],
-        ),
-      ],
-      source: 'Musixmatch',
-    );
+  test(
+    'buildDisplayedLyrics strips inline parts when rich sync is disabled',
+    () {
+      final lyricsResult = LyricsResult(
+        lyrics: [
+          Lyric(
+            startTime: const Duration(seconds: 1),
+            endTime: const Duration(seconds: 2),
+            text: 'hello',
+            inlineParts: [
+              LyricInlinePart(
+                startTime: const Duration(seconds: 1),
+                endTime: const Duration(seconds: 1, milliseconds: 500),
+                text: 'he',
+              ),
+            ],
+          ),
+        ],
+        source: 'Musixmatch',
+      );
 
-    final displayed = LyricsDisplayHelper.buildDisplayedLyrics(
-      lyricsResult: lyricsResult,
-      richSyncEnabled: false,
-    );
+      final displayed = LyricsDisplayHelper.buildDisplayedLyrics(
+        lyricsResult: lyricsResult,
+        richSyncEnabled: false,
+      );
 
-    expect(displayed.first.inlineParts, isNull);
-  });
+      expect(displayed.first.inlineParts, isNull);
+    },
+  );
 
-  test('buildDisplayedLyrics preserves inline parts when rich sync is enabled', () {
-    final lyricsResult = LyricsResult(
-      lyrics: [
-        Lyric(
-          startTime: const Duration(seconds: 1),
-          endTime: const Duration(seconds: 2),
-          text: 'hello',
-          inlineParts: [
-            LyricInlinePart(
-              startTime: const Duration(seconds: 1),
-              endTime: const Duration(seconds: 1, milliseconds: 500),
-              text: 'he',
-            ),
-          ],
-        ),
-      ],
-      source: 'Musixmatch',
-    );
+  test(
+    'buildDisplayedLyrics preserves inline parts when rich sync is enabled',
+    () {
+      final lyricsResult = LyricsResult(
+        lyrics: [
+          Lyric(
+            startTime: const Duration(seconds: 1),
+            endTime: const Duration(seconds: 2),
+            text: 'hello',
+            inlineParts: [
+              LyricInlinePart(
+                startTime: const Duration(seconds: 1),
+                endTime: const Duration(seconds: 1, milliseconds: 500),
+                text: 'he',
+              ),
+            ],
+          ),
+        ],
+        source: 'Musixmatch',
+      );
 
-    final displayed = LyricsDisplayHelper.buildDisplayedLyrics(
-      lyricsResult: lyricsResult,
-      richSyncEnabled: true,
-    );
+      final displayed = LyricsDisplayHelper.buildDisplayedLyrics(
+        lyricsResult: lyricsResult,
+        richSyncEnabled: true,
+      );
 
-    expect(displayed.first.inlineParts, isNotNull);
-  });
+      expect(displayed.first.inlineParts, isNotNull);
+    },
+  );
 
   test('buildDisplayedLyrics aligns translations onto base lyrics', () {
     final lyricsResult = LyricsResult(
@@ -200,41 +209,47 @@ void main() {
     );
   });
 
-  test('canReuseAlignedLyrics requires matching lyrics translation and mode', () {
-    final lyricsResult = LyricsResult(lyrics: [lyric('hello', 1)], source: 'A');
-    final translationResult = LyricsResult(
-      lyrics: [],
-      source: 'B',
-      translation: true,
-      rawTranslation: const [
-        {'original': 'hello', 'translated': '你好'},
-      ],
-    );
+  test(
+    'canReuseAlignedLyrics requires matching lyrics translation and mode',
+    () {
+      final lyricsResult = LyricsResult(
+        lyrics: [lyric('hello', 1)],
+        source: 'A',
+      );
+      final translationResult = LyricsResult(
+        lyrics: [],
+        source: 'B',
+        translation: true,
+        rawTranslation: const [
+          {'original': 'hello', 'translated': '你好'},
+        ],
+      );
 
-    expect(
-      LyricsDisplayHelper.canReuseAlignedLyrics(
-        cachedAlignedLyrics: [lyric('hello', 1)],
-        lastLyricsResultForAlignment: lyricsResult,
-        lyricsResult: lyricsResult,
-        lastTranslationResultForAlignment: translationResult,
-        translationResult: translationResult,
-        lastRichSyncEnabledForAlignment: false,
-        richSyncEnabled: false,
-      ),
-      isTrue,
-    );
+      expect(
+        LyricsDisplayHelper.canReuseAlignedLyrics(
+          cachedAlignedLyrics: [lyric('hello', 1)],
+          lastLyricsResultForAlignment: lyricsResult,
+          lyricsResult: lyricsResult,
+          lastTranslationResultForAlignment: translationResult,
+          translationResult: translationResult,
+          lastRichSyncEnabledForAlignment: false,
+          richSyncEnabled: false,
+        ),
+        isTrue,
+      );
 
-    expect(
-      LyricsDisplayHelper.canReuseAlignedLyrics(
-        cachedAlignedLyrics: [lyric('hello', 1)],
-        lastLyricsResultForAlignment: lyricsResult,
-        lyricsResult: lyricsResult,
-        lastTranslationResultForAlignment: translationResult,
-        translationResult: translationResult,
-        lastRichSyncEnabledForAlignment: true,
-        richSyncEnabled: false,
-      ),
-      isFalse,
-    );
-  });
+      expect(
+        LyricsDisplayHelper.canReuseAlignedLyrics(
+          cachedAlignedLyrics: [lyric('hello', 1)],
+          lastLyricsResultForAlignment: lyricsResult,
+          lyricsResult: lyricsResult,
+          lastTranslationResultForAlignment: translationResult,
+          translationResult: translationResult,
+          lastRichSyncEnabledForAlignment: true,
+          richSyncEnabled: false,
+        ),
+        isFalse,
+      );
+    },
+  );
 }
