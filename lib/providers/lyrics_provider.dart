@@ -14,10 +14,10 @@ import '../utils/lyrics_display_helper.dart';
 import '../utils/richify_helper.dart';
 
 class LyricsProvider with ChangeNotifier {
-  final MediaService mediaService = MediaService.create();
-  final LyricsService _lyricsService = LyricsService();
-  final SettingsService _settingsService = SettingsService();
-  final LyricsCacheService _cacheService = LyricsCacheService();
+  final MediaService mediaService;
+  final LyricsService _lyricsService;
+  final SettingsService _settingsService;
+  final LyricsCacheService _cacheService;
 
   MediaMetadata? _currentMetadata;
   Timer? _permissionTimer;
@@ -170,10 +170,18 @@ class LyricsProvider with ChangeNotifier {
   MediaControlAbility _controlAbility = MediaControlAbility.none();
   DateTime? _playbackToggleLockedUntil;
 
-  LyricsProvider() {
+  LyricsProvider({
+    MediaService? mediaService,
+    LyricsService? lyricsService,
+    SettingsService? settingsService,
+    LyricsCacheService? cacheService,
+  }) : mediaService = mediaService ?? MediaService.create(),
+       _lyricsService = lyricsService ?? LyricsService(),
+       _settingsService = settingsService ?? SettingsService(),
+       _cacheService = cacheService ?? LyricsCacheService() {
     _loadSettings();
-    mediaService.addListener(_onMediaChanged);
-    mediaService.startPolling();
+    this.mediaService.addListener(_onMediaChanged);
+    this.mediaService.startPolling();
     if (Platform.isAndroid) {
       _startPermissionPolling();
     }
@@ -226,8 +234,7 @@ class LyricsProvider with ChangeNotifier {
         cachedAlignedLyrics: _cachedAlignedLyrics,
         lastLyricsResultForAlignment: _lastLyricsResultForAlignment,
         lyricsResult: _lyricsResult,
-        lastTranslationResultForAlignment:
-            _lastTranslationResultForAlignment,
+        lastTranslationResultForAlignment: _lastTranslationResultForAlignment,
         translationResult: _translationResult,
         lastRichSyncEnabledForAlignment: _lastRichSyncEnabledForAlignment,
         richSyncEnabled: curRichSync,

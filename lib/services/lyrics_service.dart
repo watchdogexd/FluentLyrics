@@ -12,16 +12,48 @@ import '../utils/app_logger.dart';
 import 'winner_selector.dart';
 
 class LyricsService {
-  final SettingsService _settingsService = SettingsService();
+  final SettingsService _settingsService;
   // lyrics providers
-  final LrclibService _lrclibService = LrclibService();
-  final MusixmatchService _musixmatchService = MusixmatchService();
-  final NeteaseService _neteaseService = NeteaseService();
-  final QQMusicService _qqMusicService = QQMusicService();
-  final LlmTranslationService _llmService = LlmTranslationService(
-    SettingsService(),
-  );
-  final LyricsCacheService _cacheService = LyricsCacheService();
+  final LrclibService _lrclibService;
+  final MusixmatchService _musixmatchService;
+  final NeteaseService _neteaseService;
+  final QQMusicService _qqMusicService;
+  final LlmTranslationService _llmService;
+  final LyricsCacheService _cacheService;
+
+  LyricsService({
+    SettingsService? settingsService,
+    LrclibService? lrclibService,
+    MusixmatchService? musixmatchService,
+    NeteaseService? neteaseService,
+    QQMusicService? qqMusicService,
+    LlmTranslationService? llmService,
+    LyricsCacheService? cacheService,
+  }) : this._(
+         settingsService: settingsService ?? SettingsService(),
+         lrclibService: lrclibService,
+         musixmatchService: musixmatchService,
+         neteaseService: neteaseService,
+         qqMusicService: qqMusicService,
+         llmService: llmService,
+         cacheService: cacheService,
+       );
+
+  LyricsService._({
+    required SettingsService settingsService,
+    LrclibService? lrclibService,
+    MusixmatchService? musixmatchService,
+    NeteaseService? neteaseService,
+    QQMusicService? qqMusicService,
+    LlmTranslationService? llmService,
+    LyricsCacheService? cacheService,
+  }) : _settingsService = settingsService,
+       _lrclibService = lrclibService ?? LrclibService(),
+       _musixmatchService = musixmatchService ?? MusixmatchService(),
+       _neteaseService = neteaseService ?? NeteaseService(),
+       _qqMusicService = qqMusicService ?? QQMusicService(),
+       _llmService = llmService ?? LlmTranslationService(settingsService),
+       _cacheService = cacheService ?? LyricsCacheService();
 
   Stream<LyricsResult> fetchLyrics({
     required String title,
@@ -67,7 +99,9 @@ class LyricsService {
 
     LyricsResult? bestResult;
     for (var provider in priority) {
-      AppLogger.debug('[LyricsService.fetchLyrics]   ==> Fetching from $provider');
+      AppLogger.debug(
+        '[LyricsService.fetchLyrics]   ==> Fetching from $provider',
+      );
       if (isCancelled?.call() == true) {
         if (bestResult != null) yield bestResult;
         return;
@@ -165,7 +199,7 @@ class LyricsService {
           // Cache the raw result from other providers
           if (cacheEnabled &&
               provider != LyricProviderType.cache &&
-               (nextBest.lyrics.isNotEmpty || nextBest.isPureMusic)) {
+              (nextBest.lyrics.isNotEmpty || nextBest.isPureMusic)) {
             await _cacheService
                 .cacheLyrics(title, artist, album, durationSeconds, nextBest)
                 .then((_) {
