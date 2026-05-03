@@ -187,7 +187,7 @@ class LrcParser {
       AppLogger.debug(
         '[trimMetadataLines] similarity for first line "$firstLine" with keyword "$trimTitleKeyword_2": $similarity_2',
       );
-      if (similarity_1 >= 0.75 || similarity_2 >= 0.75) {
+      if (similarity_1 >= 0.6 || similarity_2 >= 0.6) {
         result.removeAt(0);
       }
     }
