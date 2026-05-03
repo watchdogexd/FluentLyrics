@@ -22,7 +22,7 @@ class TranslationHelper {
         final l = originalLyrics[i];
         if (l.startTime.inMilliseconds == transLine.startTime.inMilliseconds) {
           bestMatch = l;
-          nextSearchStartIndex = i + 1;
+          nextSearchStartIndex = i;
           break;
         }
       }
@@ -46,7 +46,7 @@ class TranslationHelper {
           if (diff <= minDiff) {
             minDiff = diff.toInt();
             bestMatch = l;
-            nextSearchStartIndex = i + 1;
+            nextSearchStartIndex = i;
           }
         }
       }
