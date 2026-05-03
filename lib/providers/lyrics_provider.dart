@@ -431,6 +431,27 @@ class LyricsProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void _beginTranslationRefreshState() {
+    if (_setFetchingState(true) |
+        _setLoadingStatus('Refreshing translations...')) {
+      notifyListeners();
+    }
+  }
+
+  void _finishTranslationRefreshState(
+    MediaMetadata metadata,
+    int requestVersion,
+  ) {
+    if (!metadata.isSameTrack(_currentMetadata)) return;
+    if (requestVersion != _translationRequestVersion &&
+        _translationEnabled.current) {
+      return;
+    }
+    if (_setFetchingState(false)) {
+      notifyListeners();
+    }
+  }
+
   Future<void> _loadSettings() async {
     _settings = await LyricsProviderSettings.load(_settingsService);
 
@@ -907,15 +928,8 @@ class LyricsProvider with ChangeNotifier {
     final requestVersion = _beginTranslationRequest();
     _clearTranslationState();
 
-    var shouldNotify = false;
     if (showLoadingState) {
-      shouldNotify =
-          _setFetchingState(true) ||
-          _setLoadingStatus('Refreshing translations...') ||
-          shouldNotify;
-    }
-    if (shouldNotify) {
-      notifyListeners();
+      _beginTranslationRefreshState();
     }
 
     try {
@@ -948,13 +962,8 @@ class LyricsProvider with ChangeNotifier {
         notifyListeners();
       }
     } finally {
-      if (showLoadingState &&
-          metadata.isSameTrack(_currentMetadata) &&
-          (requestVersion == _translationRequestVersion ||
-              !_translationEnabled.current)) {
-        if (_setFetchingState(false)) {
-          notifyListeners();
-        }
+      if (showLoadingState) {
+        _finishTranslationRefreshState(metadata, requestVersion);
       }
     }
   }
