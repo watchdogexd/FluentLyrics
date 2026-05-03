@@ -169,6 +169,7 @@ class PrioritySection extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: SettingsCardFrame(
+        padding: const EdgeInsets.all(0),
         child: ReorderableDragStartListener(
           index: index + (index >= enabledCount ? 1 : 0),
           child: ListTile(
