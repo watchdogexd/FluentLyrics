@@ -92,11 +92,17 @@ class QQMusicService {
         );
 
         if (translation != null && translation.isNotEmpty) {
-          final transParse = LrcParser.parse(translation);
-          if (transParse.lyrics.isNotEmpty) {
+          final transParsedLyrics = LrcParser.parse(translation).lyrics.map(
+            (i) => Lyric(
+              startTime: i.startTime,
+              text: i.text == '//' ? '' : i.text,
+              endTime: i.endTime,
+            ),
+          ).toList();
+          if (transParsedLyrics.isNotEmpty) {
             final rawTranslation = TranslationHelper.pair(
               originalLyrics: parseResult.lyrics,
-              translatedLyrics: transParse.lyrics,
+              translatedLyrics: transParsedLyrics,
               translationBias: translationBias,
             );
 
