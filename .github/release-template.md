@@ -28,7 +28,7 @@
             <tr>
                 <td>macOS</td>
                 <td>
-                    <a href="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_VERSION}/fluent_lyrics-${VERSION_NAME}-macos.zip"><img src="https://img.shields.io/badge/Portable-x64-000000.svg?logo=apple"></a>
+                    <a href="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_VERSION}/fluent_lyrics-${VERSION_NAME}-macos.zip"><img src="https://img.shields.io/badge/macOS-Universal-000000.svg?logo=apple"></a>
                 </td>
             </tr>
         </tbody>
