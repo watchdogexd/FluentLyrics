@@ -221,9 +221,7 @@ class LyricLine extends StatelessWidget {
     return merged;
   }
 
-  List<LyricInlinePart> _mergeAttachedPunctuation(
-    List<LyricInlinePart> parts,
-  ) {
+  List<LyricInlinePart> _mergeAttachedPunctuation(List<LyricInlinePart> parts) {
     if (parts.length < 2) return parts;
 
     final merged = <LyricInlinePart>[];

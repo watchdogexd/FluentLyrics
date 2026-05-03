@@ -230,9 +230,7 @@ class _CacheActionCard extends StatelessWidget {
           style: const TextStyle(color: Colors.white38, fontSize: 12),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [Expanded(child: actionButton)],
-        ),
+        Row(children: [Expanded(child: actionButton)]),
       ],
     );
   }

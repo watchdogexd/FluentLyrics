@@ -138,7 +138,8 @@ class LyricsList extends StatelessWidget {
                       ? () => provider.seek(lyric.startTime)
                       : null,
                   behavior: HitTestBehavior.translucent,
-                  child: lyric.inlineParts != null && lyric.inlineParts!.isNotEmpty
+                  child:
+                      lyric.inlineParts != null && lyric.inlineParts!.isNotEmpty
                       ? ValueListenableBuilder<Duration>(
                           valueListenable: provider.positionResyncNotifier,
                           builder: (context, currentPosition, child) {

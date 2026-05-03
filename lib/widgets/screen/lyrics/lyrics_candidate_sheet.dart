@@ -402,7 +402,9 @@ class _LyricsTab extends StatelessWidget {
                       icon: const Icon(Icons.refresh_rounded, size: 16),
                       label: const Text('Refresh Lyrics'),
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.lightBlue.withValues(alpha: 0.8),
+                        foregroundColor: Colors.lightBlue.withValues(
+                          alpha: 0.8,
+                        ),
                       ),
                     ),
             ),

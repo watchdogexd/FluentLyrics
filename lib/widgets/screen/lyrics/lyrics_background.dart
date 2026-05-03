@@ -67,10 +67,7 @@ class _StaticBackgroundState extends State<_StaticBackground> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        image: DecorationImage(
-          image: _resizedArtProvider,
-          fit: BoxFit.cover,
-        ),
+        image: DecorationImage(image: _resizedArtProvider, fit: BoxFit.cover),
       ),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
@@ -197,13 +194,13 @@ class _FragmentedBackgroundState extends State<_FragmentedBackground>
           transform: Matrix4.identity()
             ..rotateZ(rot)
             ..scaleByDouble(frag.scale, frag.scale, frag.scale, frag.scale),
-            child: Opacity(
-              opacity: 0.7,
-              child: Image(
-                image: _resizedArtProvider,
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          child: Opacity(
+            opacity: 0.7,
+            child: Image(
+              image: _resizedArtProvider,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
           ),
         ),

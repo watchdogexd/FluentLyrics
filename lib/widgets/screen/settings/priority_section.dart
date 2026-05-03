@@ -169,56 +169,56 @@ class PrioritySection extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: SettingsCardFrame(
-        padding: const EdgeInsets.all(0),
-        child: ReorderableDragStartListener(
-          index: index + (index >= enabledCount ? 1 : 0),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 8,
-            ),
-            leading: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
+          padding: const EdgeInsets.all(0),
+          child: ReorderableDragStartListener(
+            index: index + (index >= enabledCount ? 1 : 0),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
               ),
-              child: Center(
-                child: isEnabled
-                    ? Text(
-                        (index + 1).toString(),
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.bold,
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: isEnabled
+                      ? Text(
+                          (index + 1).toString(),
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : Icon(
+                          Icons.block,
+                          size: 20,
+                          color: color.withValues(alpha: 0.5),
                         ),
-                      )
-                    : Icon(
-                        Icons.block,
-                        size: 20,
-                        color: color.withValues(alpha: 0.5),
-                      ),
+                ),
               ),
-            ),
-            title: Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
+              title: Text(
+                name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
               ),
-            ),
-            subtitle: Text(
-              description,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+              subtitle: Text(
+                description,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
+              trailing: const Icon(Icons.drag_indicator, color: Colors.white24),
             ),
-            trailing: const Icon(Icons.drag_indicator, color: Colors.white24),
           ),
-        ),
         ),
       ),
     );

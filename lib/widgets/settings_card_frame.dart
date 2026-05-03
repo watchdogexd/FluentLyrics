@@ -4,7 +4,11 @@ class SettingsCardFrame extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
-  const SettingsCardFrame({super.key, required this.child, this.padding = const EdgeInsets.all(20)});
+  const SettingsCardFrame({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(20),
+  });
 
   @override
   Widget build(BuildContext context) {

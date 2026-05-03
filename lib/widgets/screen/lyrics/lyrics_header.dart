@@ -228,12 +228,7 @@ class _CandidatesButton extends StatelessWidget {
               ? () => showLyricsCandidateSheet(context, provider)
               : null,
         ),
-        if (isPaused)
-          Positioned(
-            right: 6,
-            top: 6,
-            child: _PulseDot(),
-          ),
+        if (isPaused) Positioned(right: 6, top: 6, child: _PulseDot()),
       ],
     );
   }
@@ -255,22 +250,24 @@ class _PulseDotState extends State<_PulseDot>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )
-      ..addStatusListener((status) {
-        if (status != AnimationStatus.dismissed) return;
-        _completedCycles++;
-        if (_completedCycles >= 3 && _ctrl.isAnimating) {
-          _ctrl.stop();
-          _ctrl.value = 1.0;
-        }
-      })
-      ..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _ctrl =
+        AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 900),
+          )
+          ..addStatusListener((status) {
+            if (status != AnimationStatus.dismissed) return;
+            _completedCycles++;
+            if (_completedCycles >= 3 && _ctrl.isAnimating) {
+              _ctrl.stop();
+              _ctrl.value = 1.0;
+            }
+          })
+          ..repeat(reverse: true);
+    _anim = Tween<double>(
+      begin: 0.4,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
