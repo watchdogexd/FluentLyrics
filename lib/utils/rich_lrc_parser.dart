@@ -166,3 +166,65 @@ class EnhancedLrcParser {
     return lyrics;
   }
 }
+
+class QQRichParser {
+  static List<Lyric> parse(String content) {
+    try {
+      final lyrics = <Lyric>[];
+      final lineRegex = RegExp(r'^\[(\d+),(\d+)\](.*)$');
+      final partRegex = RegExp(r'([^\(]+)\((\d+),(\d+)\)');
+
+      for (final rawLine in content.split('\n')) {
+        final line = rawLine.trim();
+        if (line.isEmpty) {
+          continue;
+        }
+
+        final lineMatch = lineRegex.firstMatch(line);
+        if (lineMatch == null) {
+          continue;
+        }
+
+        final lineStartMs = int.parse(lineMatch.group(1)!);
+        final lineDurationMs = int.parse(lineMatch.group(2)!);
+        final lineContent = lineMatch.group(3) ?? '';
+
+        final inlineParts = <LyricInlinePart>[];
+        final matches = partRegex.allMatches(lineContent).toList();
+        final plainText = StringBuffer();
+
+        for (final match in matches) {
+          final partOffsetMs = int.parse(match.group(2)!) - lineStartMs;
+          final partDurationMs = int.parse(match.group(3)!);
+          final partText = match.group(1) ?? '';
+
+          plainText.write(partText);
+          inlineParts.add(
+            LyricInlinePart(
+              startTime: Duration(milliseconds: lineStartMs + partOffsetMs),
+              endTime: Duration(
+                milliseconds: lineStartMs + partOffsetMs + partDurationMs,
+              ),
+              text: partText,
+            ),
+          );
+        }
+
+        final text = inlineParts.isNotEmpty ? plainText.toString() : lineContent.trim();
+        lyrics.add(
+          Lyric(
+            startTime: Duration(milliseconds: lineStartMs),
+            endTime: Duration(milliseconds: lineStartMs + lineDurationMs),
+            text: text,
+            inlineParts: inlineParts.isNotEmpty ? inlineParts : null,
+          ),
+        );
+      }
+
+      return lyrics;
+    } catch (e) {
+      AppLogger.debug('Error parsing QQ rich sync: $e');
+      return [];
+    }
+  }
+}
