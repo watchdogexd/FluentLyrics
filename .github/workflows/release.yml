@@ -201,6 +201,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.prepare-version.outputs.release_version }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          PRERELEASE: ${{ needs.prepare-version.outputs.prerelease }}
         run: |
           bash ./.github/generate-release-notes.sh
 

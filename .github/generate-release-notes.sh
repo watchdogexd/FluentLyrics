@@ -8,15 +8,24 @@ unset IFS
 VERSION_NAME="${parts[0]}"
 VERSION_CODE="${parts[1]}"
 
-echo "## Release $RELEASE_VERSION" > release.md
-echo "" >> release.md
-echo "New version has been released!" >> release.md
-echo "" >> release.md
-echo "### Changes" >> release.md
-echo "" >> release.md
-git log --pretty=format:"* %s" "$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD" >> release.md
-echo "" >> release.md
-echo "" >> release.md
 
-# Use envsubst to replace variables in the template
-VERSION_NAME=$VERSION_NAME envsubst < .github/release-template.md >> release.md
+if [ "$PRERELEASE" == "true" ]; then
+    CHANGELOG_START_TAG="$(git describe --tags --abbrev=0 HEAD^ --match 'v*' 2>/dev/null)"
+else
+    CHANGELOG_START_TAG="$(git describe --tags --abbrev=0 HEAD^ --match 'v*' --exclude 'v*-r*' 2>/dev/null)"
+fi
+CHANGELOG_START="$(echo "$CHANGELOG_START_TAG" || git rev-list --max-parents=0 HEAD)"
+
+{
+    echo "## Release $RELEASE_VERSION"
+    echo ""
+    echo "New version has been released!"
+    echo ""
+    echo "### Changes since $CHANGELOG_START"
+    echo ""
+    git log --pretty=format:"* %s" "$CHANGELOG_START..HEAD"
+    echo ""
+    echo ""
+    # Use envsubst to replace variables in the template
+    VERSION_NAME=$VERSION_NAME envsubst < .github/release-template.md
+} > release.md
