@@ -378,6 +378,62 @@ class LyricsProvider with ChangeNotifier {
     return true;
   }
 
+  bool _matchesTranslationTargetLanguage(String language) {
+    final lowercaseLanguage = language.toLowerCase();
+    for (final target in _translationTargetLanguages.current) {
+      if (target.toLowerCase() == lowercaseLanguage) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _appendTranslationCandidateIfNeeded(LyricsResult candidate) {
+    final isDuplicate = _translationCandidates.any(
+      (existing) =>
+          existing.translationProvider == candidate.translationProvider &&
+          existing.language == candidate.language,
+    );
+    if (isDuplicate) return false;
+
+    _translationCandidates = List.unmodifiable([
+      ..._translationCandidates,
+      candidate,
+    ]);
+    return true;
+  }
+
+  bool _appendCandidateIfNeeded(LyricsResult candidate) {
+    final isDuplicate = _candidates.any(
+      (existing) =>
+          existing.source == candidate.source &&
+          existing.isSynced == candidate.isSynced &&
+          existing.isRichSync == candidate.isRichSync,
+    );
+    if (isDuplicate) return false;
+
+    _candidates = List.unmodifiable([..._candidates, candidate]);
+    return true;
+  }
+
+  LyricsResult _prepareLyricsResultForDisplay(LyricsResult result) {
+    var prepared = result.trim();
+    if (prepared.lyrics.isNotEmpty &&
+        prepared.lyrics[0].startTime > const Duration(seconds: 3)) {
+      final newLyrics = List<Lyric>.from(prepared.lyrics)
+        ..insert(
+          0,
+          Lyric(
+            text: '',
+            startTime: Duration.zero,
+            endTime: prepared.lyrics[0].startTime,
+          ),
+        );
+      prepared = prepared.copyWith(lyrics: newLyrics);
+    }
+    return prepared;
+  }
+
   Future<void> _loadSettings() async {
     _settings = await LyricsProviderSettings.load(_settingsService);
 
@@ -876,16 +932,7 @@ class LyricsProvider with ChangeNotifier {
             !_canAcceptTranslationResult(metadata, requestVersion),
         onTranslationCandidate: (trans) {
           if (!_canAcceptTranslationResult(metadata, requestVersion)) return;
-          final isDuplicate = _translationCandidates.any(
-            (c) =>
-                c.translationProvider == trans.translationProvider &&
-                c.language == trans.language,
-          );
-          if (!isDuplicate) {
-            _translationCandidates = List.unmodifiable([
-              ..._translationCandidates,
-              trans,
-            ]);
+          if (_appendTranslationCandidateIfNeeded(trans)) {
             notifyListeners();
           }
         },
@@ -959,28 +1006,8 @@ class LyricsProvider with ChangeNotifier {
             return;
           }
 
-          String lowercaseTransLang = trans.language!.toLowerCase();
-          bool match = false;
-          for (var target in _translationTargetLanguages.current) {
-            if (target.toLowerCase() == lowercaseTransLang) {
-              match = true;
-              break;
-            }
-          }
-          if (!match) return;
-
-          // save to translation candidates
-          final isDuplicate = _translationCandidates.any(
-            (c) =>
-                c.translationProvider == trans.translationProvider &&
-                c.language == trans.language,
-          );
-          if (!isDuplicate) {
-            _translationCandidates = List.unmodifiable([
-              ..._translationCandidates,
-              trans,
-            ]);
-          }
+          if (!_matchesTranslationTargetLanguage(trans.language!)) return;
+          _appendTranslationCandidateIfNeeded(trans);
 
           if (_translationResult == null) {
             _translationResult = trans;
@@ -1002,15 +1029,7 @@ class LyricsProvider with ChangeNotifier {
         },
         onCandidate: (candidate) {
           if (!metadata.isSameTrack(_currentMetadata)) return;
-          // Avoid duplicates: same source + sync type.
-          final isDuplicate = _candidates.any(
-            (c) =>
-                c.source == candidate.source &&
-                c.isSynced == candidate.isSynced &&
-                c.isRichSync == candidate.isRichSync,
-          );
-          if (!isDuplicate) {
-            _candidates = List.unmodifiable([..._candidates, candidate]);
+          if (_appendCandidateIfNeeded(candidate)) {
             notifyListeners();
           }
         },
@@ -1031,21 +1050,7 @@ class LyricsProvider with ChangeNotifier {
       await for (var result in stream) {
         if (!metadata.isSameTrack(_currentMetadata)) return;
 
-        result = result.trim();
-
-        if (result.lyrics.isNotEmpty &&
-            result.lyrics[0].startTime > const Duration(seconds: 3)) {
-          final newLyrics = List<Lyric>.from(result.lyrics);
-          newLyrics.insert(
-            0,
-            Lyric(
-              text: '',
-              startTime: Duration.zero,
-              endTime: result.lyrics[0].startTime,
-            ),
-          );
-          result = result.copyWith(lyrics: newLyrics);
-        }
+        result = _prepareLyricsResultForDisplay(result);
 
         _lyricsResult = result;
         if (result.artworkUrls != null && result.artworkUrls!.isNotEmpty) {
@@ -1115,21 +1120,7 @@ class LyricsProvider with ChangeNotifier {
     _candidatePauseCompleter = null;
     _isPausedForCandidates = false;
 
-    // Trim and prepend silence if needed (mirrors _fetchLyrics behaviour).
-    LyricsResult result = candidate.trim();
-    if (result.lyrics.isNotEmpty &&
-        result.lyrics[0].startTime > const Duration(seconds: 3)) {
-      final newLyrics = List<Lyric>.from(result.lyrics);
-      newLyrics.insert(
-        0,
-        Lyric(
-          text: '',
-          startTime: Duration.zero,
-          endTime: result.lyrics[0].startTime,
-        ),
-      );
-      result = result.copyWith(lyrics: newLyrics);
-    }
+    final result = _prepareLyricsResultForDisplay(candidate);
 
     _lyricsResult = result;
     _updateCurrentIndex();
@@ -1164,7 +1155,7 @@ class LyricsProvider with ChangeNotifier {
 
     // Add to the candidate list so it shows up (and is marked active) in the
     // sheet after the user returns to it.
-    _candidates = List.unmodifiable([..._candidates, richified]);
+    _appendCandidateIfNeeded(richified);
 
     // Reuse selectCandidate so trimming + silence prepending is consistent.
     await selectCandidate(richified);
