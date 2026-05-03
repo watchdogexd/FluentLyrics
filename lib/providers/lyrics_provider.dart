@@ -10,6 +10,7 @@ import '../services/lyrics_service.dart';
 import '../services/settings_service.dart';
 import '../services/providers/lyrics_cache_service.dart';
 import '../utils/app_logger.dart';
+import '../utils/lyrics_candidate_helper.dart';
 import '../utils/lyrics_display_helper.dart';
 import '../utils/richify_helper.dart';
 
@@ -379,59 +380,31 @@ class LyricsProvider with ChangeNotifier {
   }
 
   bool _matchesTranslationTargetLanguage(String language) {
-    final lowercaseLanguage = language.toLowerCase();
-    for (final target in _translationTargetLanguages.current) {
-      if (target.toLowerCase() == lowercaseLanguage) {
-        return true;
-      }
-    }
-    return false;
+    return matchesTranslationTargetLanguage(
+      _translationTargetLanguages.current,
+      language,
+    );
   }
 
   bool _appendTranslationCandidateIfNeeded(LyricsResult candidate) {
-    final isDuplicate = _translationCandidates.any(
-      (existing) =>
-          existing.translationProvider == candidate.translationProvider &&
-          existing.language == candidate.language,
-    );
-    if (isDuplicate) return false;
-
-    _translationCandidates = List.unmodifiable([
-      ..._translationCandidates,
+    final nextCandidates = appendTranslationCandidateIfNeeded(
+      _translationCandidates,
       candidate,
-    ]);
+    );
+    if (identical(nextCandidates, _translationCandidates)) return false;
+    _translationCandidates = nextCandidates;
     return true;
   }
 
   bool _appendCandidateIfNeeded(LyricsResult candidate) {
-    final isDuplicate = _candidates.any(
-      (existing) =>
-          existing.source == candidate.source &&
-          existing.isSynced == candidate.isSynced &&
-          existing.isRichSync == candidate.isRichSync,
-    );
-    if (isDuplicate) return false;
-
-    _candidates = List.unmodifiable([..._candidates, candidate]);
+    final nextCandidates = appendCandidateIfNeeded(_candidates, candidate);
+    if (identical(nextCandidates, _candidates)) return false;
+    _candidates = nextCandidates;
     return true;
   }
 
   LyricsResult _prepareLyricsResultForDisplay(LyricsResult result) {
-    var prepared = result.trim();
-    if (prepared.lyrics.isNotEmpty &&
-        prepared.lyrics[0].startTime > const Duration(seconds: 3)) {
-      final newLyrics = List<Lyric>.from(prepared.lyrics)
-        ..insert(
-          0,
-          Lyric(
-            text: '',
-            startTime: Duration.zero,
-            endTime: prepared.lyrics[0].startTime,
-          ),
-        );
-      prepared = prepared.copyWith(lyrics: newLyrics);
-    }
-    return prepared;
+    return prepareLyricsResultForDisplay(result);
   }
 
   Future<void> _loadSettings() async {
