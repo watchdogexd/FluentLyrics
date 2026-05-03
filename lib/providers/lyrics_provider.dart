@@ -407,6 +407,30 @@ class LyricsProvider with ChangeNotifier {
     return prepareLyricsResultForDisplay(result);
   }
 
+  void _beginLyricsFetchState() {
+    _isFetching = true;
+    _isLoading = true;
+    _loadingStatus = 'Starting search...';
+    _lyricsResult = LyricsResult.empty();
+    _invalidateTranslationRequests();
+    _candidates = [];
+    _isPausedForCandidates = false;
+    _candidateSheetOpenedEarly = false;
+    _candidatePauseCompleter?.complete(false);
+    _candidatePauseCompleter = null;
+    artworkUrlsNotifier.value = [];
+    notifyListeners();
+  }
+
+  void _finishLyricsFetchState(MediaMetadata metadata) {
+    if (!metadata.isSameTrack(_currentMetadata)) return;
+    _isPausedForCandidates = false;
+    _candidatePauseCompleter?.complete(false);
+    _candidatePauseCompleter = null;
+    _setLoadingState(false);
+    notifyListeners();
+  }
+
   Future<void> _loadSettings() async {
     _settings = await LyricsProviderSettings.load(_settingsService);
 
@@ -939,18 +963,7 @@ class LyricsProvider with ChangeNotifier {
     MediaMetadata metadata, {
     bool skipFetchTranslations = false,
   }) async {
-    _isFetching = true;
-    _isLoading = true;
-    _loadingStatus = 'Starting search...';
-    _lyricsResult = LyricsResult.empty();
-    _invalidateTranslationRequests();
-    _candidates = [];
-    _isPausedForCandidates = false;
-    _candidateSheetOpenedEarly = false;
-    _candidatePauseCompleter?.complete(false);
-    _candidatePauseCompleter = null;
-    artworkUrlsNotifier.value = [];
-    notifyListeners();
+    _beginLyricsFetchState();
 
     try {
       final stream = _lyricsService.fetchLyrics(
@@ -1056,13 +1069,7 @@ class LyricsProvider with ChangeNotifier {
       if (!metadata.isSameTrack(_currentMetadata)) return;
       _setLoadingStatus('Error: $e');
     } finally {
-      if (metadata.isSameTrack(_currentMetadata)) {
-        _isPausedForCandidates = false;
-        _candidatePauseCompleter?.complete(false);
-        _candidatePauseCompleter = null;
-        _setLoadingState(false);
-        notifyListeners();
-      }
+      _finishLyricsFetchState(metadata);
     }
   }
 
