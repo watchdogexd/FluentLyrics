@@ -786,15 +786,7 @@ class LyricsProvider with ChangeNotifier {
         _currentMetadata!.album,
         _currentMetadata!.duration.inSeconds,
       );
-      if (_translationResult != null && _translationResult!.language != null) {
-        await _cacheService.clearTranslationCache(
-          _cacheService.generateTranslationCacheId(
-            _currentMetadata!.title,
-            _currentMetadata!.artist,
-            _translationResult!.language!,
-          ),
-        );
-      }
+      await _clearTranslationCacheForCurrentTrack(_currentMetadata!);
       if (_currentMetadata != null) {
         // Force the fetching logic to re-search for artwork by resetting to 'fallback'.
         final systemMetadata = mediaService.metadata;
@@ -806,6 +798,7 @@ class LyricsProvider with ChangeNotifier {
       }
     }
   }
+
 
   Future<void> clearAllCache() async {
     await _cacheService.clearAllCache();
@@ -906,6 +899,22 @@ class LyricsProvider with ChangeNotifier {
     }
   }
 
+  Future<void> _clearTranslationCacheForCurrentTrack(
+    MediaMetadata metadata
+  ) async {
+    await Future.wait(
+      _translationTargetLanguages.current.map(
+        (lang) => _cacheService.clearTranslationCache(
+          _cacheService.generateTranslationCacheId(
+            metadata.title,
+            metadata.artist,
+            lang,
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _fetchTranslationsForCurrentTrack(
     MediaMetadata metadata, {
     bool showLoadingState = false,
@@ -914,15 +923,7 @@ class LyricsProvider with ChangeNotifier {
     if (!_translationEnabled.current || _lyricsResult.lyrics.isEmpty) return;
 
     if (clearCachedTranslations) {
-      for (final lang in _translationTargetLanguages.current) {
-        await _cacheService.clearTranslationCache(
-          _cacheService.generateTranslationCacheId(
-            metadata.title,
-            metadata.artist,
-            lang,
-          ),
-        );
-      }
+      await _clearTranslationCacheForCurrentTrack(_currentMetadata!);
     }
 
     final requestVersion = _beginTranslationRequest();
