@@ -9,6 +9,7 @@ import 'providers/qqmusic_service.dart';
 import 'providers/lyrics_cache_service.dart';
 import 'providers/llm_translation_service.dart';
 import '../utils/app_logger.dart';
+import 'lyrics_source_registry.dart';
 import 'winner_selector.dart';
 
 class LyricsService {
@@ -20,6 +21,15 @@ class LyricsService {
   final QQMusicService _qqMusicService;
   final LlmTranslationService _llmService;
   final LyricsCacheService _cacheService;
+  late final LyricsSourceRegistry _sourceRegistry =
+      LyricsSourceRegistry.fromServices(
+        lrclibService: _lrclibService,
+        musixmatchService: _musixmatchService,
+        neteaseService: _neteaseService,
+        qqMusicService: _qqMusicService,
+        llmService: _llmService,
+        cacheService: _cacheService,
+      );
 
   LyricsService({
     SettingsService? settingsService,
@@ -120,52 +130,27 @@ class LyricsService {
         }
       }
 
-      if (provider == LyricProviderType.cache) {
-        result = await _cacheService.fetchLyrics(
-          title: title,
-          artist: artist,
-          album: album,
-          durationSeconds: durationSeconds,
+      final source = _sourceRegistry.sourceFor(provider);
+      if (source == null) {
+        AppLogger.debug(
+          '[LyricsService.fetchLyrics]     ==> [!] Unsupported provider: $provider',
         );
-      } else if (provider == LyricProviderType.lrclib) {
-        result = await _lrclibService.fetchLyrics(
-          title: title,
-          artist: artist,
-          album: album,
-          durationSeconds: durationSeconds,
-          onStatusUpdate: onStatusUpdate,
-        );
-      } else if (provider == LyricProviderType.musixmatch) {
-        result = await _musixmatchService.fetchLyrics(
-          title: title,
-          artist: artist,
-          durationSeconds: durationSeconds,
-          onStatusUpdate: onStatusUpdate,
-          onArtworkUrl: onArtworkUrl,
-        );
-      } else if (provider == LyricProviderType.netease) {
-        result = await _neteaseService.fetchLyrics(
-          title: title,
-          artist: artist,
-          durationSeconds: durationSeconds,
-          onStatusUpdate: onStatusUpdate,
-          onArtworkUrl: onArtworkUrl,
-          trimMetadata: shouldTrimMetadata,
-          translationBias: translationBias,
-          onTranslation: onTranslationWrapper,
-        );
-      } else if (provider == LyricProviderType.qqmusic) {
-        result = await _qqMusicService.fetchLyrics(
-          title: title,
-          artist: artist,
-          durationSeconds: durationSeconds,
-          onArtworkUrl: onArtworkUrl,
-          onStatusUpdate: onStatusUpdate,
-          trimMetadata: shouldTrimMetadata,
-          translationBias: translationBias,
-          onTranslation: onTranslationWrapper,
-        );
+        continue;
       }
+
+      result = await source.fetchLyrics(
+        LyricsFetchRequest(
+          title: title,
+          artist: artist,
+          album: album,
+          durationSeconds: durationSeconds,
+          shouldTrimMetadata: shouldTrimMetadata,
+          onStatusUpdate: onStatusUpdate,
+          onArtworkUrl: onArtworkUrl,
+          translationBias: translationBias,
+          onTranslation: onTranslationWrapper,
+        ),
+      );
 
       if (accumulatedArtworkUrls.isNotEmpty) {
         result = result.copyWith(artworkUrls: accumulatedArtworkUrls);
@@ -337,55 +322,25 @@ class LyricsService {
                   '${transResult.translationProvider} (cached)',
             );
           }
-        } else if (tProvider == LyricProviderType.netease) {
-          if (!_neteaseService.checkTranslationSupport(targetLanguage)) {
-            continue;
-          }
-          AppLogger.debug(
-            '[LyricsService.fetchTranslation]     ==> Fetching from Netease',
-          );
-          transResult = await _neteaseService.fetchTranslation(
-            requestData,
-            translationBias: translationBias,
-          );
-        } else if (tProvider == LyricProviderType.qqmusic) {
-          if (!_qqMusicService.checkTranslationSupport(targetLanguage)) {
-            continue;
-          }
-          AppLogger.debug(
-            '[LyricsService.fetchTranslation]     ==> Fetching from QQMusic',
-          );
-          transResult = await _qqMusicService.fetchTranslation(
-            requestData,
-            translationBias: translationBias,
-          );
-        } else if (tProvider == LyricProviderType.musixmatch) {
-          if (!_musixmatchService.checkTranslationSupport(targetLanguage)) {
-            continue;
-          }
-          AppLogger.debug(
-            '[LyricsService.fetchTranslation]     ==> Fetching from Musixmatch',
-          );
-          transResult = await _musixmatchService.fetchTranslation(
-            requestData,
-            targetLanguage,
-          );
-        } else if (tProvider == LyricProviderType.llm) {
-          if (!_llmService.checkTranslationSupport(targetLanguage)) {
-            continue;
-          }
-          AppLogger.debug(
-            '[LyricsService.fetchTranslation]     ==> Fetching from LLM',
-          );
-          transResult = await _llmService.fetchTranslation(
-            requestData,
-            targetLanguage,
-          );
         } else {
+          final source = _sourceRegistry.sourceFor(tProvider);
+          if (source == null ||
+              !source.checkTranslationSupport(targetLanguage)) {
+            AppLogger.debug(
+              '[LyricsService.fetchTranslation]     ==> [!] Unsupported provider: $tProvider',
+            );
+            continue;
+          }
           AppLogger.debug(
-            '[LyricsService.fetchTranslation]     ==> [!] Unsupported provider: $tProvider',
+            '[LyricsService.fetchTranslation]     ==> Fetching from ${tProvider.metadata['name']}',
           );
-          continue;
+          transResult = await source.fetchTranslation(
+            LyricsTranslationRequest(
+              data: requestData,
+              targetLanguage: targetLanguage,
+              translationBias: translationBias,
+            ),
+          );
         }
 
         if (transResult == null ||
