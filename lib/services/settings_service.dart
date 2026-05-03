@@ -5,6 +5,12 @@ import '../models/lyric_provider_type.dart';
 import '../constants/app_defaults.dart';
 
 class SettingsService {
+  SharedPreferences? _sharedPreferences;
+
+  Future<SharedPreferences> get _prefs async {
+    return _sharedPreferences ??= await SharedPreferences.getInstance();
+  }
+
   static const String _priorityKey = 'lyric_provider_priority';
   static const String _musixmatchTokenKey = 'musixmatch_token';
   static const String _linesBeforeKey = 'lines_before';
@@ -26,7 +32,7 @@ class SettingsService {
       'experimental_rich_inline_font_size_glitching';
 
   Future<Setting<List<LyricProviderType>>> getAllProvidersOrdered() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final savedPriority = prefs.getStringList(_priorityKey);
 
     if (savedPriority == null) {
@@ -60,7 +66,7 @@ class SettingsService {
   }
 
   Future<Setting<int>> getEnabledCount() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getInt(_enabledCountKey) ?? AppDefaults.enabledProviderCount;
     return Setting(
@@ -71,12 +77,12 @@ class SettingsService {
   }
 
   Future<void> setEnabledCount(int count) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setInt(_enabledCountKey, count);
   }
 
   Future<Setting<bool>> getCacheEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current = prefs.getBool(_cacheEnabledKey) ?? AppDefaults.cacheEnabled;
     return Setting(
       current: current,
@@ -86,7 +92,7 @@ class SettingsService {
   }
 
   Future<void> setCacheEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setBool(_cacheEnabledKey, enabled);
   }
 
@@ -109,7 +115,7 @@ class SettingsService {
   }
 
   Future<void> setPriority(List<LyricProviderType> priority) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setStringList(
       _priorityKey,
       priority.map((e) => e.name).toList(),
@@ -117,7 +123,7 @@ class SettingsService {
   }
 
   Future<Setting<String?>> getMusixmatchToken() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getString(_musixmatchTokenKey) ?? AppDefaults.musixmatchToken;
     return Setting(
@@ -128,12 +134,12 @@ class SettingsService {
   }
 
   Future<void> setMusixmatchToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setString(_musixmatchTokenKey, token);
   }
 
   Future<Setting<int>> getLinesBefore() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current = prefs.getInt(_linesBeforeKey) ?? AppDefaults.linesBefore;
     return Setting(
       current: current,
@@ -143,12 +149,12 @@ class SettingsService {
   }
 
   Future<void> setLinesBefore(int lines) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setInt(_linesBeforeKey, lines);
   }
 
   Future<Setting<int>> getGlobalOffset() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getInt(_globalOffsetKey) ?? AppDefaults.globalOffsetMs;
     return Setting(
@@ -159,12 +165,12 @@ class SettingsService {
   }
 
   Future<void> setGlobalOffset(int offsetMs) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setInt(_globalOffsetKey, offsetMs);
   }
 
   Future<Setting<int>> getScrollAutoResumeDelay() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getInt(_scrollAutoResumeDelayKey) ??
         AppDefaults.scrollAutoResumeDelay;
@@ -176,12 +182,12 @@ class SettingsService {
   }
 
   Future<void> setScrollAutoResumeDelay(int seconds) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setInt(_scrollAutoResumeDelayKey, seconds);
   }
 
   Future<Setting<bool>> getBlurEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current = prefs.getBool(_blurEnabledKey) ?? AppDefaults.blurEnabled;
     return Setting(
       current: current,
@@ -191,12 +197,12 @@ class SettingsService {
   }
 
   Future<void> setBlurEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setBool(_blurEnabledKey, enabled);
   }
 
   Future<Setting<List<LyricProviderType>>> getTrimMetadataProviders() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final saved = prefs.getStringList(_trimMetadataProvidersKey);
 
     if (saved == null) {
@@ -227,7 +233,7 @@ class SettingsService {
   Future<void> setTrimMetadataProviders(
     List<LyricProviderType> providers,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setStringList(
       _trimMetadataProvidersKey,
       providers.map((e) => e.name).toList(),
@@ -235,7 +241,7 @@ class SettingsService {
   }
 
   Future<Setting<double>> getFontSize() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current = prefs.getDouble(_fontSizeKey) ?? AppDefaults.fontSize;
     return Setting(
       current: current,
@@ -245,12 +251,12 @@ class SettingsService {
   }
 
   Future<void> setFontSize(double size) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setDouble(_fontSizeKey, size);
   }
 
   Future<Setting<double>> getInactiveScale() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getDouble(_inactiveScaleKey) ?? AppDefaults.inactiveScale;
     return Setting(
@@ -261,12 +267,12 @@ class SettingsService {
   }
 
   Future<void> setInactiveScale(double scale) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setDouble(_inactiveScaleKey, scale);
   }
 
   Future<Setting<bool>> getRichSyncEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getBool(_richSyncEnabledKey) ?? AppDefaults.richSyncEnabled;
     return Setting(
@@ -277,7 +283,7 @@ class SettingsService {
   }
 
   Future<void> setRichSyncEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setBool(_richSyncEnabledKey, enabled);
   }
 
@@ -288,7 +294,7 @@ class SettingsService {
       'translation_target_languages';
 
   Future<Setting<bool>> getTranslationEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getBool(_translationEnabledKey) ?? AppDefaults.translationEnabled;
     return Setting(
@@ -299,12 +305,12 @@ class SettingsService {
   }
 
   Future<void> setTranslationEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setBool(_translationEnabledKey, enabled);
   }
 
   Future<Setting<bool>> getTranslationHighlightOnly() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getBool(_translationHighlightOnlyKey) ??
         AppDefaults.translationHighlightOnly;
@@ -316,7 +322,7 @@ class SettingsService {
   }
 
   Future<void> setTranslationHighlightOnly(bool highlightOnly) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setBool(_translationHighlightOnlyKey, highlightOnly);
   }
 
@@ -327,7 +333,7 @@ class SettingsService {
       'translation_alignment_threshold';
 
   Future<Setting<List<String>>> getTranslationTargetLanguages() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getStringList(_translationTargetLanguagesKey) ??
         AppDefaults.translationTargetLanguages;
@@ -339,7 +345,7 @@ class SettingsService {
   }
 
   Future<void> setTranslationTargetLanguages(List<String> languages) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     if (languages.isEmpty) {
       await prefs.remove(_translationTargetLanguagesKey);
     } else {
@@ -348,7 +354,7 @@ class SettingsService {
   }
 
   Future<Setting<List<String>>> getTranslationIgnoredLanguages() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final saved = prefs.getStringList(_translationIgnoredLanguagesKey);
     final current = saved ?? AppDefaults.translationIgnoredLanguages;
 
@@ -360,12 +366,12 @@ class SettingsService {
   }
 
   Future<void> setTranslationIgnoredLanguages(List<String> languages) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setStringList(_translationIgnoredLanguagesKey, languages);
   }
 
   Future<Setting<int>> getTranslationBias() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getInt(_translationBiasKey) ?? AppDefaults.translationBias;
     return Setting(
@@ -376,12 +382,12 @@ class SettingsService {
   }
 
   Future<void> setTranslationBias(int bias) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setInt(_translationBiasKey, bias);
   }
 
   Future<Setting<int>> getTranslationAlignmentThreshold() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getInt(_translationAlignmentThresholdKey) ??
         AppDefaults.translationAlignmentThreshold;
@@ -393,12 +399,12 @@ class SettingsService {
   }
 
   Future<void> setTranslationAlignmentThreshold(int threshold) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setInt(_translationAlignmentThresholdKey, threshold);
   }
 
   Future<Setting<String>> getLlmApiEndpoint() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getString(_llmEndpointKey) ?? AppDefaults.llmApiEndpoint;
 
@@ -410,12 +416,12 @@ class SettingsService {
   }
 
   Future<void> setLlmApiEndpoint(String endpoint) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setString(_llmEndpointKey, endpoint);
   }
 
   Future<Setting<String>> getLlmApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current = prefs.getString(_llmApiKeyKey) ?? AppDefaults.llmApiKey;
 
     return Setting(
@@ -426,12 +432,12 @@ class SettingsService {
   }
 
   Future<void> setLlmApiKey(String apiKey) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setString(_llmApiKeyKey, apiKey);
   }
 
   Future<Setting<String>> getLlmModel() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current = prefs.getString(_llmModelKey) ?? AppDefaults.llmModel;
 
     return Setting(
@@ -442,14 +448,14 @@ class SettingsService {
   }
 
   Future<void> setLlmModel(String model) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setString(_llmModelKey, model);
   }
 
   static const String _llmReasoningEffortKey = 'llm_reasoning_effort';
 
   Future<Setting<String>> getLlmReasoningEffort() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getString(_llmReasoningEffortKey) ??
         AppDefaults.llmReasoningEffort;
@@ -462,12 +468,12 @@ class SettingsService {
   }
 
   Future<void> setLlmReasoningEffort(String effort) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setString(_llmReasoningEffortKey, effort);
   }
 
   Future<Setting<bool>> getKeepScreenOn() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current = prefs.getBool(_keepScreenOnKey) ?? AppDefaults.keepScreenOn;
 
     return Setting(
@@ -478,12 +484,12 @@ class SettingsService {
   }
 
   Future<void> setKeepScreenOn(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setBool(_keepScreenOnKey, enabled);
   }
 
   Future<Setting<bool>> getBackgroundMotionEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getBool(_backgroundMotionEnabledKey) ??
         AppDefaults.backgroundMotionEnabled;
@@ -495,12 +501,12 @@ class SettingsService {
   }
 
   Future<void> setBackgroundMotionEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setBool(_backgroundMotionEnabledKey, enabled);
   }
 
   Future<Setting<bool>> getExperimentalRichInlineFontSizeGlitching() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     final current =
         prefs.getBool(_experimentalRichInlineFontSizeGlitchingKey) ??
         AppDefaults.experimentalRichInlineFontSizeGlitching;
@@ -512,7 +518,7 @@ class SettingsService {
   }
 
   Future<void> setExperimentalRichInlineFontSizeGlitching(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs;
     await prefs.setBool(_experimentalRichInlineFontSizeGlitchingKey, enabled);
   }
 }
