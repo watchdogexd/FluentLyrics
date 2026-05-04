@@ -563,23 +563,35 @@ class LyricsProvider with ChangeNotifier {
   }
 
   void setTranslationTargetLanguages(List<String> languages) {
-    _setSettingValue(
+    final changed = _setSettingValue(
       currentSetting: _translationTargetLanguages,
       value: languages,
       assign: (value) => _translationTargetLanguages = value,
       persist: _settingsService.setTranslationTargetLanguages,
       equals: listEquals,
     );
+    if (!changed) return;
+
+    _invalidateTranslationRequests();
+    if (_currentMetadata != null && _lyricsResult.lyrics.isNotEmpty) {
+      unawaited(_fetchTranslationsForCurrentTrack(_currentMetadata!));
+    }
   }
 
   void setTranslationIgnoredLanguages(List<String> languages) {
-    _setSettingValue(
+    final changed = _setSettingValue(
       currentSetting: _translationIgnoredLanguages,
       value: languages,
       assign: (value) => _translationIgnoredLanguages = value,
       persist: _settingsService.setTranslationIgnoredLanguages,
       equals: listEquals,
     );
+    if (!changed) return;
+
+    _invalidateTranslationRequests();
+    if (_currentMetadata != null && _lyricsResult.lyrics.isNotEmpty) {
+      unawaited(_fetchTranslationsForCurrentTrack(_currentMetadata!));
+    }
   }
 
   void setTranslationBias(int bias) {

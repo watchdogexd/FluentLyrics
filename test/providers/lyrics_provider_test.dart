@@ -31,7 +31,7 @@ class _FakeMediaController implements MediaController {
 class _FakeMediaService extends MediaService {
   _FakeMediaService(this._metadata);
 
-  MediaMetadata? _metadata;
+  final MediaMetadata? _metadata;
   final _controller = _FakeMediaController();
 
   @override
@@ -58,9 +58,10 @@ class _FakeMediaService extends MediaService {
 }
 
 class _FakeSettingsService extends SettingsService {
-  _FakeSettingsService({this.translationEnabled = true});
+  _FakeSettingsService();
 
-  final bool translationEnabled;
+  List<String>? persistedTranslationTargetLanguages;
+  List<String>? persistedTranslationIgnoredLanguages;
 
   @override
   Future<Setting<List<LyricProviderType>>> getAllProvidersOrdered() async {
@@ -133,11 +134,7 @@ class _FakeSettingsService extends SettingsService {
 
   @override
   Future<Setting<bool>> getTranslationEnabled() async {
-    return Setting(
-      current: translationEnabled,
-      defaultValue: translationEnabled,
-      changed: false,
-    );
+    return const Setting(current: true, defaultValue: true, changed: false);
   }
 
   @override
@@ -152,6 +149,16 @@ class _FakeSettingsService extends SettingsService {
   @override
   Future<Setting<List<String>>> getTranslationIgnoredLanguages() async {
     return const Setting(current: [], defaultValue: [], changed: false);
+  }
+
+  @override
+  Future<void> setTranslationTargetLanguages(List<String> languages) async {
+    persistedTranslationTargetLanguages = languages;
+  }
+
+  @override
+  Future<void> setTranslationIgnoredLanguages(List<String> languages) async {
+    persistedTranslationIgnoredLanguages = languages;
   }
 
   @override
@@ -320,6 +327,49 @@ void main() {
 
       expect(lyricsService.translationFetchCount, 1);
       expect(lyricsService.lastTranslationLyrics, ['new line']);
+      expect(
+        provider.translationResult?.translationProvider,
+        'Refetched Translation',
+      );
+
+      provider.dispose();
+    },
+  );
+
+  test(
+    'changing translation target languages refreshes current translation',
+    () async {
+      final lyricsService = _FakeLyricsService();
+      final mediaService = _FakeMediaService(
+        MediaMetadata(
+          title: 'Song',
+          artist: const ['Artist'],
+          album: 'Album',
+          duration: const Duration(seconds: 120),
+          artUrl: 'fallback',
+        ),
+      );
+      final provider = LyricsProvider(
+        mediaService: mediaService,
+        lyricsService: lyricsService,
+        settingsService: _FakeSettingsService(),
+        cacheService: _FakeLyricsCacheService(),
+      );
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      mediaService.emitChange();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        provider.translationResult?.translationProvider,
+        'Initial Translation',
+      );
+
+      provider.setTranslationTargetLanguages(['ja']);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(lyricsService.translationFetchCount, 1);
       expect(
         provider.translationResult?.translationProvider,
         'Refetched Translation',
