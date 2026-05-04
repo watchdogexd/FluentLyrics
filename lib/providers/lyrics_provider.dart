@@ -1112,6 +1112,7 @@ class LyricsProvider with ChangeNotifier {
     final result = _prepareLyricsResultForDisplay(candidate);
 
     _lyricsResult = result;
+    _invalidateTranslationRequests();
     _updateCurrentIndex();
     notifyListeners();
 
@@ -1126,6 +1127,10 @@ class LyricsProvider with ChangeNotifier {
       AppLogger.debug(
         '[LyricsProvider] Candidate from ${candidate.source} saved to cache.',
       );
+    }
+
+    if (_translationEnabled.current && result.lyrics.isNotEmpty) {
+      unawaited(_fetchTranslationsForCurrentTrack(_currentMetadata!));
     }
   }
 
