@@ -303,12 +303,14 @@ class LyricsService {
     // start searching
     bool isYielded = false;
 
-    // check for cache (if enabled)
-    if (cacheEnabled) {
-      AppLogger.debug('[LyricsService.fetchTranslation]   ==> Checking cache');
-      bool cachedResult = false;
-      LyricsResult? transResult;
-      for (var targetLanguage in targetLanguages) {
+    // check online
+    // Iterate translation providers
+    LyricsResult? transResult;
+    for (var targetLanguage in targetLanguages) {
+      if (cacheEnabled) {
+        AppLogger.debug(
+          '[LyricsService.fetchTranslation]   ==> Checking cache for $targetLanguage',
+        );
         final cacheId = _cacheService.generateTranslationCacheId(
           title,
           artist,
@@ -319,7 +321,6 @@ class LyricsService {
           AppLogger.debug(
             '[LyricsService.fetchTranslation]     ==> Found cached $targetLanguage',
           );
-          cachedResult = true;
           transResult = transResult.copyWith(
             translationProvider: '${transResult.translationProvider} (cached)',
           );
@@ -330,15 +331,10 @@ class LyricsService {
             isYielded = true;
             yield transResult;
           }
+          continue;
         }
       }
-      if (cachedResult) return;
-    }
 
-    // check online
-    // Iterate translation providers
-    LyricsResult? transResult;
-    for (var targetLanguage in targetLanguages) {
       AppLogger.debug(
         '[LyricsService.fetchTranslation]   ==> Checking providers for $targetLanguage',
       );
