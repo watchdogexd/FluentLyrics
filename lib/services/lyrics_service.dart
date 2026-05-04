@@ -21,7 +21,9 @@ class LyricsService {
   final QQMusicService _qqMusicService;
   final LlmTranslationService _llmService;
   final LyricsCacheService _cacheService;
+  final LyricsSourceRegistry? _sourceRegistryOverride;
   late final LyricsSourceRegistry _sourceRegistry =
+      _sourceRegistryOverride ??
       LyricsSourceRegistry.fromServices(
         lrclibService: _lrclibService,
         musixmatchService: _musixmatchService,
@@ -39,6 +41,7 @@ class LyricsService {
     QQMusicService? qqMusicService,
     LlmTranslationService? llmService,
     LyricsCacheService? cacheService,
+    LyricsSourceRegistry? sourceRegistry,
   }) : this._(
          settingsService: settingsService ?? SettingsService(),
          lrclibService: lrclibService,
@@ -47,6 +50,7 @@ class LyricsService {
          qqMusicService: qqMusicService,
          llmService: llmService,
          cacheService: cacheService,
+         sourceRegistry: sourceRegistry,
        );
 
   LyricsService._({
@@ -57,13 +61,15 @@ class LyricsService {
     QQMusicService? qqMusicService,
     LlmTranslationService? llmService,
     LyricsCacheService? cacheService,
+    LyricsSourceRegistry? sourceRegistry,
   }) : _settingsService = settingsService,
        _lrclibService = lrclibService ?? LrclibService(),
        _musixmatchService = musixmatchService ?? MusixmatchService(),
        _neteaseService = neteaseService ?? NeteaseService(),
        _qqMusicService = qqMusicService ?? QQMusicService(),
        _llmService = llmService ?? LlmTranslationService(settingsService),
-       _cacheService = cacheService ?? LyricsCacheService();
+       _cacheService = cacheService ?? LyricsCacheService(),
+       _sourceRegistryOverride = sourceRegistry;
 
   Stream<LyricsResult> fetchLyrics({
     required String title,
@@ -395,7 +401,10 @@ class LyricsService {
 
           // Continue to next provider to collect more candidates; only yield
           // the first successful result for the actual display (auto-pick).
-          if (_shouldYield(transResult) && !isYielded) yield transResult;
+          if (_shouldYield(transResult) && !isYielded) {
+            isYielded = true;
+            yield transResult;
+          }
         } else {
           AppLogger.debug(
             '[LyricsService.fetchTranslation]       ==> [!] Failed',
