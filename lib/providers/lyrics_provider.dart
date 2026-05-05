@@ -1192,6 +1192,7 @@ class LyricsProvider with ChangeNotifier {
   /// Isar cache so subsequent loads use this selection.
   Future<void> selectTranslationCandidate(LyricsResult candidate) async {
     if (_currentMetadata == null) return;
+    _translationRequestVersion++;
     _translationResult = candidate;
     _cachedAlignedLyrics = null; // Invalidate alignment cache.
     _updateCurrentIndex();

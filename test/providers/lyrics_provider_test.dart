@@ -329,6 +329,71 @@ class _StaleLyricsService extends LyricsService {
   }
 }
 
+class _StaleTranslationLyricsService extends LyricsService {
+  final Completer<void> firstTranslationYielded = Completer<void>();
+  final Completer<void> releaseStaleTranslation = Completer<void>();
+
+  @override
+  Stream<LyricsResult> fetchLyrics({
+    required String title,
+    required List<String> artist,
+    required String album,
+    required int durationSeconds,
+    Function(String)? onStatusUpdate,
+    Function(bool)? onFetchStatusUpdate,
+    bool Function()? isCancelled,
+    required List<LyricProviderType> trimMetadataProviders,
+    required bool richSyncEnabled,
+    Function(LyricsResult)? onTranslation,
+    void Function(LyricsResult)? onCandidate,
+    Future<bool> Function()? onPauseForCandidates,
+  }) async* {
+    final base = LyricsResult(
+      lyrics: [lyric('base line', 1)],
+      source: 'Base',
+    );
+    yield base;
+  }
+
+  @override
+  Stream<LyricsResult> fetchTranslation({
+    required LyricsResult bestResult,
+    required String title,
+    required List<String> artist,
+    required String album,
+    required int durationSeconds,
+    bool Function()? isCancelled,
+    void Function(LyricsResult)? onTranslationCandidate,
+  }) async* {
+    final first = LyricsResult(
+      lyrics: const [],
+      source: 'Initial Translation',
+      translation: true,
+      language: 'zht',
+      translationProvider: 'Initial Translation',
+      rawTranslation: const [
+        {'original': 'base line', 'translated': '初始'},
+      ],
+    );
+    yield first;
+    firstTranslationYielded.complete();
+
+    await releaseStaleTranslation.future;
+    if (isCancelled?.call() == true) return;
+
+    yield LyricsResult(
+      lyrics: const [],
+      source: 'Stale Translation',
+      translation: true,
+      language: 'zht',
+      translationProvider: 'Stale Translation',
+      rawTranslation: const [
+        {'original': 'base line', 'translated': '过期'},
+      ],
+    );
+  }
+}
+
 Lyric lyric(String text, int seconds) {
   return Lyric(
     startTime: Duration(seconds: seconds),
@@ -373,6 +438,55 @@ void main() {
 
     provider.dispose();
   });
+
+  test(
+    'selectTranslationCandidate prevents stale translation fetch from overwriting it',
+    () async {
+      final lyricsService = _StaleTranslationLyricsService();
+      final mediaService = _FakeMediaService(
+        MediaMetadata(
+          title: 'Song',
+          artist: const ['Artist'],
+          album: 'Album',
+          duration: const Duration(seconds: 120),
+          artUrl: 'fallback',
+        ),
+      );
+      final provider = LyricsProvider(
+        mediaService: mediaService,
+        lyricsService: lyricsService,
+        settingsService: _FakeSettingsService(),
+        cacheService: _FakeLyricsCacheService(),
+      );
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      mediaService.emitChange();
+      await lyricsService.firstTranslationYielded.future;
+
+      await provider.selectTranslationCandidate(
+        LyricsResult(
+          lyrics: const [],
+          source: 'Manual Translation',
+          translation: true,
+          language: 'zht',
+          translationProvider: 'Manual Translation',
+          rawTranslation: const [
+            {'original': 'base line', 'translated': '手动'},
+          ],
+        ),
+      );
+
+      lyricsService.releaseStaleTranslation.complete();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(provider.translationResult?.translationProvider, 'Manual Translation');
+      expect(provider.translationResult?.rawTranslation?.first['translated'], '手动');
+
+      provider.dispose();
+    },
+  );
 
   test(
     'selectCandidate clears stale translation and refetches for new lyrics',
