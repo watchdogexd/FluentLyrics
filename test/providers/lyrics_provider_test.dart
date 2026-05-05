@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fluent_lyrics/models/lyric_model.dart';
 import 'package:fluent_lyrics/models/lyric_provider_type.dart';
 import 'package:fluent_lyrics/models/setting.dart';
@@ -58,10 +60,11 @@ class _FakeMediaService extends MediaService {
 }
 
 class _FakeSettingsService extends SettingsService {
-  _FakeSettingsService();
+  _FakeSettingsService({this.translationEnabled = true});
 
   List<String>? persistedTranslationTargetLanguages;
   List<String>? persistedTranslationIgnoredLanguages;
+  final bool translationEnabled;
 
   @override
   Future<Setting<List<LyricProviderType>>> getAllProvidersOrdered() async {
@@ -134,7 +137,11 @@ class _FakeSettingsService extends SettingsService {
 
   @override
   Future<Setting<bool>> getTranslationEnabled() async {
-    return const Setting(current: true, defaultValue: true, changed: false);
+    return Setting(
+      current: translationEnabled,
+      defaultValue: translationEnabled,
+      changed: false,
+    );
   }
 
   @override
@@ -283,6 +290,45 @@ class _FakeLyricsCacheService extends LyricsCacheService {
   ) async {}
 }
 
+class _StaleLyricsService extends LyricsService {
+  final Completer<void> firstResultYielded = Completer<void>();
+  final Completer<void> releaseStaleResult = Completer<void>();
+
+  @override
+  Stream<LyricsResult> fetchLyrics({
+    required String title,
+    required List<String> artist,
+    required String album,
+    required int durationSeconds,
+    Function(String)? onStatusUpdate,
+    Function(bool)? onFetchStatusUpdate,
+    bool Function()? isCancelled,
+    required List<LyricProviderType> trimMetadataProviders,
+    required bool richSyncEnabled,
+    Function(LyricsResult)? onTranslation,
+    void Function(LyricsResult)? onCandidate,
+    Future<bool> Function()? onPauseForCandidates,
+  }) async* {
+    final initial = LyricsResult(
+      lyrics: [lyric('initial line', 1)],
+      source: 'Initial',
+    );
+    onCandidate?.call(initial);
+    yield initial;
+    firstResultYielded.complete();
+
+    await releaseStaleResult.future;
+    if (isCancelled?.call() == true) return;
+
+    final stale = LyricsResult(
+      lyrics: [lyric('stale line', 2)],
+      source: 'Stale',
+    );
+    onCandidate?.call(stale);
+    yield stale;
+  }
+}
+
 Lyric lyric(String text, int seconds) {
   return Lyric(
     startTime: Duration(seconds: seconds),
@@ -291,6 +337,43 @@ Lyric lyric(String text, int seconds) {
 }
 
 void main() {
+  test('selectCandidate prevents stale lyrics fetch from overwriting it', () async {
+    final lyricsService = _StaleLyricsService();
+    final mediaService = _FakeMediaService(
+      MediaMetadata(
+        title: 'Song',
+        artist: const ['Artist'],
+        album: 'Album',
+        duration: const Duration(seconds: 120),
+        artUrl: 'fallback',
+      ),
+    );
+    final provider = LyricsProvider(
+      mediaService: mediaService,
+      lyricsService: lyricsService,
+      settingsService: _FakeSettingsService(translationEnabled: false),
+      cacheService: _FakeLyricsCacheService(),
+    );
+
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    mediaService.emitChange();
+    await lyricsService.firstResultYielded.future;
+
+    await provider.selectCandidate(
+      LyricsResult(lyrics: [lyric('manual line', 3)], source: 'Manual'),
+    );
+
+    lyricsService.releaseStaleResult.complete();
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(provider.lyricsResult.source, 'Manual');
+    expect(provider.lyricsResult.lyrics.last.text, 'manual line');
+
+    provider.dispose();
+  });
+
   test(
     'selectCandidate clears stale translation and refetches for new lyrics',
     () async {
