@@ -291,15 +291,6 @@ class LyricsService {
           .join('\n'),
     );
 
-    // check if source == target
-    if (bestResult.language != null &&
-        targetLanguages.contains(bestResult.language)) {
-      AppLogger.debug(
-        '[LyricsService.fetchTranslation]   ==> Target language contains source language, skipping translation',
-      );
-      return;
-    }
-
     // start searching
     bool isYielded = false;
 
@@ -307,6 +298,13 @@ class LyricsService {
     // Iterate translation providers
     LyricsResult? transResult;
     for (var targetLanguage in targetLanguages) {
+      if (bestResult.language == targetLanguage) {
+        AppLogger.debug(
+          '[LyricsService.fetchTranslation]   ==> Target language matches source language, skipping $targetLanguage',
+        );
+        continue;
+      }
+
       if (cacheEnabled) {
         AppLogger.debug(
           '[LyricsService.fetchTranslation]   ==> Checking cache for $targetLanguage',

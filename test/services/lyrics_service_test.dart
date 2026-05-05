@@ -217,4 +217,44 @@ void main() {
       expect(results.single.translationProvider, 'Musixmatch');
     },
   );
+
+  test(
+    'fetchTranslation skips only the matching source language target',
+    () async {
+      final onlineRequestedLanguages = <String>[];
+      final service = LyricsService(
+        settingsService: _FakeSettingsService(
+          targetLanguages: const ['zht', 'zh_CN'],
+          priority: const [LyricProviderType.musixmatch],
+        ),
+        sourceRegistry: LyricsSourceRegistry(
+          sources: [
+            _FakeTranslationSource(
+              LyricProviderType.musixmatch,
+              'Musixmatch',
+              requestedLanguages: onlineRequestedLanguages,
+            ),
+          ],
+        ),
+      );
+
+      final results = await service
+          .fetchTranslation(
+            bestResult: LyricsResult(
+              lyrics: [lyric('hello', 1)],
+              source: 'lyrics',
+              language: 'zh_CN',
+            ),
+            title: 'Song',
+            artist: const ['Artist'],
+            album: 'Album',
+            durationSeconds: 120,
+          )
+          .toList();
+
+      expect(onlineRequestedLanguages, ['zht']);
+      expect(results, hasLength(1));
+      expect(results.single.language, 'zht');
+    },
+  );
 }
