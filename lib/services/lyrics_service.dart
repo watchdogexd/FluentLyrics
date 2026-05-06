@@ -101,17 +101,7 @@ class LyricsService {
     final translationBias =
         (await _settingsService.getTranslationBias()).current;
 
-    // create a on translation wrapper that change translationReceived if called
     bool translationReceived = false;
-    LyricsResult onTranslationWrapper(LyricsResult result) {
-      if (translationEnabled &&
-          result.translation &&
-          result.rawTranslation!.isNotEmpty) {
-        translationReceived = true;
-        onTranslation?.call(result);
-      }
-      return result;
-    }
 
     LyricsResult? bestResult;
     for (var provider in priority) {
@@ -144,6 +134,17 @@ class LyricsService {
         continue;
       }
 
+      LyricsResult onTranslationWrapper(LyricsResult result) {
+        final taggedResult = result.copyWith(sourceProvider: provider);
+        if (translationEnabled &&
+            taggedResult.translation &&
+            taggedResult.rawTranslation!.isNotEmpty) {
+          translationReceived = true;
+          onTranslation?.call(taggedResult);
+        }
+        return taggedResult;
+      }
+
       result = await source.fetchLyrics(
         LyricsFetchRequest(
           title: title,
@@ -156,6 +157,13 @@ class LyricsService {
           translationBias: translationBias,
           onTranslation: onTranslationWrapper,
         ),
+      );
+
+      result = result.copyWith(
+        sourceProvider: provider == LyricProviderType.cache
+            ? result.sourceProvider ??
+                  lyricProviderTypeFromSource(result.source)
+            : provider,
       );
 
       if (accumulatedArtworkUrls.isNotEmpty) {
@@ -290,6 +298,7 @@ class LyricsService {
           })
           .join('\n'),
     );
+    final originalSourceProvider = bestResult.sourceProvider;
 
     // start searching
     bool isYielded = false;
@@ -316,20 +325,31 @@ class LyricsService {
         );
         transResult = await _cacheService.getCachedTranslation(cacheId);
         if (transResult != null) {
-          AppLogger.debug(
-            '[LyricsService.fetchTranslation]     ==> Found cached $targetLanguage',
-          );
-          transResult = transResult.copyWith(
-            translationProvider: '${transResult.translationProvider} (cached)',
-          );
-          if (_isCandidate(transResult)) {
-            onTranslationCandidate?.call(transResult);
+          if (!_matchesOriginalSourceProvider(
+            transResult,
+            originalSourceProvider,
+          )) {
+            AppLogger.debug(
+              '[LyricsService.fetchTranslation]     ==> Cached $targetLanguage source provider mismatch, refetching',
+            );
+            transResult = null;
+          } else {
+            AppLogger.debug(
+              '[LyricsService.fetchTranslation]     ==> Found cached $targetLanguage',
+            );
+            transResult = transResult.copyWith(
+              translationProvider:
+                  '${transResult.translationProvider} (cached)',
+            );
+            if (_isCandidate(transResult)) {
+              onTranslationCandidate?.call(transResult);
+            }
+            if (_shouldYield(transResult) && !isYielded) {
+              isYielded = true;
+              yield transResult;
+            }
+            continue;
           }
-          if (_shouldYield(transResult) && !isYielded) {
-            isYielded = true;
-            yield transResult;
-          }
-          continue;
         }
       }
 
@@ -364,6 +384,9 @@ class LyricsService {
             targetLanguage: targetLanguage,
             translationBias: translationBias,
           ),
+        );
+        transResult = transResult.copyWith(
+          sourceProvider: originalSourceProvider,
         );
         // check if successed (malformed? null?)
         final bool usableResult =
@@ -428,5 +451,16 @@ class LyricsService {
     } else {
       return false;
     }
+  }
+
+  bool _matchesOriginalSourceProvider(
+    LyricsResult translation,
+    LyricProviderType? originalSourceProvider,
+  ) {
+    final translationSourceProvider = translation.sourceProvider;
+    if (originalSourceProvider == null || translationSourceProvider == null) {
+      return false;
+    }
+    return translationSourceProvider == originalSourceProvider;
   }
 }
