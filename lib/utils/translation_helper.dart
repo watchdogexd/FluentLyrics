@@ -145,14 +145,22 @@ class TranslationHelper {
     required int similarityThreshold,
   }) {
     if (rawTranslation == null || rawTranslation.isEmpty) return false;
-    final (matched, totalLines) = coverage(
-      currentLyrics: currentLyrics,
+    if (similarityThreshold <= 0) return true;
+    final contentfulLines = _contentfulLines(currentLyrics);
+    final totalLines = contentfulLines.length;
+    if (totalLines == 0) return false;
+
+    // matched * 100 ~/ totalLines >= threshold
+    //   <=> matched >= ceil(threshold * totalLines / 100).
+    final requiredMatched =
+        (similarityThreshold * totalLines + 99) ~/ 100;
+    final matched = _countMatches(
+      contentfulLines: contentfulLines,
       rawTranslation: rawTranslation,
       similarityThreshold: similarityThreshold,
+      earlyExitTarget: requiredMatched,
     );
-    if (totalLines == 0) return false;
-    final coveragePercent = matched * 100 ~/ totalLines;
-    return coveragePercent >= similarityThreshold;
+    return matched >= requiredMatched;
   }
 
   static List<Lyric> _contentfulLines(List<Lyric> lyrics) {
@@ -165,18 +173,25 @@ class TranslationHelper {
 
   /// Walks [contentfulLines] in order and counts how many pair against
   /// [rawTranslation] above [similarityThreshold]. Mirrors [align]'s pairing
-  /// logic without allocating a result `List<Lyric>`.
+  /// logic without allocating a result `List<Lyric>`. When [earlyExitTarget]
+  /// is supplied, stops as soon as the answer is determined — either the
+  /// target is reached or the remaining lines can no longer reach it.
   static int _countMatches({
     required List<Lyric> contentfulLines,
     required List<Map<String, String>> rawTranslation,
     required int similarityThreshold,
+    int? earlyExitTarget,
   }) {
+    final n = contentfulLines.length;
     int matched = 0;
     int nextSearchStartIndex = 0;
-    for (final line in contentfulLines) {
+    for (int idx = 0; idx < n; idx++) {
       for (int i = nextSearchStartIndex; i < rawTranslation.length; i++) {
         final originalText = rawTranslation[i]['original'] ?? '';
-        final similarity = _calcLineSimilarity(line.text, originalText);
+        final similarity = _calcLineSimilarity(
+          contentfulLines[idx].text,
+          originalText,
+        );
         if (similarity > similarityThreshold) {
           matched++;
           if ((i + 1 - nextSearchStartIndex) < maxIndexMove) {
@@ -184,6 +199,11 @@ class TranslationHelper {
           }
           break;
         }
+      }
+      if (earlyExitTarget != null) {
+        if (matched >= earlyExitTarget) return matched;
+        final remaining = n - idx - 1;
+        if (matched + remaining < earlyExitTarget) return matched;
       }
     }
     return matched;
