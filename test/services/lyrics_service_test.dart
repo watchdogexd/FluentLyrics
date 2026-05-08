@@ -50,6 +50,11 @@ class _FakeSettingsService extends SettingsService {
   }
 
   @override
+  Future<Setting<int>> getTranslationAlignmentThreshold() async {
+    return const Setting(current: 80, defaultValue: 80, changed: false);
+  }
+
+  @override
   Future<List<LyricProviderType>> getPriority() async => priority;
 }
 

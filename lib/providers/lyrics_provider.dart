@@ -13,6 +13,7 @@ import '../utils/app_logger.dart';
 import '../utils/lyrics_candidate_helper.dart';
 import '../utils/lyrics_display_helper.dart';
 import '../utils/richify_helper.dart';
+import '../utils/translation_helper.dart';
 
 class LyricsProvider with ChangeNotifier {
   final MediaService mediaService;
@@ -415,10 +416,19 @@ class LyricsProvider with ChangeNotifier {
     if (translation == null) return false;
     final currentSourceProvider = _lyricsResult.sourceProvider;
     final translationSourceProvider = translation.sourceProvider;
-    if (currentSourceProvider == null || translationSourceProvider == null) {
-      return false;
+    if (currentSourceProvider != null &&
+        translationSourceProvider != null &&
+        translationSourceProvider == currentSourceProvider) {
+      return true;
     }
-    return translationSourceProvider == currentSourceProvider;
+    // Fallback: even if the source providers differ (or are missing), the
+    // translation may still be aligned with the current lyrics. Treat it as
+    // valid when its original lines cover enough of the current lyrics.
+    return TranslationHelper.hasSufficientCoverage(
+      currentLyrics: _lyricsResult.lyrics,
+      rawTranslation: translation.rawTranslation,
+      similarityThreshold: _translationAlignmentThreshold.current,
+    );
   }
 
   bool _appendCandidateIfNeeded(LyricsResult candidate) {
