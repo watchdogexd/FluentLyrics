@@ -116,26 +116,22 @@ class TranslationHelper {
   }
 
   /// Counts how many non-empty lines in [currentLyrics] receive a translation
-  /// when paired against [rawTranslation] using [align]. Returns
-  /// `(matched, totalLines)` where `totalLines` is the number of contentful
-  /// lines in [currentLyrics].
+  /// when paired against [rawTranslation]. Returns `(matched, totalLines)`
+  /// where `totalLines` is the number of contentful lines in [currentLyrics].
   static (int matched, int totalLines) coverage({
     required List<Lyric> currentLyrics,
     required List<Map<String, String>> rawTranslation,
     int similarityThreshold = 80,
   }) {
-    final contentfulLines = currentLyrics
-        .where((l) => l.text.trim().isNotEmpty)
-        .toList();
+    final contentfulLines = _contentfulLines(currentLyrics);
     final totalLines = contentfulLines.length;
     if (totalLines == 0 || rawTranslation.isEmpty) return (0, totalLines);
 
-    final aligned = align(
-      originalLyrics: contentfulLines,
+    final matched = _countMatches(
+      contentfulLines: contentfulLines,
       rawTranslation: rawTranslation,
       similarityThreshold: similarityThreshold,
     );
-    final matched = aligned.where((l) => l.translation != null).length;
     return (matched, totalLines);
   }
 
@@ -157,6 +153,40 @@ class TranslationHelper {
     if (totalLines == 0) return false;
     final coveragePercent = matched * 100 ~/ totalLines;
     return coveragePercent >= similarityThreshold;
+  }
+
+  static List<Lyric> _contentfulLines(List<Lyric> lyrics) {
+    final out = <Lyric>[];
+    for (final l in lyrics) {
+      if (l.text.trim().isNotEmpty) out.add(l);
+    }
+    return out;
+  }
+
+  /// Walks [contentfulLines] in order and counts how many pair against
+  /// [rawTranslation] above [similarityThreshold]. Mirrors [align]'s pairing
+  /// logic without allocating a result `List<Lyric>`.
+  static int _countMatches({
+    required List<Lyric> contentfulLines,
+    required List<Map<String, String>> rawTranslation,
+    required int similarityThreshold,
+  }) {
+    int matched = 0;
+    int nextSearchStartIndex = 0;
+    for (final line in contentfulLines) {
+      for (int i = nextSearchStartIndex; i < rawTranslation.length; i++) {
+        final originalText = rawTranslation[i]['original'] ?? '';
+        final similarity = _calcLineSimilarity(line.text, originalText);
+        if (similarity > similarityThreshold) {
+          matched++;
+          if ((i + 1 - nextSearchStartIndex) < maxIndexMove) {
+            nextSearchStartIndex = i + 1;
+          }
+          break;
+        }
+      }
+    }
+    return matched;
   }
 
   static int _calcLineSimilarity(String line1, String line2) {
