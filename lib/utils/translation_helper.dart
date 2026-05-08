@@ -186,18 +186,23 @@ class TranslationHelper {
     int matched = 0;
     int nextSearchStartIndex = 0;
     for (int idx = 0; idx < n; idx++) {
-      for (int i = nextSearchStartIndex; i < rawTranslation.length; i++) {
-        final originalText = rawTranslation[i]['original'] ?? '';
-        final similarity = _calcLineSimilarity(
-          contentfulLines[idx].text,
-          originalText,
-        );
-        if (similarity > similarityThreshold) {
-          matched++;
-          if ((i + 1 - nextSearchStartIndex) < maxIndexMove) {
-            nextSearchStartIndex = i + 1;
+      // Normalize the outer line once per outer iteration instead of once per
+      // (outer, inner) pair.
+      final cleanLine = contentfulLines[idx].text.toLowerCase().trim();
+      if (cleanLine.isNotEmpty) {
+        for (int i = nextSearchStartIndex; i < rawTranslation.length; i++) {
+          final originalText = rawTranslation[i]['original'] ?? '';
+          final similarity = _calcLineSimilarityFromClean(
+            cleanLine,
+            originalText,
+          );
+          if (similarity > similarityThreshold) {
+            matched++;
+            if ((i + 1 - nextSearchStartIndex) < maxIndexMove) {
+              nextSearchStartIndex = i + 1;
+            }
+            break;
           }
-          break;
         }
       }
       if (earlyExitTarget != null) {
@@ -211,17 +216,18 @@ class TranslationHelper {
 
   static int _calcLineSimilarity(String line1, String line2) {
     if (line1.isEmpty || line2.isEmpty) return 0;
+    final clean1 = line1.toLowerCase().trim();
+    if (clean1.isEmpty) return 0;
+    return _calcLineSimilarityFromClean(clean1, line2);
+  }
 
-    // 1. Simple normalization
-    String clean1 = line1.toLowerCase().trim();
-    String clean2 = line2.toLowerCase().trim();
-
-    if (clean1.isEmpty || clean2.isEmpty) return 0;
-
-    // 2. Calculate similarity (0-100)
+  static int _calcLineSimilarityFromClean(String cleanLine1, String line2) {
+    if (cleanLine1.isEmpty || line2.isEmpty) return 0;
+    final clean2 = line2.toLowerCase().trim();
+    if (clean2.isEmpty) return 0;
     try {
       // StringSimilarity.compareTwoStrings returns 0.0 to 1.0
-      final similarity = StringSimilarity.compareTwoStrings(clean1, clean2);
+      final similarity = StringSimilarity.compareTwoStrings(cleanLine1, clean2);
       return (similarity * 100).toInt();
     } catch (e) {
       AppLogger.debug('[LyricAligner] Error calculating similarity: $e');
