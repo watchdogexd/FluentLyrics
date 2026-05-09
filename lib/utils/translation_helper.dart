@@ -145,10 +145,10 @@ class TranslationHelper {
     required int similarityThreshold,
   }) {
     if (rawTranslation == null || rawTranslation.isEmpty) return false;
-    if (similarityThreshold <= 0) return true;
     final contentfulLines = _contentfulLines(currentLyrics);
     final totalLines = contentfulLines.length;
     if (totalLines == 0) return false;
+    if (similarityThreshold <= 0) return true;
 
     // matched * 100 ~/ totalLines >= threshold
     //   <=> matched >= ceil(threshold * totalLines / 100).
