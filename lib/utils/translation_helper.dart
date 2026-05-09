@@ -137,27 +137,30 @@ class TranslationHelper {
 
   /// Returns `true` when [rawTranslation]'s original lines align with
   /// [currentLyrics] well enough that the coverage ratio meets
-  /// [similarityThreshold] (interpreted as a percentage). Used to decide
-  /// whether an existing translation is still valid for a new lyrics result.
+  /// [coverageThreshold] (interpreted as a percentage), where each line is
+  /// considered matched when its similarity exceeds [perLineSimilarityThreshold].
+  /// Used to decide whether an existing translation is still valid for a new
+  /// lyrics result.
   static bool hasSufficientCoverage({
     required List<Lyric> currentLyrics,
     required List<Map<String, String>>? rawTranslation,
-    required int similarityThreshold,
+    required int coverageThreshold,
+    required int perLineSimilarityThreshold,
   }) {
     if (rawTranslation == null || rawTranslation.isEmpty) return false;
     final contentfulLines = _contentfulLines(currentLyrics);
     final totalLines = contentfulLines.length;
     if (totalLines == 0) return false;
-    if (similarityThreshold <= 0) return true;
+    if (coverageThreshold <= 0) return true;
 
     // matched * 100 ~/ totalLines >= threshold
     //   <=> matched >= ceil(threshold * totalLines / 100).
     final requiredMatched =
-        (similarityThreshold * totalLines + 99) ~/ 100;
+        (coverageThreshold * totalLines + 99) ~/ 100;
     final matched = _countMatches(
       contentfulLines: contentfulLines,
       rawTranslation: rawTranslation,
-      similarityThreshold: similarityThreshold,
+      similarityThreshold: perLineSimilarityThreshold,
       earlyExitTarget: requiredMatched,
     );
     return matched >= requiredMatched;

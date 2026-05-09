@@ -94,6 +94,11 @@ class LyricsProvider with ChangeNotifier {
   set _translationAlignmentThreshold(Setting<int> value) =>
       _settings.translationAlignmentThreshold = value;
 
+  Setting<int> get _translationCoveragePerLineThreshold =>
+      _settings.translationCoveragePerLineThreshold;
+  set _translationCoveragePerLineThreshold(Setting<int> value) =>
+      _settings.translationCoveragePerLineThreshold = value;
+
   Setting<String> get _llmApiEndpoint => _settings.llmApiEndpoint;
   set _llmApiEndpoint(Setting<String> value) =>
       _settings.llmApiEndpoint = value;
@@ -272,6 +277,8 @@ class LyricsProvider with ChangeNotifier {
   Setting<int> get translationBias => _translationBias;
   Setting<int> get translationAlignmentThreshold =>
       _translationAlignmentThreshold;
+  Setting<int> get translationCoveragePerLineThreshold =>
+      _translationCoveragePerLineThreshold;
   Setting<String> get llmApiEndpoint => _llmApiEndpoint;
   Setting<String> get llmApiKey => _llmApiKey;
   Setting<String> get llmModel => _llmModel;
@@ -427,7 +434,9 @@ class LyricsProvider with ChangeNotifier {
     return TranslationHelper.hasSufficientCoverage(
       currentLyrics: _lyricsResult.lyrics,
       rawTranslation: translation.rawTranslation,
-      similarityThreshold: _translationAlignmentThreshold.current,
+      coverageThreshold: _translationAlignmentThreshold.current,
+      perLineSimilarityThreshold:
+          _translationCoveragePerLineThreshold.current,
     );
   }
 
@@ -650,6 +659,15 @@ class LyricsProvider with ChangeNotifier {
     // Changing the threshold requires realigning lyrics
     _lastTranslationResultForAlignment = null;
     notifyListeners();
+  }
+
+  void setTranslationCoveragePerLineThreshold(int threshold) {
+    _setSettingValue(
+      currentSetting: _translationCoveragePerLineThreshold,
+      value: threshold,
+      assign: (value) => _translationCoveragePerLineThreshold = value,
+      persist: _settingsService.setTranslationCoveragePerLineThreshold,
+    );
   }
 
   void setTranslationEnabled(bool enabled) {

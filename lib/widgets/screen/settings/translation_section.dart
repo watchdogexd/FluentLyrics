@@ -141,6 +141,32 @@ class TranslationSection extends StatelessWidget {
                 resetTooltip: 'Reset to 80%',
               ),
               const SizedBox(height: 24),
+              // Coverage Per-Line Threshold (cache validation)
+              SettingsSliderCard(
+                title: 'Cache Per-Line Match Threshold',
+                subtitle:
+                    'Min % similarity per line when validating a cached translation against current lyrics. Only used when source providers differ.',
+                value: provider.translationCoveragePerLineThreshold.current
+                    .toDouble(),
+                min: 0,
+                max: 100,
+                divisions: 20,
+                label:
+                    '${provider.translationCoveragePerLineThreshold.current}%',
+                valueText:
+                    '${provider.translationCoveragePerLineThreshold.current}%',
+                onChanged: (value) => provider
+                    .setTranslationCoveragePerLineThreshold(value.toInt()),
+                onReset: provider.translationCoveragePerLineThreshold.changed
+                    ? () => provider.setTranslationCoveragePerLineThreshold(
+                        provider
+                            .translationCoveragePerLineThreshold
+                            .defaultValue,
+                      )
+                    : null,
+                resetTooltip: 'Reset to 80%',
+              ),
+              const SizedBox(height: 24),
               // LLM Configuration
               LlmConfigurationCard(provider: provider),
             ],

@@ -20,6 +20,7 @@ class LyricsProviderSettings {
     required this.translationIgnoredLanguages,
     required this.translationBias,
     required this.translationAlignmentThreshold,
+    required this.translationCoveragePerLineThreshold,
     required this.llmApiEndpoint,
     required this.llmApiKey,
     required this.llmModel,
@@ -106,6 +107,11 @@ class LyricsProviderSettings {
         defaultValue: AppDefaults.translationAlignmentThreshold,
         changed: false,
       ),
+      translationCoveragePerLineThreshold: const Setting(
+        current: AppDefaults.translationCoveragePerLineThreshold,
+        defaultValue: AppDefaults.translationCoveragePerLineThreshold,
+        changed: false,
+      ),
       llmApiEndpoint: const Setting(
         current: AppDefaults.llmApiEndpoint,
         defaultValue: AppDefaults.llmApiEndpoint,
@@ -167,6 +173,8 @@ class LyricsProviderSettings {
       translationBias: await settingsService.getTranslationBias(),
       translationAlignmentThreshold: await settingsService
           .getTranslationAlignmentThreshold(),
+      translationCoveragePerLineThreshold: await settingsService
+          .getTranslationCoveragePerLineThreshold(),
       llmApiEndpoint: await settingsService.getLlmApiEndpoint(),
       llmApiKey: await settingsService.getLlmApiKey(),
       llmModel: await settingsService.getLlmModel(),
@@ -194,6 +202,7 @@ class LyricsProviderSettings {
   Setting<List<String>> translationIgnoredLanguages;
   Setting<int> translationBias;
   Setting<int> translationAlignmentThreshold;
+  Setting<int> translationCoveragePerLineThreshold;
   Setting<String> llmApiEndpoint;
   Setting<String> llmApiKey;
   Setting<String> llmModel;

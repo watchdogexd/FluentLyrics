@@ -179,6 +179,11 @@ class _FakeSettingsService extends SettingsService {
   }
 
   @override
+  Future<Setting<int>> getTranslationCoveragePerLineThreshold() async {
+    return const Setting(current: 80, defaultValue: 80, changed: false);
+  }
+
+  @override
   Future<Setting<String>> getLlmApiEndpoint() async {
     return const Setting(current: '', defaultValue: '', changed: false);
   }
